@@ -1,0 +1,54 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary-50: #FAF7FC;
+  --color-primary-100: #F1EBF5;
+  --color-primary-200: #E2D4EC;
+  --color-primary-300: #CBB4DE;
+  --color-primary-400: #B190CC;
+  --color-primary-500: #9B7CB8;
+  --color-primary-600: #8162A0;
+  --color-primary-700: #6A5086;
+  --color-primary-800: #57446D;
+  --color-primary-900: #493A59;
+  --color-primary-950: #2E223B;
+
+  --color-secondary-50: #F4F8F1;
+  --color-secondary-100: #E6F0E0;
+  --color-secondary-200: #CFE3C4;
+  --color-secondary-300: #AED19E;
+  --color-secondary-400: #8DBB78;
+  --color-secondary-500: #7BA05B;
+  --color-secondary-600: #5D8041;
+  --color-secondary-700: #486435;
+  --color-secondary-800: #3A4F2C;
+  --color-secondary-900: #304226;
+
+  --color-accent-50: #FDF7FA;
+  --color-accent-100: #FAECF4;
+  --color-accent-200: #F3D5E7;
+  --color-accent-300: #EAB2D4;
+  --color-accent-400: #DF84BA;
+  --color-accent-500: #D4A5C4;
+  --color-accent-600: #BA4E8E;
+  --color-accent-700: #9D3972;
+  --color-accent-800: #823260;
+  --color-accent-900: #6D2D52;
+
+  --font-sans: 'Cairo', system-ui, sans-serif;
+  --font-serif: 'Playfair Display', ui-serif, Georgia, serif;
+
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+}
+
+@layer base {
+  body {
+    @apply bg-primary-50 text-neutral-800 font-sans antialiased;
+    direction: rtl;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-serif text-primary-900 font-medium;
+  }
+}
