@@ -30,7 +30,7 @@ export default function Home() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 1, delay: 0.3 }}
-              className="text-6xl md:text-8xl lg:text-9xl font-bold text-pink-500 font-serif mb-6 leading-tight drop-shadow-2xl tracking-tight"
+              className="text-6xl md:text-8xl lg:text-9xl font-bold text-purple-400 font-serif mb-6 leading-tight drop-shadow-2xl tracking-tight"
             >
               Lavender Florist
             </motion.h1>
