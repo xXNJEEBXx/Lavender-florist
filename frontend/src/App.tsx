@@ -11,26 +11,35 @@ import Dashboard from '@/pages/admin/Dashboard';
 import ProductsList from '@/pages/admin/ProductsList';
 import OrdersList from '@/pages/admin/OrdersList';
 
+import { AuthProvider } from '@/store/AuthContext';
+import { CartProvider } from '@/store/CartContext';
+import LoginModal from '@/components/ui/LoginModal';
+
 function App() {
   return (
-    <Router>
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        
-        <Route element={<MainLayout />}>
-          <Route path="/" element={<Home />} />
-          <Route path="/products" element={<Products />} />
-          <Route path="/products/:slug" element={<ProductDetail />} />
-          <Route path="/cart" element={<Cart />} />
-        </Route>
+    <AuthProvider>
+      <CartProvider>
+        <Router>
+          <LoginModal />
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            
+            <Route element={<MainLayout />}>
+              <Route path="/" element={<Home />} />
+              <Route path="/products" element={<Products />} />
+              <Route path="/products/:slug" element={<ProductDetail />} />
+              <Route path="/cart" element={<Cart />} />
+            </Route>
 
-        <Route path="/admin" element={<AdminLayout />}>
-          <Route index element={<Dashboard />} />
-          <Route path="products" element={<ProductsList />} />
-          <Route path="orders" element={<OrdersList />} />
-        </Route>
-      </Routes>
-    </Router>
+            <Route path="/admin" element={<AdminLayout />}>
+              <Route index element={<Dashboard />} />
+              <Route path="products" element={<ProductsList />} />
+              <Route path="orders" element={<OrdersList />} />
+            </Route>
+          </Routes>
+        </Router>
+      </CartProvider>
+    </AuthProvider>
   );
 }
 

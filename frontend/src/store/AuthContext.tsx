@@ -10,6 +10,9 @@ interface AuthContextType {
   register: (data: { name: string; email: string; password: string; password_confirmation: string; phone?: string }) => Promise<void>;
   logout: () => Promise<void>;
   setUser: (user: User | null) => void;
+  isLoginModalOpen: boolean;
+  openLoginModal: () => void;
+  closeLoginModal: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -17,6 +20,10 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+
+  const openLoginModal = () => setIsLoginModalOpen(true);
+  const closeLoginModal = () => setIsLoginModalOpen(false);
 
   useEffect(() => {
     checkAuth();
@@ -72,6 +79,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         register,
         logout,
         setUser,
+        isLoginModalOpen,
+        openLoginModal,
+        closeLoginModal,
       }}
     >
       {children}
