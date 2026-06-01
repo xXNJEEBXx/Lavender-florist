@@ -30,12 +30,9 @@ export default function Home() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 1, delay: 0.3 }}
-              className="text-6xl md:text-8xl lg:text-9xl font-bold text-pink-300 font-serif mb-6 leading-tight drop-shadow-2xl tracking-tight"
+              className="text-6xl md:text-8xl lg:text-9xl font-bold text-pink-500 font-serif mb-6 leading-tight drop-shadow-2xl tracking-tight"
             >
               Lavender Florist
-              <span className="block text-3xl md:text-5xl mt-6 text-white/90 font-serif italic drop-shadow-lg font-light tracking-wide">
-                للهدايا لغة لا تحتاج لكلمات
-              </span>
             </motion.h1>
             
             <motion.p 
