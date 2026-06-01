@@ -65,27 +65,27 @@ export default function LoginModal() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ type: "spring", duration: 0.5, bounce: 0 }}
-            className="relative w-full max-w-5xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col lg:flex-row h-[90vh] lg:h-[600px] z-10"
+            className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col z-10"
           >
             {/* Close Button */}
             <button 
               onClick={closeLoginModal}
-              className="absolute top-4 right-4 z-50 p-2 bg-white/80 backdrop-blur-md rounded-full text-primary-900 hover:bg-white hover:text-rose-500 transition-colors shadow-sm"
+              className="absolute top-4 right-4 z-50 p-2 bg-primary-50 rounded-full text-primary-900 hover:bg-rose-50 hover:text-rose-500 transition-colors"
             >
               <X size={20} />
             </button>
 
             {/* Form Section */}
-            <div className="w-full lg:w-1/2 flex items-center justify-center p-8 lg:p-16 bg-white overflow-y-auto">
-              <div className="w-full max-w-sm">
-                <div className="mb-10 text-center lg:text-right">
-                  <h2 className="text-3xl lg:text-4xl font-serif font-bold text-primary-950 mb-3">تسجيل الدخول</h2>
+            <div className="w-full flex items-center justify-center p-8 bg-white overflow-y-auto">
+              <div className="w-full max-w-sm mt-4">
+                <div className="mb-8 text-center">
+                  <h2 className="text-3xl font-serif font-bold text-primary-950 mb-2">تسجيل الدخول</h2>
                   <p className="text-primary-600 text-sm">مرحباً بعودتك! الرجاء إدخال بياناتك للمتابعة.</p>
                 </div>
 
-                <form onSubmit={handleLogin} className="space-y-5">
+                <form onSubmit={handleLogin} className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-primary-900 mb-2">البريد الإلكتروني</label>
+                    <label className="block text-sm font-medium text-primary-900 mb-1.5">البريد الإلكتروني</label>
                     <input 
                       type="email" 
                       value={email}
@@ -98,7 +98,7 @@ export default function LoginModal() {
                   </div>
                   
                   <div>
-                    <div className="flex justify-between items-center mb-2">
+                    <div className="flex justify-between items-center mb-1.5">
                       <label className="block text-sm font-medium text-primary-900">كلمة المرور</label>
                       <a href="#" className="text-sm text-primary-600 hover:text-primary-900 font-medium">نسيت كلمة المرور؟</a>
                     </div>
@@ -115,12 +115,12 @@ export default function LoginModal() {
 
                   <button 
                     type="submit"
-                    className="w-full py-3.5 mt-2 bg-primary-800 text-white rounded-xl font-bold hover:bg-primary-900 transition-colors shadow-lg shadow-primary-900/10"
+                    className="w-full py-3.5 mt-4 bg-primary-800 text-white rounded-xl font-bold hover:bg-primary-900 transition-colors shadow-lg shadow-primary-900/10"
                   >
                     تسجيل الدخول
                   </button>
                   
-                  <div className="relative my-6">
+                  <div className="relative my-5">
                     <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-primary-100"></div></div>
                     <div className="relative flex justify-center text-xs"><span className="px-4 bg-white text-primary-500">أو</span></div>
                   </div>
@@ -136,34 +136,6 @@ export default function LoginModal() {
                 
                 <p className="mt-6 text-center text-primary-600 text-sm">
                   ليس لديك حساب؟ <a href="/register" onClick={() => closeLoginModal()} className="font-semibold text-primary-900 hover:underline">إنشاء حساب جديد</a>
-                </p>
-              </div>
-            </div>
-            
-            {/* Image Section */}
-            <div className="hidden lg:block w-1/2 relative overflow-hidden bg-primary-950">
-              <motion.div 
-                initial={{ scale: 1.1 }}
-                animate={{ scale: 1 }}
-                transition={{ duration: 2, ease: "easeOut" }}
-                className="absolute inset-0"
-              >
-                <video 
-                  autoPlay 
-                  loop 
-                  muted 
-                  playsInline 
-                  className="absolute inset-0 w-full h-full object-cover opacity-80"
-                >
-                  <source src="/Video image display.mp4" type="video/mp4" />
-                </video>
-                <div className="absolute inset-0 bg-primary-950/30 mix-blend-multiply z-10"></div>
-              </motion.div>
-              
-              <div className="absolute inset-0 z-20 flex flex-col justify-end p-12 text-white bg-gradient-to-t from-primary-950/90 via-primary-950/20 to-transparent">
-                <h3 className="text-3xl font-serif font-bold mb-3 drop-shadow-md">الورد لغة القلوب</h3>
-                <p className="text-lg text-white/90 font-light leading-relaxed">
-                  انضم إلينا لتكتشف أجمل التنسيقات والهدايا التي تصنع بهجة لا تُنسى.
                 </p>
               </div>
             </div>
