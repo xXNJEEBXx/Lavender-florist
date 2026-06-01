@@ -11,54 +11,64 @@ export default function Home() {
             loop 
             muted 
             playsInline 
-            className="absolute inset-0 w-full h-full object-cover blur-[6px] opacity-70"
+            className="absolute inset-0 w-full h-full object-cover blur-[8px] opacity-80 scale-105"
           >
             <source src="/Video image display.mp4" type="video/mp4" />
           </video>
-          <div className="absolute inset-0 bg-gradient-to-t from-primary-50/80 via-transparent to-primary-100/30"></div>
+          <div className="absolute inset-0 bg-primary-950/40 mix-blend-multiply"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-primary-50 via-transparent to-transparent"></div>
         </div>
         
-        <div className="max-w-7xl mx-auto px-4 lg:px-8 relative z-10 flex flex-col items-center text-center pt-10">
+        <div className="max-w-7xl mx-auto px-4 lg:px-8 relative z-10 flex flex-col items-center justify-center text-center h-[calc(100vh-80px)] min-h-[600px]">
           <motion.div 
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="mb-6 inline-block rounded-full bg-white/70 backdrop-blur-md px-4 py-1.5 text-sm font-medium text-primary-800 border border-white/50 shadow-sm"
+            transition={{ duration: 1, ease: "easeOut" }}
+            className="flex flex-col items-center bg-white/10 backdrop-blur-md p-10 md:p-16 rounded-[3rem] border border-white/20 shadow-2xl"
           >
-            عالم من الجمال يزهر بين يديك 🌸
-          </motion.div>
-          
-          <motion.h1 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.1 }}
-            className="text-6xl md:text-8xl font-bold text-primary-950 font-serif mb-6 leading-tight drop-shadow-sm tracking-tight"
-          >
-            Lavender Florist
-            <span className="block text-3xl md:text-4xl mt-4 text-primary-800 font-serif italic drop-shadow-sm font-medium">للهدايا لغة لا تحتاج لكلمات</span>
-          </motion.h1>
-          
-          <motion.p 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            className="text-lg md:text-xl text-primary-800 max-w-2xl mb-10 leading-relaxed"
-          >
-            نقدم لك أرقى التنسيقات من الورود الطبيعية والهدايا الفاخرة التي تصنع لحظات لا تُنسى في كل مناسباتك.
-          </motion.p>
-          
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.3 }}
-            className="flex flex-col sm:flex-row gap-4"
-          >
-            <button className="px-8 py-4 bg-primary-800 text-white rounded-xl font-semibold text-lg hover:bg-primary-900 transition-all shadow-lg shadow-primary-900/20 transform hover:-translate-y-1">
-              تسوق الآن
-            </button>
-            <button className="px-8 py-4 bg-white text-primary-800 border border-primary-200 rounded-xl font-semibold text-lg hover:bg-primary-50 transition-all shadow-sm">
-              تصفح التنسيقات
-            </button>
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 1, delay: 0.3 }}
+              className="mb-8 inline-block rounded-full bg-white/80 backdrop-blur-xl px-6 py-2 text-sm font-semibold text-primary-900 border border-white/50 shadow-sm"
+            >
+              عالم من الجمال يزهر بين يديك 🌸
+            </motion.div>
+            
+            <motion.h1 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 1, delay: 0.5 }}
+              className="text-6xl md:text-8xl lg:text-9xl font-bold text-white font-serif mb-6 leading-tight drop-shadow-2xl tracking-tight"
+            >
+              Lavender Florist
+              <span className="block text-3xl md:text-5xl mt-6 text-white/90 font-serif italic drop-shadow-lg font-light tracking-wide">
+                للهدايا لغة لا تحتاج لكلمات
+              </span>
+            </motion.h1>
+            
+            <motion.p 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 1, delay: 0.7 }}
+              className="text-lg md:text-2xl text-white/80 max-w-2xl mb-12 leading-relaxed drop-shadow-md font-light"
+            >
+              نقدم لك أرقى التنسيقات من الورود الطبيعية والهدايا الفاخرة التي تصنع لحظات لا تُنسى في كل مناسباتك.
+            </motion.p>
+            
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 1, delay: 0.9 }}
+              className="flex flex-col sm:flex-row gap-6 w-full sm:w-auto"
+            >
+              <button className="px-10 py-5 bg-white text-primary-950 rounded-2xl font-bold text-lg hover:bg-primary-50 transition-all shadow-xl shadow-white/10 transform hover:-translate-y-1">
+                تسوق الآن
+              </button>
+              <button className="px-10 py-5 bg-primary-900/60 backdrop-blur-md text-white border border-white/30 rounded-2xl font-bold text-lg hover:bg-primary-800/80 transition-all shadow-lg transform hover:-translate-y-1">
+                تصفح التنسيقات
+              </button>
+            </motion.div>
           </motion.div>
         </div>
       </section>

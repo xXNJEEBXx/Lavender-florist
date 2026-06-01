@@ -31,7 +31,7 @@ export default function Footer() {
             {/* Brand */}
             <div className="lg:col-span-1">
               <Link to="/" className="flex items-center gap-3 mb-6">
-                <img src="/logo.png" alt="لافندر فلوريست" className="h-14 w-auto brightness-110" />
+                <img src="/logo.png" alt="Lavender Florist" className="h-14 w-auto brightness-110" />
                 <div>
                   <h3 className="font-display text-xl font-bold text-white">Lavender Florist</h3>
                   <p className="text-lavender-300 text-xs">تنسيق أزهار و تغليف هدايا</p>
@@ -143,7 +143,7 @@ export default function Footer() {
         <div className="border-t border-white/10 py-6">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-sm text-lavender-400">
-              © {new Date().getFullYear()} لافندر فلوريست. جميع الحقوق محفوظة.
+              © {new Date().getFullYear()} Lavender Florist. جميع الحقوق محفوظة.
             </p>
             <p className="text-sm text-lavender-400 flex items-center gap-1">
               صنع بكل <Heart className="w-4 h-4 text-rose-400 fill-current" /> في الأحساء
