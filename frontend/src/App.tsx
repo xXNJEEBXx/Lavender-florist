@@ -5,16 +5,29 @@ import Home from '@/pages/Home';
 import Products from '@/pages/Products';
 import ProductDetail from '@/pages/ProductDetail';
 import Cart from '@/pages/Cart';
+import Login from '@/pages/Login';
+import AdminLayout from '@/components/layout/AdminLayout';
+import Dashboard from '@/pages/admin/Dashboard';
+import ProductsList from '@/pages/admin/ProductsList';
+import OrdersList from '@/pages/admin/OrdersList';
 
 function App() {
   return (
     <Router>
       <Routes>
+        <Route path="/login" element={<Login />} />
+        
         <Route element={<MainLayout />}>
           <Route path="/" element={<Home />} />
           <Route path="/products" element={<Products />} />
           <Route path="/products/:slug" element={<ProductDetail />} />
           <Route path="/cart" element={<Cart />} />
+        </Route>
+
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<Dashboard />} />
+          <Route path="products" element={<ProductsList />} />
+          <Route path="orders" element={<OrdersList />} />
         </Route>
       </Routes>
     </Router>
