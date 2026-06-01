@@ -24,9 +24,13 @@ export const fetchProducts = () => api.get('/products').then(res => res.data);
 export const fetchProductBySlug = (slug: string) => api.get(`/products/${slug}`).then(res => res.data);
 
 // Basic Auth
-export const login = (credentials: any) => api.post('/auth/login', credentials);
-export const register = (data: any) => api.post('/auth/register', data);
-export const logout = () => api.post('/auth/logout');
-export const getMe = () => api.get('/auth/me');
+export const getCsrfCookie = () => api.get('/sanctum/csrf-cookie');
+
+export const authApi = {
+  login: (credentials: any) => api.post('/auth/login', credentials),
+  register: (data: any) => api.post('/auth/register', data),
+  logout: () => api.post('/auth/logout'),
+  me: () => api.get('/auth/me'),
+};
 
 export default api;
