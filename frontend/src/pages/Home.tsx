@@ -15,7 +15,7 @@ export default function Home() {
           >
             <source src="/Video image display.mp4" type="video/mp4" />
           </video>
-          <div className="absolute inset-0 bg-primary-950/40 mix-blend-multiply"></div>
+          <div className="absolute inset-0 bg-white/40 mix-blend-screen"></div>
           <div className="absolute inset-0 bg-gradient-to-t from-primary-50 via-transparent to-transparent"></div>
         </div>
         
@@ -24,13 +24,13 @@ export default function Home() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, ease: "easeOut" }}
-            className="flex flex-col items-center bg-white/10 backdrop-blur-md p-10 md:p-16 rounded-[3rem] border border-white/20 shadow-2xl"
+            className="flex flex-col items-center bg-white/40 backdrop-blur-md p-10 md:p-16 rounded-[3rem] border border-white/40 shadow-xl"
           >
             <motion.h1 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 1, delay: 0.3 }}
-              className="text-6xl md:text-8xl lg:text-9xl font-bold text-purple-400 font-serif mb-6 leading-tight drop-shadow-2xl tracking-tight"
+              className="text-6xl md:text-8xl lg:text-9xl font-bold text-primary-900 font-serif mb-6 leading-tight drop-shadow-lg tracking-tight"
             >
               Lavender Florist
             </motion.h1>
@@ -39,7 +39,7 @@ export default function Home() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 1, delay: 0.5 }}
-              className="text-lg md:text-2xl text-white/80 max-w-2xl mb-12 leading-relaxed drop-shadow-md font-light"
+              className="text-lg md:text-2xl text-primary-800 max-w-2xl mb-12 leading-relaxed font-medium"
             >
               أرقى التنسيقات من الورود الطبيعية والهدايا الفاخرة التي تصنع لحظات لا تُنسى في كل مناسباتك.
             </motion.p>
