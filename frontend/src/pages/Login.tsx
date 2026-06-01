@@ -92,16 +92,23 @@ export default function Login() {
       </div>
       
       {/* Image Section */}
-      <div className="hidden lg:block w-1/2 relative bg-primary-100 overflow-hidden">
+      <div className="hidden lg:block w-1/2 relative overflow-hidden bg-primary-950">
         <motion.div 
           initial={{ scale: 1.1 }}
           animate={{ scale: 1 }}
           transition={{ duration: 2, ease: "easeOut" }}
           className="absolute inset-0"
         >
-          <div className="absolute inset-0 bg-primary-900/20 mix-blend-multiply z-10"></div>
-          {/* We use a beautiful floral gradient as a placeholder for the login image */}
-          <div className="w-full h-full bg-gradient-to-br from-pink-300 via-purple-400 to-indigo-500"></div>
+          <video 
+            autoPlay 
+            loop 
+            muted 
+            playsInline 
+            className="absolute inset-0 w-full h-full object-cover opacity-80"
+          >
+            <source src="/Video image display.mp4" type="video/mp4" />
+          </video>
+          <div className="absolute inset-0 bg-primary-950/30 mix-blend-multiply z-10"></div>
         </motion.div>
         
         <div className="absolute inset-0 z-20 flex flex-col justify-end p-16 text-white bg-gradient-to-t from-primary-950/80 via-primary-950/20 to-transparent">
