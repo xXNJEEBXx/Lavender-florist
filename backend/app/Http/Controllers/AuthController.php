@@ -12,49 +12,77 @@ use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
-    public function register(Request $request)
+    public function sendOtp(Request $request)
     {
         $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8|confirmed',
-            'phone' => 'nullable|string|max:20|unique:users',
+            'email' => 'required|email|max:255',
         ]);
 
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'phone' => $request->phone,
-            'role' => 'customer',
-            'auth_provider' => 'email',
-        ]);
+        $email = strtolower(trim($request->email));
 
-        // Create empty cart for user
-        Cart::create(['user_id' => $user->id]);
+        // Generate 4-digit OTP
+        $otp = (string) random_int(1000, 9999);
 
-        $token = $user->createToken('auth_token')->plainTextToken;
+        // In local/testing, we might use a fixed OTP or just use random but we will always log it just in case
+        \Illuminate\Support\Facades\Log::info("OTP for {$email} is {$otp}");
 
-        return response()->json([
-            'user' => $user,
-            'token' => $token,
-        ], 201);
+        // Cache the OTP for 10 minutes
+        \Illuminate\Support\Facades\Cache::put("otp_{$email}", $otp, now()->addMinutes(10));
+
+        // Send Email via Resend
+        $resendKey = env('RESEND_API_KEY');
+        if ($resendKey) {
+            \Illuminate\Support\Facades\Http::withToken($resendKey)
+                ->post('https://api.resend.com/emails', [
+                    'from' => 'Lavender Florist <onboarding@resend.dev>', // Use verified domain later
+                    'to' => $email,
+                    'subject' => 'رمز التحقق الخاص بك - لافندر فلوريست',
+                    'html' => "<div dir='rtl' style='font-family: sans-serif; text-align: center; padding: 20px;'>
+                                <h2>مرحباً بك في لافندر فلوريست 🌸</h2>
+                                <p>رمز التحقق الخاص بك هو:</p>
+                                <h1 style='color: #6d28d9; letter-spacing: 5px; font-size: 36px;'>{$otp}</h1>
+                                <p>هذا الرمز صالح لمدة 10 دقائق.</p>
+                               </div>"
+                ]);
+        }
+
+        return response()->json(['message' => 'OTP sent successfully']);
     }
 
-    public function login(Request $request)
+    public function verifyOtp(Request $request)
     {
         $request->validate([
             'email' => 'required|email',
-            'password' => 'required',
+            'otp' => 'required|string|size:4',
         ]);
 
-        $user = User::where('email', $request->email)->first();
+        $email = strtolower(trim($request->email));
+        $cachedOtp = \Illuminate\Support\Facades\Cache::get("otp_{$email}");
 
-        if (!$user || !Hash::check($request->password, $user->password)) {
-            throw ValidationException::withMessages([
-                'email' => ['البيانات المدخلة غير صحيحة.'],
-            ]);
+        if (!$cachedOtp || $cachedOtp !== $request->otp) {
+            // For testing purposes, allow '0000' as a master OTP if not in production
+            if (app()->environment('local') && $request->otp === '0000') {
+                // Allow
+            } else {
+                throw ValidationException::withMessages([
+                    'otp' => ['رمز التحقق غير صحيح أو منتهي الصلاحية.'],
+                ]);
+            }
         }
+
+        // OTP is valid, clear it
+        \Illuminate\Support\Facades\Cache::forget("otp_{$email}");
+
+        // Find or create user
+        $user = User::firstOrCreate(
+            ['email' => $email],
+            [
+                'name' => 'عميل لافندر', // Default name
+                'password' => Hash::make(Str::random(40)), // We don't use passwords
+                'role' => 'customer',
+                'auth_provider' => 'email',
+            ]
+        );
 
         if (!$user->is_active) {
             throw ValidationException::withMessages([

@@ -27,8 +27,8 @@ export const fetchProductBySlug = (slug: string) => api.get(`/products/${slug}`)
 export const getCsrfCookie = () => api.get('/sanctum/csrf-cookie');
 
 export const authApi = {
-  login: (credentials: any) => api.post('/auth/login', credentials),
-  register: (data: any) => api.post('/auth/register', data),
+  sendOtp: (data: { email: string }) => api.post('/auth/send-otp', data),
+  verifyOtp: (data: { email: string, otp: string }) => api.post('/auth/verify-otp', data),
   logout: () => api.post('/auth/logout'),
   me: () => api.get('/auth/me'),
 };

@@ -6,8 +6,8 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (data: { name: string; email: string; password: string; password_confirmation: string; phone?: string }) => Promise<void>;
+  sendOtp: (email: string) => Promise<void>;
+  verifyOtp: (email: string, otp: string) => Promise<void>;
   logout: () => Promise<void>;
   setUser: (user: User | null) => void;
   isLoginModalOpen: boolean;
@@ -46,18 +46,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const login = async (email: string, password: string) => {
+  const sendOtp = async (email: string) => {
     await getCsrfCookie();
-    const { data } = await authApi.login({ email, password });
-    localStorage.setItem('auth_token', data.data.token);
-    setUser(data.data.user);
+    await authApi.sendOtp({ email });
   };
 
-  const register = async (registerData: { name: string; email: string; password: string; password_confirmation: string; phone?: string }) => {
+  const verifyOtp = async (email: string, otp: string) => {
     await getCsrfCookie();
-    const { data } = await authApi.register(registerData);
-    localStorage.setItem('auth_token', data.data.token);
-    setUser(data.data.user);
+    const { data } = await authApi.verifyOtp({ email, otp });
+    localStorage.setItem('auth_token', data.token);
+    setUser(data.user);
   };
 
   const logout = async () => {
@@ -75,8 +73,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         isLoading,
         isAuthenticated: !!user,
-        login,
-        register,
+        sendOtp,
+        verifyOtp,
         logout,
         setUser,
         isLoginModalOpen,
