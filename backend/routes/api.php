@@ -59,7 +59,7 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\AdminMiddleware::class])
     Route::apiResource('components', \App\Http\Controllers\ComponentController::class ?? \Illuminate\Routing\Controller::class);
     
     // Products
-    Route::apiResource('products', \App\Http\Controllers\ProductController::class ?? \Illuminate\Routing\Controller::class);
+    Route::apiResource('products', \App\Http\Controllers\ProductController::class);
     
     // Orders Management
     Route::apiResource('orders', \App\Http\Controllers\OrderController::class ?? \Illuminate\Routing\Controller::class);

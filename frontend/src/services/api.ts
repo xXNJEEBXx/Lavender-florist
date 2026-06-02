@@ -33,4 +33,20 @@ export const authApi = {
   me: () => api.get('/auth/me'),
 };
 
+export const adminProductsApi = {
+  getAll: () => api.get('/admin/products').then(res => res.data),
+  getById: (id: number) => api.get(`/admin/products/${id}`).then(res => res.data),
+  create: (data: FormData) => api.post('/admin/products', data, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }).then(res => res.data),
+  update: (id: number, data: FormData) => {
+    // Append _method=PUT to simulate a PUT request for FormData in Laravel
+    data.append('_method', 'PUT');
+    return api.post(`/admin/products/${id}`, data, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    }).then(res => res.data);
+  },
+  delete: (id: number) => api.delete(`/admin/products/${id}`).then(res => res.data),
+};
+
 export default api;
