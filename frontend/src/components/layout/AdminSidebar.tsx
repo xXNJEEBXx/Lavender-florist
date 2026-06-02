@@ -6,11 +6,13 @@ import {
   Users, 
   LogOut, 
   Settings,
-  Flower2
+  Flower2,
+  Store
 } from 'lucide-react';
 
 export default function AdminSidebar() {
   const menuItems = [
+    { name: 'الصفحة الرئيسية', path: '/', icon: <Store size={20} /> },
     { name: 'لوحة التحكم', path: '/admin', icon: <LayoutDashboard size={20} /> },
     { name: 'المنتجات', path: '/admin/products', icon: <Flower2 size={20} /> },
     { name: 'المواد الخام', path: '/admin/components', icon: <Package size={20} /> },
@@ -51,16 +53,6 @@ export default function AdminSidebar() {
             </NavLink>
           ))}
         </div>
-      </div>
-      
-      <div className="p-4 border-t border-primary-50">
-        <Link 
-          to="/" 
-          className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-primary-600 hover:bg-primary-50 rounded-xl transition-colors w-full"
-        >
-          <LogOut size={20} className="rotate-180" />
-          العودة للمتجر
-        </Link>
       </div>
     </div>
   );
