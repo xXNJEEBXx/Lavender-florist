@@ -57,6 +57,7 @@ class Product extends Model
 
     public function getIsInStockAttribute(): bool
     {
+        if ($this->components->isEmpty()) return true;
         return $this->calculated_stock > 0;
     }
 
