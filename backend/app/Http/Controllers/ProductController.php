@@ -32,7 +32,8 @@ class ProductController extends Controller
             'is_featured' => 'boolean',
             'is_active' => 'boolean',
             'preparation_time_minutes' => 'nullable|integer',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120',
+            'images' => 'nullable|array|max:5',
+            'images.*' => 'image|mimes:jpeg,png,jpg,webp|max:5120',
         ]);
 
         // Clean up boolean values if they come as strings from FormData
@@ -50,13 +51,15 @@ class ProductController extends Controller
 
         $product = Product::create($validated);
 
-        if ($request->hasFile('image')) {
-            $path = $request->file('image')->store('products', 'public');
-            $product->images()->create([
-                'image_url' => '/storage/' . $path,
-                'is_primary' => true,
-                'sort_order' => 1
-            ]);
+        if ($request->hasFile('images')) {
+            foreach ($request->file('images') as $index => $file) {
+                $path = $file->store('products', 'public');
+                $product->images()->create([
+                    'image_url' => '/storage/' . $path,
+                    'is_primary' => $index === 0,
+                    'sort_order' => $index + 1
+                ]);
+            }
         }
 
         return response()->json($product->load(['primaryImage', 'components']), 201);
@@ -83,7 +86,8 @@ class ProductController extends Controller
             'is_featured' => 'nullable',
             'is_active' => 'nullable',
             'preparation_time_minutes' => 'nullable|integer',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120',
+            'images' => 'nullable|array|max:5',
+            'images.*' => 'image|mimes:jpeg,png,jpg,webp|max:5120',
         ]);
 
         if ($request->has('is_featured')) $validated['is_featured'] = filter_var($request->is_featured, FILTER_VALIDATE_BOOLEAN);
@@ -91,19 +95,18 @@ class ProductController extends Controller
 
         $product->update($validated);
 
-        if ($request->hasFile('image')) {
-            $oldImage = $product->primaryImage;
-            if ($oldImage) {
-                // We could delete the physical file here
-                $oldImage->delete();
-            }
+        if ($request->hasFile('images')) {
+            // Delete old images from DB
+            $product->images()->delete();
 
-            $path = $request->file('image')->store('products', 'public');
-            $product->images()->create([
-                'image_url' => '/storage/' . $path,
-                'is_primary' => true,
-                'sort_order' => 1
-            ]);
+            foreach ($request->file('images') as $index => $file) {
+                $path = $file->store('products', 'public');
+                $product->images()->create([
+                    'image_url' => '/storage/' . $path,
+                    'is_primary' => $index === 0,
+                    'sort_order' => $index + 1
+                ]);
+            }
         }
 
         return response()->json($product->load(['primaryImage', 'components']));
