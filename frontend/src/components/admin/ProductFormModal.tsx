@@ -183,7 +183,7 @@ export default function ProductFormModal({ isOpen, onClose, onSuccess, product }
       }
       
       formData.append('category', category);
-      formData.append('is_active', isActive ? 'true' : 'false');
+      formData.append('is_active', isActive ? '1' : '0');
       
       if (imageFiles.length > 0) {
         imageFiles.forEach(file => {
