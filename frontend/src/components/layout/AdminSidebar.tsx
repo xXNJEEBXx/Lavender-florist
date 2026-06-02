@@ -22,7 +22,9 @@ export default function AdminSidebar() {
   return (
     <div className="w-64 h-screen bg-white border-l border-primary-100 flex flex-col fixed right-0 top-0 z-40">
       <div className="p-6 flex items-center gap-3 border-b border-primary-50">
-        <img src="/logo.png" alt="Lavender Florist" className="h-10 w-10 object-contain" />
+        <Link to="/">
+          <img src="/logo.png" alt="Lavender Florist" className="h-10 w-10 object-contain hover:scale-105 transition-transform" />
+        </Link>
         <div>
           <h2 className="font-bold text-primary-950 font-serif">الإدارة</h2>
           <p className="text-xs text-primary-500">Lavender Florist</p>
