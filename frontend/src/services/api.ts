@@ -24,7 +24,7 @@ export const fetchProducts = () => api.get('/products').then(res => res.data);
 export const fetchProductBySlug = (slug: string) => api.get(`/products/${slug}`).then(res => res.data);
 
 // Basic Auth
-export const getCsrfCookie = () => api.get('/sanctum/csrf-cookie');
+export const getCsrfCookie = () => axios.get('/sanctum/csrf-cookie', { withCredentials: true });
 
 export const authApi = {
   sendOtp: (data: { email: string }) => api.post('/auth/send-otp', data),
