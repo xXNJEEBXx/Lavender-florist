@@ -43,7 +43,7 @@ export default function MainLayout() {
               {/* Simple Dropdown on Hover */}
               <div className="absolute left-0 mt-2 w-48 bg-white border border-primary-100 rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 overflow-hidden">
                 <Link to={user?.role === 'admin' ? '/admin' : '/profile'} className="block px-4 py-3 text-sm text-primary-800 hover:bg-primary-50">
-                  لوحة التحكم
+                  {user?.role === 'admin' ? 'لوحة التحكم' : 'حسابي'}
                 </Link>
                 <button 
                   onClick={() => {
