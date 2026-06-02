@@ -81,6 +81,7 @@ class AuthController extends Controller
                 'password' => Hash::make(Str::random(40)), // We don't use passwords
                 'role' => 'customer',
                 'auth_provider' => 'email',
+                'is_active' => true,
             ]
         );
 
