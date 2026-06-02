@@ -34,6 +34,7 @@ class ProductController extends Controller
             'preparation_time_minutes' => 'nullable|integer',
             'images' => 'nullable|array|max:5',
             'images.*' => 'image|mimes:jpeg,png,jpg,webp|max:5120',
+            'components' => 'nullable|string' // JSON string [{"id":1,"quantity":5}]
         ]);
 
         // Clean up boolean values if they come as strings from FormData
@@ -59,6 +60,17 @@ class ProductController extends Controller
                     'is_primary' => $index === 0,
                     'sort_order' => $index + 1
                 ]);
+            }
+        }
+
+        if ($request->filled('components')) {
+            $componentsData = json_decode($request->components, true);
+            if (is_array($componentsData)) {
+                $syncData = [];
+                foreach ($componentsData as $comp) {
+                    $syncData[$comp['id']] = ['quantity' => $comp['quantity']];
+                }
+                $product->components()->sync($syncData);
             }
         }
 
@@ -88,6 +100,7 @@ class ProductController extends Controller
             'preparation_time_minutes' => 'nullable|integer',
             'images' => 'nullable|array|max:5',
             'images.*' => 'image|mimes:jpeg,png,jpg,webp|max:5120',
+            'components' => 'nullable|string'
         ]);
 
         if ($request->has('is_featured')) $validated['is_featured'] = filter_var($request->is_featured, FILTER_VALIDATE_BOOLEAN);
@@ -106,6 +119,17 @@ class ProductController extends Controller
                     'is_primary' => $index === 0,
                     'sort_order' => $index + 1
                 ]);
+            }
+        }
+
+        if ($request->filled('components')) {
+            $componentsData = json_decode($request->components, true);
+            if (is_array($componentsData)) {
+                $syncData = [];
+                foreach ($componentsData as $comp) {
+                    $syncData[$comp['id']] = ['quantity' => $comp['quantity']];
+                }
+                $product->components()->sync($syncData);
             }
         }
 

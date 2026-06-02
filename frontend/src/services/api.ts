@@ -49,4 +49,11 @@ export const adminProductsApi = {
   delete: (id: number) => api.delete(`/admin/products/${id}`).then(res => res.data),
 };
 
+export const adminComponentsApi = {
+  getAll: () => api.get('/admin/components').then(res => res.data),
+  create: (data: any) => api.post('/admin/components', data).then(res => res.data),
+  update: (id: number, data: any) => api.put(`/admin/components/${id}`, data).then(res => res.data),
+  delete: (id: number) => api.delete(`/admin/components/${id}`).then(res => res.data),
+};
+
 export default api;

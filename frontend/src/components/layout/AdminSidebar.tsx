@@ -13,6 +13,7 @@ export default function AdminSidebar() {
   const menuItems = [
     { name: 'لوحة التحكم', path: '/admin', icon: <LayoutDashboard size={20} /> },
     { name: 'المنتجات', path: '/admin/products', icon: <Flower2 size={20} /> },
+    { name: 'المواد الخام', path: '/admin/components', icon: <Package size={20} /> },
     { name: 'الطلبات', path: '/admin/orders', icon: <ShoppingCart size={20} /> },
     { name: 'العملاء', path: '/admin/customers', icon: <Users size={20} /> },
     { name: 'الإعدادات', path: '/admin/settings', icon: <Settings size={20} /> },

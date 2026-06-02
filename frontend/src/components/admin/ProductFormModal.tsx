@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Upload, Image as ImageIcon, Trash2, Languages, Percent } from 'lucide-react';
 import type { Product } from '../../types';
-import { adminProductsApi } from '../../services/api';
+import { adminProductsApi, adminComponentsApi } from '../../services/api';
 
 interface ProductFormModalProps {
   isOpen: boolean;
@@ -32,7 +32,17 @@ export default function ProductFormModal({ isOpen, onClose, onSuccess, product }
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   
+  // Components
+  const [allComponents, setAllComponents] = useState<any[]>([]);
+  const [productComponents, setProductComponents] = useState<{id: number, name: string, quantity: number}[]>([]);
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      adminComponentsApi.getAll().then(setAllComponents).catch(console.error);
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (product) {
@@ -63,8 +73,20 @@ export default function ProductFormModal({ isOpen, onClose, onSuccess, product }
         setImagePreviews([`http://localhost:8000${product.primary_image.image_url}`]);
       } else {
         setImagePreviews([]);
+        setImagePreviews([]);
       }
       setImageFiles([]); // We don't have the File objects for existing images
+      
+      // Load components
+      if (product.components && product.components.length > 0) {
+        setProductComponents(product.components.map((c: any) => ({
+          id: c.id,
+          name: c.name,
+          quantity: c.pivot.quantity
+        })));
+      } else {
+        setProductComponents([]);
+      }
     } else {
       // Reset form
       setName('');
@@ -75,9 +97,11 @@ export default function ProductFormModal({ isOpen, onClose, onSuccess, product }
       setOriginalPrice('');
       setHasDiscount(false);
       setDiscountPercentage('');
+      setDiscountPercentage('');
       setFinalPrice('');
       setImageFiles([]);
       setImagePreviews([]);
+      setProductComponents([]);
     }
   }, [product, isOpen]);
 
@@ -107,10 +131,10 @@ export default function ProductFormModal({ isOpen, onClose, onSuccess, product }
     if (!name || nameEn || product) return; // Don't overwrite if already set or editing
     setIsTranslating(true);
     try {
-      const response = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(name)}&langpair=ar|en`);
+      const response = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=ar&tl=en&dt=t&q=${encodeURIComponent(name)}`);
       const data = await response.json();
-      if (data && data.responseData && data.responseData.translatedText) {
-        setNameEn(data.responseData.translatedText);
+      if (data && data[0] && data[0][0] && data[0][0][0]) {
+        setNameEn(data[0][0][0]);
       }
     } catch (e) {
       console.error('Translation failed', e);
@@ -165,6 +189,11 @@ export default function ProductFormModal({ isOpen, onClose, onSuccess, product }
         imageFiles.forEach(file => {
           formData.append('images[]', file);
         });
+      }
+      
+      if (productComponents.length > 0) {
+        const compsPayload = productComponents.map(c => ({ id: c.id, quantity: c.quantity }));
+        formData.append('components', JSON.stringify(compsPayload));
       }
 
       if (product) {
@@ -376,6 +405,69 @@ export default function ProductFormModal({ isOpen, onClose, onSuccess, product }
                   <span className="text-primary-900 font-medium">المنتج متاح للبيع للعملاء</span>
                 </label>
               </div>
+            </div>
+
+            {/* Components Section */}
+            <div className="bg-primary-50/50 rounded-2xl p-6 border border-primary-100">
+              <h3 className="font-bold text-primary-900 mb-4">مكونات المنتج (اختياري)</h3>
+              <p className="text-sm text-primary-600 mb-4">أضف المكونات (مثل: ورد جوري، تغليف) ليتم حساب مخزون المنتج تلقائياً.</p>
+              
+              <div className="space-y-3 mb-4">
+                {productComponents.map((comp, index) => (
+                  <div key={index} className="flex gap-4 items-center bg-white p-3 rounded-xl border border-primary-100">
+                    <div className="flex-1">
+                      <select 
+                        value={comp.id}
+                        onChange={(e) => {
+                          const newComps = [...productComponents];
+                          newComps[index].id = parseInt(e.target.value);
+                          newComps[index].name = allComponents.find(c => c.id === parseInt(e.target.value))?.name || '';
+                          setProductComponents(newComps);
+                        }}
+                        className="w-full px-3 py-2 rounded-lg border border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      >
+                        <option value={0} disabled>اختر المكون</option>
+                        {allComponents.map(c => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="w-32">
+                      <input 
+                        type="number"
+                        min="1"
+                        value={comp.quantity}
+                        onChange={(e) => {
+                          const newComps = [...productComponents];
+                          newComps[index].quantity = parseInt(e.target.value) || 1;
+                          setProductComponents(newComps);
+                        }}
+                        className="w-full px-3 py-2 rounded-lg border border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        placeholder="الكمية"
+                      />
+                    </div>
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        const newComps = [...productComponents];
+                        newComps.splice(index, 1);
+                        setProductComponents(newComps);
+                      }}
+                      className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              <button 
+                type="button"
+                onClick={() => setProductComponents([...productComponents, { id: 0, name: '', quantity: 1 }])}
+                className="text-primary-600 font-bold text-sm flex items-center gap-2 hover:text-primary-700"
+              >
+                + إضافة مكون جديد
+              </button>
             </div>
 
             {/* Description */}
