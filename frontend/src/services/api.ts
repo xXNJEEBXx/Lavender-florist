@@ -56,4 +56,9 @@ export const adminComponentsApi = {
   delete: (id: number) => api.delete(`/admin/components/${id}`).then(res => res.data),
 };
 
+export const publicProductsApi = {
+  getAll: () => api.get('/products').then(res => res.data),
+  getBySlug: (slug: string) => api.get(`/products/${slug}`).then(res => res.data),
+};
+
 export default api;
