@@ -379,40 +379,7 @@ export default function Checkout() {
               <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} className="w-full px-4 py-3 rounded-xl border border-primary-200 focus:ring-2 focus:ring-primary-500 transition-all outline-none resize-none" placeholder="مثال: يرجى الاتصال قبل الوصول بنصف ساعة" />
             </div>
 
-            {/* Delivery Calculation */}
-            <div className="bg-white p-6 rounded-3xl border border-primary-100 shadow-sm">
-              <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-                <div>
-                  <h3 className="text-xl font-bold text-primary-900 mb-1">رسوم التوصيل</h3>
-                  <p className="text-sm text-primary-600">يتم حساب وقت وتكلفة التوصيل تلقائياً بدقة بناءً على عنوانك المحدد.</p>
-                </div>
-                {isCalculating && (
-                   <div className="px-4 py-2 bg-primary-50 text-primary-700 rounded-lg text-sm font-bold animate-pulse">
-                     جاري الحساب...
-                   </div>
-                )}
-              </div>
-              
-              {deliveryMinutes !== null && (
-                <div className="mt-6 pt-4 border-t border-primary-100">
-                  {isRejecting ? (
-                    <div className="text-rose-600 bg-rose-50 p-4 rounded-xl border border-rose-100">
-                      <p className="font-bold mb-1">نعتذر منك!</p>
-                      <p className="text-sm">المسافة لعنوانك تستغرق ({deliveryMinutes} دقيقة) وهو خارج نطاق التوصيل المسموح به (أقصى حد 37 دقيقة).</p>
-                    </div>
-                  ) : (
-                    <div className="text-emerald-700 bg-emerald-50 p-4 rounded-xl border border-emerald-100 flex justify-between items-center">
-                      <div>
-                        <p className="font-bold">يمكننا التوصيل لعنوانك!</p>
-                        <p className="text-sm mt-1 text-emerald-600">الوقت المقدر من المتجر: {deliveryMinutes} دقيقة</p>
-                        <p className="text-xs mt-2 text-primary-500 italic">* ملاحظة: السعر والوقت قد يختلف قليلاً مع الزحمة المرورية.</p>
-                      </div>
-                      <div className="text-2xl font-bold">{deliveryFee} ر.س</div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+
 
             {/* Payment Method */}
             <div className="bg-white p-6 rounded-3xl border border-primary-100 shadow-sm">
@@ -486,18 +453,34 @@ export default function Checkout() {
                 </div>
                 <div className="flex justify-between">
                   <span>رسوم التوصيل</span>
-                  <span className="font-medium">{deliveryFee} ر.س</span>
+                  <span className="font-medium">
+                    {isCalculating ? (
+                      <span className="animate-pulse text-primary-500">جاري الحساب...</span>
+                    ) : (
+                      `${deliveryFee} ر.س`
+                    )}
+                  </span>
                 </div>
+                {!isCalculating && !isRejecting && deliveryMinutes !== null && (
+                  <p className="text-xs text-primary-500 italic bg-primary-50 p-2 rounded-lg">* السعر والوقت قد يختلف قليلاً مع الزحمة المرورية.</p>
+                )}
               </div>
               
               <div className="flex justify-between items-center mb-8 bg-primary-50 p-4 rounded-2xl border border-primary-100">
                 <span className="font-bold text-primary-900">الإجمالي النهائي</span>
-                <span className="font-bold text-accent-700 text-2xl">{deliveryMinutes === null ? '---' : total} ر.س</span>
+                <span className="font-bold text-accent-700 text-2xl">{isCalculating ? '---' : total} ر.س</span>
               </div>
               
+              {isRejecting && (
+                <div className="mb-6 bg-rose-50 border border-rose-100 rounded-xl p-4 text-sm text-rose-600">
+                  <p className="font-bold mb-1">نعتذر منك!</p>
+                  <p>المسافة لعنوانك ({deliveryMinutes} دقيقة) تتجاوز النطاق المسموح به للتوصيل.</p>
+                </div>
+              )}
+
               <button 
                 type="submit"
-                disabled={isLoading || deliveryMinutes === null || isRejecting}
+                disabled={isLoading || isCalculating || isRejecting || !selectedAddressId}
                 className="w-full bg-primary-800 text-white rounded-xl py-4 font-bold text-lg hover:bg-primary-900 active:bg-primary-950 transition-all shadow-lg shadow-primary-900/10 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {isLoading ? (
@@ -510,8 +493,8 @@ export default function Checkout() {
                 )}
               </button>
               
-              {deliveryMinutes === null && (
-                <p className="text-center text-sm text-rose-500 mt-4 font-medium">الرجاء حساب رسوم التوصيل أولاً</p>
+              {isCalculating && (
+                <p className="text-center text-sm text-primary-500 mt-4 font-medium animate-pulse">جاري حساب التوصيل، يرجى الانتظار...</p>
               )}
               
               <p className="text-center text-xs text-primary-400 mt-4">بضغطك على "تأكيد الطلب" أنت توافق على شروط وأحكام المتجر.</p>
