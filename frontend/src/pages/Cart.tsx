@@ -63,7 +63,13 @@ export default function Cart() {
                     <div className="flex items-center bg-primary-50 rounded-lg border border-primary-100 overflow-hidden">
                       <button onClick={() => updateQuantity(item.product.id, item.quantity - 1)} className="w-8 h-8 flex items-center justify-center text-primary-600 hover:bg-primary-100 transition-colors">-</button>
                       <span className="w-8 text-center text-sm font-medium">{item.quantity}</span>
-                      <button onClick={() => updateQuantity(item.product.id, item.quantity + 1)} className="w-8 h-8 flex items-center justify-center text-primary-600 hover:bg-primary-100 transition-colors">+</button>
+                      <button 
+                        onClick={() => updateQuantity(item.product.id, Math.min(item.product.calculated_stock || 1, item.quantity + 1))} 
+                        disabled={item.quantity >= (item.product.calculated_stock || 1)}
+                        className="w-8 h-8 flex items-center justify-center text-primary-600 hover:bg-primary-100 transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
+                      >
+                        +
+                      </button>
                     </div>
                   </div>
                 </div>

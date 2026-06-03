@@ -89,7 +89,17 @@ class CheckoutController extends Controller
                 }
             }
 
-            // 3. Create Order
+            // 3. Validate Stock before proceeding
+            foreach ($componentsToDeduct as $componentId => $qtyToDeduct) {
+                $component = Component::find($componentId);
+                if (!$component || $component->stock_quantity < $qtyToDeduct) {
+                    throw ValidationException::withMessages([
+                        'items' => 'عذراً، الكمية المطلوبة من بعض المنتجات لم تعد متوفرة في المخزون.'
+                    ]);
+                }
+            }
+
+            // 4. Create Order
             $deliveryFee = $validated['delivery_fee'];
             $total = $subtotal + $deliveryFee;
 
@@ -109,7 +119,7 @@ class CheckoutController extends Controller
                 'notes' => $validated['notes'] ?? null
             ]);
 
-            // 4. Save Order Items and Gift Messages
+            // 5. Save Order Items and Gift Messages
             foreach ($orderItemsData as $itemData) {
                 $giftMessage = $itemData['gift_message'];
                 unset($itemData['gift_message']);
@@ -130,7 +140,7 @@ class CheckoutController extends Controller
                 }
             }
 
-            // 5. Deduct Components Stock (Inventory Management)
+            // 6. Deduct Components Stock (Inventory Management)
             foreach ($componentsToDeduct as $componentId => $qtyToDeduct) {
                 $component = Component::find($componentId);
                 if ($component) {

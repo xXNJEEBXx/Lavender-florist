@@ -152,8 +152,8 @@ export default function ProductDetail() {
               </button>
               <span className="w-12 text-center font-semibold text-primary-900">{quantity}</span>
               <button 
-                onClick={() => setQuantity(quantity + 1)}
-                disabled={!product.is_in_stock}
+                onClick={() => setQuantity(Math.min(product.calculated_stock || 1, quantity + 1))}
+                disabled={!product.is_in_stock || quantity >= (product.calculated_stock || 1)}
                 className="w-12 h-14 flex items-center justify-center text-primary-700 hover:bg-primary-100 transition-colors disabled:opacity-50"
               >
                 +
