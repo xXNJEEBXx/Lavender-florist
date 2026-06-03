@@ -140,10 +140,7 @@ export default function Checkout() {
   const total = subtotal + deliveryFee;
 
   const handleCalculateDelivery = () => {
-    if (!selectedAddressId) {
-      alert("الرجاء تحديد العنوان أولاً");
-      return;
-    }
+    if (!selectedAddressId) return;
     
     const selectedAddress = addresses.find(a => a.id === selectedAddressId);
     if (!selectedAddress) return;
@@ -190,6 +187,13 @@ export default function Checkout() {
       setDeliveryMinutes(15); // Fallback
     }
   };
+
+  useEffect(() => {
+    if (selectedAddressId && isLoaded && addresses.length > 0) {
+      handleCalculateDelivery();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedAddressId, isLoaded]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -365,16 +369,13 @@ export default function Checkout() {
               <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
                 <div>
                   <h3 className="text-xl font-bold text-primary-900 mb-1">رسوم التوصيل</h3>
-                  <p className="text-sm text-primary-600">نستخدم خرائط جوجل لحساب وقت وتكلفة التوصيل بدقة بناءً على عنوانك.</p>
+                  <p className="text-sm text-primary-600">يتم حساب وقت وتكلفة التوصيل تلقائياً بدقة بناءً على عنوانك المحدد.</p>
                 </div>
-                <button 
-                  type="button" 
-                  onClick={handleCalculateDelivery}
-                  disabled={isCalculating || !selectedAddressId}
-                  className="whitespace-nowrap px-6 py-3 bg-primary-800 text-white rounded-xl font-medium hover:bg-primary-900 transition-colors disabled:opacity-70 shadow-lg shadow-primary-900/10"
-                >
-                  {isCalculating ? 'جاري الحساب...' : 'حساب التوصيل'}
-                </button>
+                {isCalculating && (
+                   <div className="px-4 py-2 bg-primary-50 text-primary-700 rounded-lg text-sm font-bold animate-pulse">
+                     جاري الحساب...
+                   </div>
+                )}
               </div>
               
               {deliveryMinutes !== null && (
