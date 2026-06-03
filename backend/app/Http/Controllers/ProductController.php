@@ -76,13 +76,16 @@ class ProductController extends Controller
             }
         }
 
+        $user = Auth::user();
+        $actorName = $user ? $user->name : 'النظام';
+
         ActivityLog::create([
             'event_type' => 'created',
             'actor_type' => \App\Models\User::class,
-            'actor_id' => Auth::id() ?? 1,
+            'actor_id' => $user->id ?? 1,
             'subject_type' => Product::class,
             'subject_id' => $product->id,
-            'description' => 'تم إضافة منتج جديد: ' . $product->name,
+            'description' => 'المشرف ' . $actorName . ' قام بإضافة منتج جديد: ' . $product->name,
             'ip_address' => $request->ip()
         ]);
 
@@ -145,13 +148,16 @@ class ProductController extends Controller
             }
         }
 
+        $user = Auth::user();
+        $actorName = $user ? $user->name : 'النظام';
+
         ActivityLog::create([
             'event_type' => 'updated',
             'actor_type' => \App\Models\User::class,
-            'actor_id' => Auth::id() ?? 1,
+            'actor_id' => $user->id ?? 1,
             'subject_type' => Product::class,
             'subject_id' => $product->id,
-            'description' => 'تم تعديل منتج: ' . $product->name,
+            'description' => 'المشرف ' . $actorName . ' قام بتعديل منتج: ' . $product->name,
             'ip_address' => $request->ip()
         ]);
 
@@ -166,13 +172,16 @@ class ProductController extends Controller
         
         $product->delete();
 
+        $user = Auth::user();
+        $actorName = $user ? $user->name : 'النظام';
+
         ActivityLog::create([
             'event_type' => 'deleted',
             'actor_type' => \App\Models\User::class,
-            'actor_id' => Auth::id() ?? 1,
+            'actor_id' => $user->id ?? 1,
             'subject_type' => Product::class,
             'subject_id' => $productId,
-            'description' => 'تم حذف منتج: ' . $productName,
+            'description' => 'المشرف ' . $actorName . ' قام بحذف منتج: ' . $productName,
             'ip_address' => $request->ip()
         ]);
 

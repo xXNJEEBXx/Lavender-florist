@@ -156,7 +156,7 @@ class CheckoutController extends Controller
                 'actor_id' => $customer->id,
                 'subject_type' => Order::class,
                 'subject_id' => $order->id,
-                'description' => 'عميل قام بإنشاء طلب جديد #' . $order->order_number,
+                'description' => 'العميل ' . $customer->name . ' قام بإنشاء طلب جديد #' . $order->order_number,
                 'ip_address' => $request->ip()
             ]);
 

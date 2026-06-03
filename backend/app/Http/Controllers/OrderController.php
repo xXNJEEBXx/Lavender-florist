@@ -54,13 +54,26 @@ class OrderController extends Controller
 
         $order->save();
 
+        $user = Auth::user();
+        $actorName = $user ? $user->name : 'النظام';
+        
+        $statusesAr = [
+            'pending' => 'بانتظار الدفع',
+            'preparing' => 'قيد التجهيز',
+            'ready' => 'جاهز للاستلام',
+            'delivering' => 'جاري التوصيل',
+            'delivered' => 'مكتمل',
+            'cancelled' => 'ملغي'
+        ];
+        $statusStr = $request->status ? ($statusesAr[$request->status] ?? $request->status) : 'تحديث';
+
         ActivityLog::create([
             'event_type' => 'updated',
             'actor_type' => \App\Models\User::class,
-            'actor_id' => Auth::id() ?? 1,
+            'actor_id' => $user->id ?? 1,
             'subject_type' => Order::class,
             'subject_id' => $order->id,
-            'description' => 'تم تحديث حالة الطلب #' . $order->order_number,
+            'description' => 'المشرف ' . $actorName . ' قام بتحديث حالة الطلب #' . $order->order_number . ' إلى: ' . $statusStr,
             'ip_address' => $request->ip()
         ]);
 
@@ -90,13 +103,16 @@ class OrderController extends Controller
         }
         $order->save();
 
+        $user = Auth::user();
+        $actorName = $user ? $user->name : 'النظام';
+
         ActivityLog::create([
             'event_type' => 'updated',
             'actor_type' => \App\Models\User::class,
-            'actor_id' => Auth::id() ?? 1,
+            'actor_id' => $user->id ?? 1,
             'subject_type' => Order::class,
             'subject_id' => $order->id,
-            'description' => 'تم تأكيد الدفع للطلب #' . $order->order_number,
+            'description' => 'المشرف ' . $actorName . ' قام بتأكيد الدفع للطلب #' . $order->order_number,
             'ip_address' => request()->ip()
         ]);
 
