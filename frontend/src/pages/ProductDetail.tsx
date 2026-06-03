@@ -162,7 +162,7 @@ export default function ProductDetail() {
             
             <motion.button 
               whileTap={{ scale: product.is_in_stock ? 0.98 : 1 }}
-              disabled={!product.is_in_stock || isAdding}
+              disabled={!product.is_in_stock || isAdding || getAvailableStock(product) === 0}
               onClick={() => {
                 setIsAdding(true);
                 addItem(product, quantity);
@@ -170,7 +170,7 @@ export default function ProductDetail() {
                   navigate('/cart');
                 }, 400);
               }}
-              className={`flex-1 rounded-xl font-semibold text-lg flex items-center justify-center gap-2 transition-colors shadow-lg ${product.is_in_stock ? 'bg-primary-800 text-white hover:bg-primary-900 shadow-primary-900/10' : 'bg-gray-200 text-gray-500 shadow-none cursor-not-allowed'}`}
+              className={`flex-1 rounded-xl font-semibold text-lg flex items-center justify-center gap-2 transition-colors shadow-lg ${product.is_in_stock && getAvailableStock(product) > 0 ? 'bg-primary-800 text-white hover:bg-primary-900 shadow-primary-900/10' : 'bg-gray-200 text-gray-500 shadow-none cursor-not-allowed'}`}
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
               {isAdding ? 'تمت الإضافة ✔️' : product.is_in_stock && getAvailableStock(product) > 0 ? 'إضافة للسلة' : 'تجاوزت الكمية المتوفرة'}
