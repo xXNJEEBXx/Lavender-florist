@@ -21,6 +21,7 @@ export default function ProductFormModal({ isOpen, onClose, onSuccess, product }
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('bouquets');
   const [isActive, setIsActive] = useState(true);
+  const [preparationTime, setPreparationTime] = useState('');
   
   // Pricing & Discount logic
   const [originalPrice, setOriginalPrice] = useState('');
@@ -35,6 +36,14 @@ export default function ProductFormModal({ isOpen, onClose, onSuccess, product }
   // Components
   const [allComponents, setAllComponents] = useState<any[]>([]);
   const [productComponents, setProductComponents] = useState<{id: number, name: string, quantity: number}[]>([]);
+  
+  // Quick Create Component
+  const [isCreatingComponent, setIsCreatingComponent] = useState(false);
+  const [newCompName, setNewCompName] = useState('');
+  const [newCompType, setNewCompType] = useState('flower');
+  const [newCompCost, setNewCompCost] = useState('');
+  const [newCompStock, setNewCompStock] = useState('');
+  const [isSavingComp, setIsSavingComp] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -51,6 +60,7 @@ export default function ProductFormModal({ isOpen, onClose, onSuccess, product }
       setDescription(product.description || '');
       setCategory(product.category);
       setIsActive(product.is_active);
+      setPreparationTime(product.preparation_time_minutes?.toString() || '');
       
       // Load pricing
       if (product.compare_at_price && Number(product.compare_at_price) > Number(product.price)) {
@@ -94,6 +104,7 @@ export default function ProductFormModal({ isOpen, onClose, onSuccess, product }
       setDescription('');
       setCategory('bouquets');
       setIsActive(true);
+      setPreparationTime('');
       setOriginalPrice('');
       setHasDiscount(false);
       setDiscountPercentage('');
@@ -143,6 +154,35 @@ export default function ProductFormModal({ isOpen, onClose, onSuccess, product }
     }
   };
 
+  const handleCreateComponent = async () => {
+    if (!newCompName || !newCompCost || !newCompStock) return;
+    setIsSavingComp(true);
+    try {
+      const res = await adminComponentsApi.create({
+        name: newCompName,
+        type: newCompType,
+        cost_price: newCompCost,
+        stock_quantity: newCompStock
+      });
+      // Refresh components
+      const updated = await adminComponentsApi.getAll();
+      setAllComponents(updated);
+      
+      // Auto add to product
+      setProductComponents(prev => [...prev, { id: res.id, name: res.name, quantity: 1 }]);
+      
+      // Reset & close inline form
+      setNewCompName('');
+      setNewCompCost('');
+      setNewCompStock('');
+      setIsCreatingComponent(false);
+    } catch (e) {
+      console.error('Failed to create component', e);
+    } finally {
+      setIsSavingComp(false);
+    }
+  };
+
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
@@ -184,6 +224,7 @@ export default function ProductFormModal({ isOpen, onClose, onSuccess, product }
       
       formData.append('category', category);
       formData.append('is_active', isActive ? '1' : '0');
+      if (preparationTime) formData.append('preparation_time_minutes', preparationTime);
       
       if (imageFiles.length > 0) {
         imageFiles.forEach(file => {
@@ -379,7 +420,7 @@ export default function ProductFormModal({ isOpen, onClose, onSuccess, product }
                 </div>
               </div>
 
-              {/* Category & Status */}
+              {/* Category & Status & Prep Time */}
               <div>
                 <label className="block text-sm font-medium text-primary-900 mb-2">التصنيف *</label>
                 <select 
@@ -394,7 +435,19 @@ export default function ProductFormModal({ isOpen, onClose, onSuccess, product }
                 </select>
               </div>
               
-              <div className="flex items-center">
+              <div>
+                <label className="block text-sm font-medium text-primary-900 mb-2">مدة التحضير المقدرة (بالدقائق)</label>
+                <input 
+                  type="number"
+                  min="0"
+                  value={preparationTime}
+                  onChange={e => setPreparationTime(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                  placeholder="مثال: 30"
+                />
+              </div>
+              
+              <div className="flex items-center md:col-span-2">
                 <label className="flex items-center gap-3 cursor-pointer mt-6 bg-white p-3 border border-primary-100 rounded-xl w-full hover:bg-primary-50 transition-colors">
                   <input 
                     type="checkbox"
@@ -461,13 +514,74 @@ export default function ProductFormModal({ isOpen, onClose, onSuccess, product }
                 ))}
               </div>
 
-              <button 
-                type="button"
-                onClick={() => setProductComponents([...productComponents, { id: 0, name: '', quantity: 1 }])}
-                className="text-primary-600 font-bold text-sm flex items-center gap-2 hover:text-primary-700"
-              >
-                + إضافة مكون جديد
-              </button>
+              {!isCreatingComponent ? (
+                <button 
+                  type="button"
+                  onClick={() => setProductComponents([...productComponents, { id: 0, name: '', quantity: 1 }])}
+                  className="text-primary-600 font-bold text-sm flex items-center gap-2 hover:text-primary-700 mb-2"
+                >
+                  + إضافة مكون للمنتج
+                </button>
+              ) : null}
+
+              {!isCreatingComponent && (
+                <button 
+                  type="button"
+                  onClick={() => setIsCreatingComponent(true)}
+                  className="text-accent-600 font-bold text-sm flex items-center gap-2 hover:text-accent-700 block mt-3 pt-3 border-t border-primary-100"
+                >
+                  + إنشاء مكون جديد في المستودع
+                </button>
+              )}
+
+              {isCreatingComponent && (
+                <div className="mt-4 bg-white p-4 rounded-xl border border-primary-200 shadow-sm animate-in fade-in slide-in-from-top-2">
+                  <h4 className="font-bold text-primary-900 mb-3 text-sm">إنشاء مكون جديد</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                    <input 
+                      type="text" 
+                      placeholder="اسم المكون *" 
+                      value={newCompName}
+                      onChange={e => setNewCompName(e.target.value)}
+                      className="px-3 py-2 rounded-lg border border-primary-200 focus:ring-2 focus:ring-primary-500 text-sm"
+                    />
+                    <select 
+                      value={newCompType}
+                      onChange={e => setNewCompType(e.target.value)}
+                      className="px-3 py-2 rounded-lg border border-primary-200 focus:ring-2 focus:ring-primary-500 text-sm bg-white"
+                    >
+                      <option value="flower">ورد</option>
+                      <option value="packaging">تغليف</option>
+                      <option value="accessory">إكسسوار</option>
+                    </select>
+                    <input 
+                      type="number" 
+                      placeholder="التكلفة *" 
+                      value={newCompCost}
+                      onChange={e => setNewCompCost(e.target.value)}
+                      className="px-3 py-2 rounded-lg border border-primary-200 focus:ring-2 focus:ring-primary-500 text-sm"
+                    />
+                    <input 
+                      type="number" 
+                      placeholder="المخزون *" 
+                      value={newCompStock}
+                      onChange={e => setNewCompStock(e.target.value)}
+                      className="px-3 py-2 rounded-lg border border-primary-200 focus:ring-2 focus:ring-primary-500 text-sm"
+                    />
+                  </div>
+                  <div className="flex gap-2 justify-end">
+                    <button type="button" onClick={() => setIsCreatingComponent(false)} className="px-3 py-1.5 text-sm text-primary-600 hover:bg-primary-50 rounded-lg">إلغاء</button>
+                    <button 
+                      type="button" 
+                      onClick={handleCreateComponent}
+                      disabled={isSavingComp || !newCompName || !newCompCost || !newCompStock}
+                      className="px-3 py-1.5 text-sm bg-primary-600 text-white font-medium rounded-lg hover:bg-primary-700 disabled:opacity-50"
+                    >
+                      {isSavingComp ? 'جاري الحفظ...' : 'حفظ وإضافة للمنتج'}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Description */}
