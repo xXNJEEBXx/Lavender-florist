@@ -466,25 +466,34 @@ export default function ProductFormModal({ isOpen, onClose, onSuccess, product }
               <p className="text-sm text-primary-600 mb-4">أضف المكونات (مثل: ورد جوري، تغليف) ليتم حساب مخزون المنتج تلقائياً.</p>
               
               <div className="space-y-3 mb-4">
-                {productComponents.map((comp, index) => (
-                  <div key={index} className="flex gap-4 items-center bg-white p-3 rounded-xl border border-primary-100">
-                    <div className="flex-1">
-                      <select 
-                        value={comp.id}
-                        onChange={(e) => {
-                          const newComps = [...productComponents];
-                          newComps[index].id = parseInt(e.target.value);
-                          newComps[index].name = allComponents.find(c => c.id === parseInt(e.target.value))?.name || '';
-                          setProductComponents(newComps);
-                        }}
-                        className="w-full px-3 py-2 rounded-lg border border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                      >
-                        <option value={0} disabled>اختر المكون</option>
-                        {allComponents.map(c => (
-                          <option key={c.id} value={c.id}>{c.name}</option>
-                        ))}
-                      </select>
-                    </div>
+                {productComponents.map((comp, index) => {
+                  const selectedComp = allComponents.find(c => c.id === comp.id);
+                  return (
+                    <div key={index} className="flex gap-4 items-center bg-white p-3 rounded-xl border border-primary-100">
+                      {selectedComp?.image_url ? (
+                        <img src={`http://localhost:8000${selectedComp.image_url}`} alt={selectedComp.name} className="w-10 h-10 rounded-lg object-cover border border-primary-100 flex-shrink-0" />
+                      ) : (
+                        <div className="w-10 h-10 rounded-lg bg-primary-50 flex items-center justify-center text-primary-300 flex-shrink-0 border border-primary-100">
+                          <ImageIcon className="w-5 h-5" />
+                        </div>
+                      )}
+                      <div className="flex-1">
+                        <select 
+                          value={comp.id}
+                          onChange={(e) => {
+                            const newComps = [...productComponents];
+                            newComps[index].id = parseInt(e.target.value);
+                            newComps[index].name = allComponents.find(c => c.id === parseInt(e.target.value))?.name || '';
+                            setProductComponents(newComps);
+                          }}
+                          className="w-full px-3 py-2 rounded-lg border border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        >
+                          <option value={0} disabled>اختر المكون</option>
+                          {allComponents.map(c => (
+                            <option key={c.id} value={c.id}>{c.name}</option>
+                          ))}
+                        </select>
+                      </div>
                     <div className="w-32">
                       <input 
                         type="number"
@@ -499,19 +508,20 @@ export default function ProductFormModal({ isOpen, onClose, onSuccess, product }
                         placeholder="الكمية"
                       />
                     </div>
-                    <button 
-                      type="button"
-                      onClick={() => {
-                        const newComps = [...productComponents];
-                        newComps.splice(index, 1);
-                        setProductComponents(newComps);
-                      }}
-                      className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
-                  </div>
-                ))}
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          const newComps = [...productComponents];
+                          newComps.splice(index, 1);
+                          setProductComponents(newComps);
+                        }}
+                        className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
 
               {!isCreatingComponent ? (
