@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Order;
+use App\Models\ActivityLog;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
@@ -52,6 +54,16 @@ class OrderController extends Controller
 
         $order->save();
 
+        ActivityLog::create([
+            'event_type' => 'updated',
+            'actor_type' => \App\Models\User::class,
+            'actor_id' => Auth::id() ?? 1,
+            'subject_type' => Order::class,
+            'subject_id' => $order->id,
+            'description' => 'تم تحديث حالة الطلب #' . $order->order_number,
+            'ip_address' => $request->ip()
+        ]);
+
         return response()->json([
             'message' => 'تم تحديث حالة الطلب بنجاح',
             'order' => $order->load(['customer', 'items.product', 'address'])
@@ -77,6 +89,16 @@ class OrderController extends Controller
             $order->status = 'preparing';
         }
         $order->save();
+
+        ActivityLog::create([
+            'event_type' => 'updated',
+            'actor_type' => \App\Models\User::class,
+            'actor_id' => Auth::id() ?? 1,
+            'subject_type' => Order::class,
+            'subject_id' => $order->id,
+            'description' => 'تم تأكيد الدفع للطلب #' . $order->order_number,
+            'ip_address' => request()->ip()
+        ]);
 
         return response()->json([
             'message' => 'تم تأكيد الدفع والبدء بتجهيز الطلب بنجاح',

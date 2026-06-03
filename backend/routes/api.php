@@ -58,6 +58,9 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\AdminMiddleware::class])
     Route::get('/stats', function() {
         return response()->json(['sales' => 0, 'orders' => 0]);
     });
+    
+    // Activity Logs
+    Route::get('/activity-logs', [\App\Http\Controllers\ActivityLogController::class, 'index']);
 
     // Components
     Route::apiResource('components', \App\Http\Controllers\ComponentController::class ?? \Illuminate\Routing\Controller::class);

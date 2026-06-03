@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
+use App\Models\ActivityLog;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
@@ -74,6 +76,16 @@ class ProductController extends Controller
             }
         }
 
+        ActivityLog::create([
+            'event_type' => 'created',
+            'actor_type' => \App\Models\User::class,
+            'actor_id' => Auth::id() ?? 1,
+            'subject_type' => Product::class,
+            'subject_id' => $product->id,
+            'description' => 'تم إضافة منتج جديد: ' . $product->name,
+            'ip_address' => $request->ip()
+        ]);
+
         return response()->json($product->load(['primaryImage', 'components']), 201);
     }
 
@@ -133,13 +145,37 @@ class ProductController extends Controller
             }
         }
 
+        ActivityLog::create([
+            'event_type' => 'updated',
+            'actor_type' => \App\Models\User::class,
+            'actor_id' => Auth::id() ?? 1,
+            'subject_type' => Product::class,
+            'subject_id' => $product->id,
+            'description' => 'تم تعديل منتج: ' . $product->name,
+            'ip_address' => $request->ip()
+        ]);
+
         return response()->json($product->load(['primaryImage', 'components']));
     }
 
     // DELETE /api/admin/products/{product}
-    public function destroy(Product $product)
+    public function destroy(Request $request, Product $product)
     {
+        $productName = $product->name;
+        $productId = $product->id;
+        
         $product->delete();
+
+        ActivityLog::create([
+            'event_type' => 'deleted',
+            'actor_type' => \App\Models\User::class,
+            'actor_id' => Auth::id() ?? 1,
+            'subject_type' => Product::class,
+            'subject_id' => $productId,
+            'description' => 'تم حذف منتج: ' . $productName,
+            'ip_address' => $request->ip()
+        ]);
+
         return response()->json(['message' => 'Product deleted successfully']);
     }
 }

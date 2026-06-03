@@ -1,10 +1,17 @@
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { adminActivityLogsApi } from '../../../services/api';
 import { 
   TrendingUp, 
   ShoppingBag, 
   Users, 
   DollarSign,
-  Package
+  Package,
+  Activity,
+  PlusCircle,
+  Edit,
+  Trash2,
+  Clock
 } from 'lucide-react';
 import { 
   LineChart, 
@@ -51,6 +58,32 @@ const componentsStock = [
 ];
 
 export default function Dashboard() {
+  const [activityLogs, setActivityLogs] = useState<any[]>([]);
+
+  useEffect(() => {
+    adminActivityLogsApi.getAll()
+      .then(data => setActivityLogs(data))
+      .catch(err => console.error("Failed to load activity logs", err));
+  }, []);
+
+  const getLogIcon = (type: string) => {
+    switch (type) {
+      case 'created': return <PlusCircle size={16} className="text-emerald-500" />;
+      case 'updated': return <Edit size={16} className="text-blue-500" />;
+      case 'deleted': return <Trash2 size={16} className="text-red-500" />;
+      default: return <Activity size={16} className="text-primary-500" />;
+    }
+  };
+
+  const getLogColor = (type: string) => {
+    switch (type) {
+      case 'created': return 'bg-emerald-50 border-emerald-100';
+      case 'updated': return 'bg-blue-50 border-blue-100';
+      case 'deleted': return 'bg-red-50 border-red-100';
+      default: return 'bg-primary-50 border-primary-100';
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Stats Grid */}
@@ -202,6 +235,47 @@ export default function Dashboard() {
               ))}
             </tbody>
           </table>
+        </div>
+      </motion.div>
+
+      {/* Activity Logs Section */}
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5 }}
+        className="bg-white rounded-2xl border border-primary-100 shadow-sm overflow-hidden"
+      >
+        <div className="p-6 border-b border-primary-100 flex justify-between items-center">
+          <h3 className="text-lg font-bold text-primary-900 font-serif flex items-center gap-2">
+            <Activity className="text-primary-500" size={20} />
+            سجل نشاطات النظام
+          </h3>
+        </div>
+        <div className="p-6">
+          {activityLogs.length === 0 ? (
+            <div className="text-center text-primary-400 py-8">لا توجد نشاطات مسجلة بعد</div>
+          ) : (
+            <div className="space-y-4">
+              {activityLogs.slice(0, 15).map((log, i) => (
+                <div key={log.id} className={`flex items-start gap-4 p-4 rounded-xl border ${getLogColor(log.event_type)}`}>
+                  <div className="bg-white p-2 rounded-lg shadow-sm">
+                    {getLogIcon(log.event_type)}
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-primary-900 font-medium text-sm">{log.description}</p>
+                    <div className="flex items-center gap-4 mt-2 text-xs text-primary-500">
+                      <span className="flex items-center gap-1 font-semibold">
+                        <Users size={12} /> {log.actor?.name || 'النظام'}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Clock size={12} /> {new Date(log.created_at).toLocaleString('ar-SA')}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </motion.div>
     </div>

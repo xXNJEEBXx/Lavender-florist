@@ -33,6 +33,10 @@ export const authApi = {
   me: () => api.get('/auth/me'),
 };
 
+export const adminActivityLogsApi = {
+  getAll: () => api.get('/admin/activity-logs').then(res => res.data),
+};
+
 export const adminProductsApi = {
   getAll: () => api.get('/admin/products').then(res => res.data),
   getById: (id: number) => api.get(`/admin/products/${id}`).then(res => res.data),

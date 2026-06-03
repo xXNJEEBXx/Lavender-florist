@@ -8,6 +8,7 @@ use App\Models\Address;
 use App\Models\Product;
 use App\Models\OrderItem;
 use App\Models\Component;
+use App\Models\ActivityLog;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -147,6 +148,17 @@ class CheckoutController extends Controller
                     ]);
                 }
             }
+
+            // Log activity
+            ActivityLog::create([
+                'event_type' => 'created',
+                'actor_type' => \App\Models\User::class,
+                'actor_id' => $customer->id,
+                'subject_type' => Order::class,
+                'subject_id' => $order->id,
+                'description' => 'عميل قام بإنشاء طلب جديد #' . $order->order_number,
+                'ip_address' => $request->ip()
+            ]);
 
             return response()->json([
                 'message' => 'تم استلام طلبك بنجاح!',
