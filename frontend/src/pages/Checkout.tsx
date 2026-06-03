@@ -526,14 +526,45 @@ export default function Checkout() {
             >
               <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
                 <h3 className="font-bold flex items-center gap-2"><MapIcon className="w-5 h-5 text-emerald-600"/> تحديد الموقع</h3>
-                <button onClick={() => setIsMapModalOpen(false)} className="p-2 hover:bg-gray-200 rounded-full"><X className="w-5 h-5" /></button>
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => {
+                      if (navigator.geolocation) {
+                        navigator.geolocation.getCurrentPosition(
+                          (position) => {
+                            const pos = {
+                              lat: position.coords.latitude,
+                              lng: position.coords.longitude,
+                            };
+                            setMapCenter(pos);
+                            setSelectedLocation(pos);
+                          },
+                          () => {
+                            alert("لم نتمكن من تحديد موقعك. تأكد من إعطاء الصلاحية للمتصفح.");
+                          }
+                        );
+                      } else {
+                        alert("المتصفح الخاص بك لا يدعم تحديد الموقع.");
+                      }
+                    }}
+                    className="flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-100 hover:bg-emerald-200 px-3 py-1.5 rounded-lg transition-colors"
+                  >
+                    <MapPin className="w-4 h-4" /> موقعي الحالي
+                  </button>
+                  <button onClick={() => setIsMapModalOpen(false)} className="p-2 hover:bg-gray-200 rounded-full"><X className="w-5 h-5" /></button>
+                </div>
               </div>
               
               <div className="h-[400px] w-full relative">
                 <GoogleMap
                   mapContainerStyle={{ width: '100%', height: '100%' }}
                   center={mapCenter}
-                  zoom={13}
+                  zoom={15}
+                  options={{
+                    streetViewControl: false,
+                    mapTypeControl: false,
+                    fullscreenControl: false,
+                  }}
                   onClick={(e) => {
                     if (e.latLng) {
                       setSelectedLocation({ lat: e.latLng.lat(), lng: e.latLng.lng() });
