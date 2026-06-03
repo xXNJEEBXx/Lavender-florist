@@ -43,7 +43,7 @@ export default function Checkout() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [orderNumber, setOrderNumber] = useState('');
   const [notes, setNotes] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState('cash_on_delivery');
+  const [paymentMethod, setPaymentMethod] = useState('bank_transfer');
 
   // New Address Form State
   const [addressError, setAddressError] = useState('');
@@ -428,15 +428,6 @@ export default function Checkout() {
               </div>
               
               <div className="space-y-3">
-                <label className={`flex items-center gap-4 p-4 rounded-2xl border-2 cursor-pointer transition-all ${paymentMethod === 'cash_on_delivery' ? 'border-primary-500 bg-primary-50' : 'border-primary-100 hover:border-primary-300'}`}>
-                  <input type="radio" name="payment" value="cash_on_delivery" checked={paymentMethod === 'cash_on_delivery'} onChange={e => setPaymentMethod(e.target.value)} className="w-5 h-5 text-primary-600 focus:ring-primary-500 border-gray-300" />
-                  <div className="flex-1">
-                    <h3 className="font-bold text-primary-900">الدفع عند الاستلام</h3>
-                    <p className="text-sm text-primary-500 mt-1">ادفع نقداً أو بالشبكة عند وصول المندوب</p>
-                  </div>
-                  <Truck className="w-6 h-6 text-primary-400" />
-                </label>
-                
                 <label className={`flex items-center gap-4 p-4 rounded-2xl border-2 cursor-pointer transition-all ${paymentMethod === 'bank_transfer' ? 'border-primary-500 bg-primary-50' : 'border-primary-100 hover:border-primary-300'}`}>
                   <input type="radio" name="payment" value="bank_transfer" checked={paymentMethod === 'bank_transfer'} onChange={e => setPaymentMethod(e.target.value)} className="w-5 h-5 text-primary-600 focus:ring-primary-500 border-gray-300" />
                   <div className="flex-1">
