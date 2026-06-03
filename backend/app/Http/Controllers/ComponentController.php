@@ -17,13 +17,19 @@ class ComponentController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'name_en' => 'nullable|string|max:255',
-            'type' => 'required|string|max:100',
-            'cost_price' => 'required|numeric|min:0',
+            'category' => 'required|string|max:100',
+            'cost_per_unit' => 'required|numeric|min:0',
             'stock_quantity' => 'required|integer|min:0',
-            'is_active' => 'boolean'
+            'is_active' => 'boolean',
+            'image' => 'nullable|image|max:2048'
         ]);
 
         $validated['is_active'] = filter_var($request->is_active ?? true, FILTER_VALIDATE_BOOLEAN);
+
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('components', 'public');
+            $validated['image_url'] = '/storage/' . $path;
+        }
 
         $component = Component::create($validated);
         return response()->json($component, 201);
@@ -39,14 +45,20 @@ class ComponentController extends Controller
         $validated = $request->validate([
             'name' => 'sometimes|required|string|max:255',
             'name_en' => 'nullable|string|max:255',
-            'type' => 'sometimes|required|string|max:100',
-            'cost_price' => 'sometimes|required|numeric|min:0',
+            'category' => 'sometimes|required|string|max:100',
+            'cost_per_unit' => 'sometimes|required|numeric|min:0',
             'stock_quantity' => 'sometimes|required|integer|min:0',
-            'is_active' => 'nullable'
+            'is_active' => 'nullable',
+            'image' => 'nullable|image|max:2048'
         ]);
 
         if ($request->has('is_active')) {
             $validated['is_active'] = filter_var($request->is_active, FILTER_VALIDATE_BOOLEAN);
+        }
+
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('components', 'public');
+            $validated['image_url'] = '/storage/' . $path;
         }
 
         $component->update($validated);
