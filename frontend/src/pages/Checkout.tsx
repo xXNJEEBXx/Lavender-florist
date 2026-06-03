@@ -43,6 +43,8 @@ export default function Checkout() {
   const [paymentMethod, setPaymentMethod] = useState('cash_on_delivery');
 
   // New Address Form State
+  const [addressError, setAddressError] = useState('');
+  const [isSavingAddress, setIsSavingAddress] = useState(false);
   const [newAddress, setNewAddress] = useState({
     name: 'المنزل',
     recipient_name: '',
@@ -71,6 +73,21 @@ export default function Checkout() {
 
   const handleSaveAddress = async (e: React.FormEvent) => {
     e.preventDefault();
+    setAddressError('');
+
+    // Phone Validation (Saudi format: 05XXXXXXXX)
+    const phoneRegex = /^(05)[0-9]{8}$/;
+    if (!phoneRegex.test(newAddress.recipient_phone)) {
+      setAddressError('رقم الجوال غير صحيح. يجب أن يبدأ بـ 05 ويتكون من 10 أرقام.');
+      return;
+    }
+    
+    if (!newAddress.street_address || newAddress.street_address.trim() === '') {
+      setAddressError('الرجاء تحديد الموقع من الخريطة أو كتابة تفاصيل العنوان.');
+      return;
+    }
+
+    setIsSavingAddress(true);
     try {
       const data = await customerApi.addAddress(newAddress);
       setAddresses([...addresses, data]);
@@ -84,9 +101,15 @@ export default function Checkout() {
         street_address: '',
         is_default: true,
       });
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert('حدث خطأ أثناء حفظ العنوان');
+      if (err.response?.status === 401) {
+        setAddressError('انتهت جلسة تسجيل الدخول، يرجى تسجيل الدخول مجدداً.');
+      } else {
+        setAddressError('حدث خطأ أثناء حفظ العنوان. يرجى المحاولة لاحقاً.');
+      }
+    } finally {
+      setIsSavingAddress(false);
     }
   };
 
@@ -458,6 +481,12 @@ export default function Checkout() {
               </div>
               
               <form onSubmit={handleSaveAddress} className="p-6 overflow-y-auto">
+                {addressError && (
+                  <div className="bg-rose-50 text-rose-600 p-3 rounded-lg text-sm mb-4 border border-rose-100">
+                    {addressError}
+                  </div>
+                )}
+                
                 <div className="space-y-4">
                   {/* Google Maps Placeholder Button */}
                   <div className="mb-6">
@@ -503,8 +532,8 @@ export default function Checkout() {
                 </div>
                 
                 <div className="mt-8">
-                  <button type="submit" className="w-full py-4 bg-primary-800 text-white rounded-xl font-bold hover:bg-primary-900 transition-colors shadow-lg shadow-primary-900/10">
-                    حفظ العنوان
+                  <button type="submit" disabled={isSavingAddress} className="w-full py-4 bg-primary-800 text-white rounded-xl font-bold hover:bg-primary-900 transition-colors shadow-lg shadow-primary-900/10 disabled:opacity-70">
+                    {isSavingAddress ? 'جاري الحفظ...' : 'حفظ العنوان'}
                   </button>
                 </div>
               </form>

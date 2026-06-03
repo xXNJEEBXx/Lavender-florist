@@ -12,22 +12,31 @@ export default function Login() {
   
   const from = location.state?.from || '/';
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Simulate login for prototype
-    setUser({
-      id: 1,
-      name: 'عميل لافندر',
-      email: email,
-      phone: '0500000000',
-      role: email === 'admin@lavender.com' ? 'admin' : 'customer'
-    } as any);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
-    if (email === 'admin@lavender.com') {
-      navigate('/admin');
-    } else {
-      navigate(from);
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError('');
+    
+    try {
+      // Prototype Auth Flow:
+      // In a real app we'd send OTP, then wait for user to input it.
+      // For this prototype, we send it and auto-verify using the backend's master OTP '0000'.
+      await useAuth().sendOtp(email);
+      await useAuth().verifyOtp(email, '0000');
+      
+      if (email === 'admin@lavender.com') {
+        navigate('/admin');
+      } else {
+        navigate(from);
+      }
+    } catch (err: any) {
+      setError('فشل تسجيل الدخول، تأكد من اتصال الخادم.');
+      console.error(err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -78,11 +87,18 @@ export default function Login() {
               />
             </div>
 
+            {error && (
+              <div className="bg-rose-50 text-rose-600 p-3 rounded-lg text-sm mb-4">
+                {error}
+              </div>
+            )}
+            
             <button 
               type="submit"
-              className="w-full py-4 bg-primary-800 text-white rounded-xl font-bold hover:bg-primary-900 transition-colors shadow-lg shadow-primary-900/10"
+              disabled={isLoading}
+              className="w-full py-4 bg-primary-800 text-white rounded-xl font-bold hover:bg-primary-900 transition-colors shadow-lg shadow-primary-900/10 disabled:opacity-70"
             >
-              تسجيل الدخول
+              {isLoading ? 'جاري تسجيل الدخول...' : 'تسجيل الدخول'}
             </button>
             
             <div className="relative my-8">
