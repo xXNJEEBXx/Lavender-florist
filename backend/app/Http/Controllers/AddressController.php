@@ -9,7 +9,13 @@ class AddressController extends Controller
 {
     public function index(Request $request)
     {
-        return response()->json($request->user()->addresses);
+        $addresses = $request->user()->addresses->map(function ($address) {
+            $arr = $address->toArray();
+            $arr['name'] = $address->label;
+            $arr['street_address'] = $address->street;
+            return $arr;
+        });
+        return response()->json($addresses);
     }
 
     public function store(Request $request)
@@ -23,15 +29,27 @@ class AddressController extends Controller
             'is_default' => 'boolean'
         ]);
 
-        $validated['user_id'] = $request->user()->id;
+        $addressData = [
+            'user_id' => $request->user()->id,
+            'label' => $validated['name'],
+            'recipient_name' => $validated['recipient_name'],
+            'recipient_phone' => $validated['recipient_phone'],
+            'city' => $validated['city'],
+            'street' => $validated['street_address'],
+            'is_default' => $validated['is_default'] ?? false,
+        ];
 
         // If this is set as default, unset others
         if (!empty($validated['is_default'])) {
             $request->user()->addresses()->update(['is_default' => false]);
         }
 
-        $address = Address::create($validated);
+        $address = Address::create($addressData);
 
-        return response()->json($address, 201);
+        $arr = $address->toArray();
+        $arr['name'] = $address->label;
+        $arr['street_address'] = $address->street;
+
+        return response()->json($arr, 201);
     }
 }

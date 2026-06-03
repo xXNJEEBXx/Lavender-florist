@@ -140,13 +140,22 @@ export default function Checkout() {
     
     if (isLoaded && window.google) {
       const service = new google.maps.DistanceMatrixService();
-      // We use the street_address string if we didn't save coords, or if we saved coords we could use them. 
-      // For now we use the street_address string. Al Ahsa is appended to ensure better accuracy.
-      const destinationStr = `${selectedAddress.street_address}, الأحساء, السعودية`;
+      
+      let destination: string | google.maps.LatLngLiteral = selectedAddress.street_address;
+      
+      // If the address was saved as coordinates
+      if (typeof destination === 'string' && destination.startsWith('إحداثيات:')) {
+        const coords = destination.replace('إحداثيات:', '').split(',');
+        if (coords.length === 2) {
+          destination = { lat: parseFloat(coords[0].trim()), lng: parseFloat(coords[1].trim()) };
+        }
+      } else if (typeof destination === 'string' && !destination.includes('السعودية') && !destination.includes('Saudi Arabia')) {
+        destination = `${destination}, الأحساء, السعودية`;
+      }
 
       service.getDistanceMatrix({
         origins: [STORE_LOCATION],
-        destinations: [destinationStr],
+        destinations: [destination],
         travelMode: google.maps.TravelMode.DRIVING,
       }, (response, status) => {
         setIsCalculating(false);
