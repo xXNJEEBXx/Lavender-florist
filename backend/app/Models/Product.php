@@ -17,6 +17,8 @@ class Product extends Model
         'preparation_time_minutes', 'sort_order',
     ];
 
+    protected $appends = ['is_in_stock', 'calculated_stock'];
+
     protected function casts(): array
     {
         return [
