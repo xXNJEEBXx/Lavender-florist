@@ -95,18 +95,25 @@ export function CartProvider({ children }: { children: ReactNode }) {
     const usedComponents: Record<number, number> = {};
     items.forEach(item => {
       if (item.product.components) {
-        item.product.components.forEach(comp => {
-          usedComponents[comp.component_id] = (usedComponents[comp.component_id] || 0) + (comp.quantity * item.quantity);
+        item.product.components.forEach((comp: any) => {
+          const compId = comp.id || comp.component_id;
+          const qty = comp.pivot ? comp.pivot.quantity : (comp.quantity || 1);
+          usedComponents[compId] = (usedComponents[compId] || 0) + (qty * item.quantity);
         });
       }
     });
 
     let minAvailable = Infinity;
-    product.components.forEach(comp => {
-      const stock = comp.component.stock_quantity;
-      const used = usedComponents[comp.component_id] || 0;
+    product.components.forEach((comp: any) => {
+      const compId = comp.id || comp.component_id;
+      // Handle both nested component structure and Laravel pivot structure
+      const stock = comp.pivot ? comp.stock_quantity : (comp.component?.stock_quantity ?? comp.stock_quantity ?? 0);
+      const qty = comp.pivot ? comp.pivot.quantity : (comp.quantity || 1);
+      
+      const used = usedComponents[compId] || 0;
       const remainingStock = Math.max(0, stock - used);
-      const possibleUnits = Math.floor(remainingStock / comp.quantity);
+      const possibleUnits = qty > 0 ? Math.floor(remainingStock / qty) : Infinity;
+      
       if (possibleUnits < minAvailable) {
         minAvailable = possibleUnits;
       }
