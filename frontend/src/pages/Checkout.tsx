@@ -32,6 +32,7 @@ export default function Checkout() {
   const [selectedLocation, setSelectedLocation] = useState<google.maps.LatLngLiteral | null>(null);
 
   // Delivery State
+  const [deliveryType, setDeliveryType] = useState<'local' | 'pickup'>('local');
   const [deliveryMinutes, setDeliveryMinutes] = useState<number | null>(null);
   const [isRejecting, setIsRejecting] = useState(false);
   const [isCalculating, setIsCalculating] = useState(false);
@@ -127,6 +128,7 @@ export default function Checkout() {
   };
 
   const getDeliveryFee = (mins: number) => {
+    if (deliveryType === 'pickup') return 0;
     if (mins <= 6) return 15;
     if (mins <= 10) return 20;
     if (mins <= 13) return 25;
@@ -140,6 +142,7 @@ export default function Checkout() {
   const total = subtotal + deliveryFee;
 
   const handleCalculateDelivery = () => {
+    if (deliveryType === 'pickup') return;
     if (!selectedAddressId) return;
     
     const selectedAddress = addresses.find(a => a.id === selectedAddressId);
@@ -204,20 +207,24 @@ export default function Checkout() {
   const selectedAddressHash = selectedAddressForHash ? `${selectedAddressForHash.id}-${selectedAddressForHash.street_address}` : null;
 
   useEffect(() => {
-    if (selectedAddressId && isLoaded && addresses.length > 0) {
+    if (deliveryType === 'pickup') {
+      setDeliveryMinutes(0);
+      setIsCalculating(false);
+      setIsRejecting(false);
+    } else if (selectedAddressId && isLoaded && addresses.length > 0) {
       handleCalculateDelivery();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedAddressId, isLoaded, selectedAddressHash]);
+  }, [selectedAddressId, isLoaded, selectedAddressHash, deliveryType]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (items.length === 0) return;
-    if (!selectedAddressId) {
+    if (deliveryType === 'local' && !selectedAddressId) {
       setError('الرجاء اختيار عنوان التوصيل');
       return;
     }
-    if (deliveryMinutes === null || isRejecting) {
+    if (deliveryType === 'local' && (deliveryMinutes === null || isRejecting)) {
       setError('الرجاء حساب رسوم التوصيل أولاً والتأكد من إمكانية التوصيل لموقعك.');
       return;
     }
@@ -227,9 +234,9 @@ export default function Checkout() {
     
     try {
       const payload = {
-        address_id: selectedAddressId,
+        address_id: deliveryType === 'pickup' ? null : selectedAddressId,
         payment_method: paymentMethod,
-        delivery_type: 'local',
+        delivery_type: deliveryType,
         delivery_fee: deliveryFee,
         notes: notes,
         items: items.map(item => ({
@@ -308,7 +315,36 @@ export default function Checkout() {
               </div>
             )}
 
+            {/* Delivery Type Selection */}
+            <div className="bg-white p-6 rounded-3xl border border-primary-100 shadow-sm">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 bg-primary-100 text-primary-600 rounded-xl flex items-center justify-center">
+                  <Truck className="w-5 h-5" />
+                </div>
+                <h2 className="text-xl font-bold text-primary-900">طريقة الاستلام</h2>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <button
+                  type="button"
+                  onClick={() => setDeliveryType('local')}
+                  className={`p-4 rounded-2xl border-2 flex flex-col items-center gap-2 transition-all ${deliveryType === 'local' ? 'border-primary-500 bg-primary-50' : 'border-primary-100 hover:border-primary-300'}`}
+                >
+                  <Truck className={`w-8 h-8 ${deliveryType === 'local' ? 'text-primary-600' : 'text-primary-400'}`} />
+                  <span className="font-bold text-primary-900">توصيل للعنوان</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDeliveryType('pickup')}
+                  className={`p-4 rounded-2xl border-2 flex flex-col items-center gap-2 transition-all ${deliveryType === 'pickup' ? 'border-primary-500 bg-primary-50' : 'border-primary-100 hover:border-primary-300'}`}
+                >
+                  <MapPin className={`w-8 h-8 ${deliveryType === 'pickup' ? 'text-primary-600' : 'text-primary-400'}`} />
+                  <span className="font-bold text-primary-900">استلام من الفرع</span>
+                </button>
+              </div>
+            </div>
+
             {/* Address Selection */}
+            {deliveryType === 'local' && (
             <div className="bg-white p-6 rounded-3xl border border-primary-100 shadow-sm">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
@@ -372,6 +408,7 @@ export default function Checkout() {
                 </div>
               )}
             </div>
+            )}
 
             {/* Notes */}
             <div className="bg-white p-6 rounded-3xl border border-primary-100 shadow-sm">
@@ -454,14 +491,16 @@ export default function Checkout() {
                 <div className="flex justify-between">
                   <span>رسوم التوصيل</span>
                   <span className="font-medium">
-                    {isCalculating ? (
+                    {deliveryType === 'pickup' ? (
+                      <span className="text-emerald-600 font-bold">مجاناً</span>
+                    ) : isCalculating ? (
                       <span className="animate-pulse text-primary-500">جاري الحساب...</span>
                     ) : (
                       `${deliveryFee} ر.س`
                     )}
                   </span>
                 </div>
-                {!isCalculating && !isRejecting && deliveryMinutes !== null && (
+                {deliveryType === 'local' && !isCalculating && !isRejecting && deliveryMinutes !== null && (
                   <p className="text-xs text-primary-500 italic bg-primary-50 p-2 rounded-lg">* السعر والوقت قد يختلف قليلاً مع الزحمة المرورية.</p>
                 )}
               </div>
@@ -471,7 +510,7 @@ export default function Checkout() {
                 <span className="font-bold text-accent-700 text-2xl">{isCalculating ? '---' : total} ر.س</span>
               </div>
               
-              {isRejecting && (
+              {isRejecting && deliveryType === 'local' && (
                 <div className="mb-6 bg-rose-50 border border-rose-100 rounded-xl p-4 text-sm text-rose-600">
                   <p className="font-bold mb-1">نعتذر منك!</p>
                   <p>المسافة لعنوانك ({deliveryMinutes} دقيقة) تتجاوز النطاق المسموح به للتوصيل.</p>
@@ -480,7 +519,7 @@ export default function Checkout() {
 
               <button 
                 type="submit"
-                disabled={isLoading || isCalculating || isRejecting || !selectedAddressId}
+                disabled={isLoading || isCalculating || (deliveryType === 'local' && isRejecting) || (deliveryType === 'local' && !selectedAddressId)}
                 className="w-full bg-primary-800 text-white rounded-xl py-4 font-bold text-lg hover:bg-primary-900 active:bg-primary-950 transition-all shadow-lg shadow-primary-900/10 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {isLoading ? (

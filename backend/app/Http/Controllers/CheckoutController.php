@@ -19,8 +19,8 @@ class CheckoutController extends Controller
     public function process(Request $request)
     {
         $validated = $request->validate([
-            'address_id' => 'required|exists:addresses,id',
-            'delivery_type' => 'required|in:local,shipping',
+            'address_id' => 'nullable|exists:addresses,id',
+            'delivery_type' => 'required|in:local,shipping,pickup',
             'delivery_fee' => 'required|numeric|min:0',
             'delivery_date' => 'nullable|date|after_or_equal:today',
             'payment_method' => 'required|in:cash_on_delivery,bank_transfer',
@@ -39,13 +39,19 @@ class CheckoutController extends Controller
                 throw ValidationException::withMessages(['auth' => 'يجب تسجيل الدخول أولاً']);
             }
 
-            // 1. Check Address belongs to Customer
-            $address = Address::where('id', $validated['address_id'])
-                              ->where('user_id', $customer->id)
-                              ->first();
-                              
-            if (!$address) {
-                throw ValidationException::withMessages(['address_id' => 'العنوان غير صالح']);
+            // 1. Check Address belongs to Customer if not pickup
+            $address = null;
+            if ($validated['delivery_type'] !== 'pickup') {
+                if (empty($validated['address_id'])) {
+                    throw ValidationException::withMessages(['address_id' => 'الرجاء اختيار عنوان التوصيل']);
+                }
+                $address = Address::where('id', $validated['address_id'])
+                                  ->where('user_id', $customer->id)
+                                  ->first();
+                                  
+                if (!$address) {
+                    throw ValidationException::withMessages(['address_id' => 'العنوان غير صالح']);
+                }
             }
 
             // 2. Process Cart Items and Calculate Total
@@ -91,7 +97,7 @@ class CheckoutController extends Controller
                 'customer_id' => $customer->id,
                 'status' => 'pending',
                 'delivery_type' => $validated['delivery_type'],
-                'address_id' => $address->id,
+                'address_id' => $address ? $address->id : null,
                 'delivery_date' => $validated['delivery_date'] ?? null,
                 'delivery_fee' => $deliveryFee,
                 'subtotal' => $subtotal,
