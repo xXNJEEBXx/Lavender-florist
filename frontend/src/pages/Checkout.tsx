@@ -488,18 +488,18 @@ export default function Checkout() {
                   <span>المجموع الفرعي</span>
                   <span className="font-medium">{subtotal} ر.س</span>
                 </div>
-                <div className="flex justify-between">
-                  <span>رسوم التوصيل</span>
-                  <span className="font-medium">
-                    {deliveryType === 'pickup' ? (
-                      <span className="text-emerald-600 font-bold">مجاناً</span>
-                    ) : isCalculating ? (
-                      <span className="animate-pulse text-primary-500">جاري الحساب...</span>
-                    ) : (
-                      `${deliveryFee} ر.س`
-                    )}
-                  </span>
-                </div>
+                {deliveryType === 'local' && (
+                  <div className="flex justify-between">
+                    <span>رسوم التوصيل</span>
+                    <span className="font-medium">
+                      {isCalculating ? (
+                        <span className="animate-pulse text-primary-500">جاري الحساب...</span>
+                      ) : (
+                        `${deliveryFee} ر.س`
+                      )}
+                    </span>
+                  </div>
+                )}
                 {deliveryType === 'local' && !isCalculating && !isRejecting && deliveryMinutes !== null && (
                   <p className="text-xs text-primary-500 italic bg-primary-50 p-2 rounded-lg">* السعر والوقت قد يختلف قليلاً مع الزحمة المرورية.</p>
                 )}
