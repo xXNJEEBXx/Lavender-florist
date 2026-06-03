@@ -3,10 +3,8 @@ import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { publicProductsApi } from '../services/api';
 import type { Product } from '../types';
-import { useAuth } from '../store/AuthContext';
 
 export default function Home() {
-  const { isAuthenticated } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -67,18 +65,12 @@ export default function Home() {
               transition={{ duration: 1, delay: 0.7 }}
               className="flex flex-col sm:flex-row gap-6 w-full sm:w-auto"
             >
-              <Link to="/products" className="px-10 py-5 bg-white text-primary-950 rounded-2xl font-bold text-lg hover:bg-primary-50 transition-all shadow-xl shadow-white/10 transform hover:-translate-y-1 text-center">
+              <button className="px-10 py-5 bg-white text-primary-950 rounded-2xl font-bold text-lg hover:bg-primary-50 transition-all shadow-xl shadow-white/10 transform hover:-translate-y-1">
                 تسوق الآن
-              </Link>
-              {isAuthenticated ? (
-                <Link to="/my-orders" className="px-10 py-5 bg-primary-900/60 backdrop-blur-md text-white border border-white/30 rounded-2xl font-bold text-lg hover:bg-primary-800/80 transition-all shadow-lg transform hover:-translate-y-1 text-center">
-                  طلباتي
-                </Link>
-              ) : (
-                <Link to="/products" className="px-10 py-5 bg-primary-900/60 backdrop-blur-md text-white border border-white/30 rounded-2xl font-bold text-lg hover:bg-primary-800/80 transition-all shadow-lg transform hover:-translate-y-1 text-center">
-                  تصفح التنسيقات
-                </Link>
-              )}
+              </button>
+              <button className="px-10 py-5 bg-primary-900/60 backdrop-blur-md text-white border border-white/30 rounded-2xl font-bold text-lg hover:bg-primary-800/80 transition-all shadow-lg transform hover:-translate-y-1">
+                تصفح التنسيقات
+              </button>
             </motion.div>
           </motion.div>
         </div>

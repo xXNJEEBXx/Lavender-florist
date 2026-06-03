@@ -87,6 +87,28 @@ export default function Header() {
                   )}
                 </Link>
               ))}
+              {isAuthenticated && (
+                <Link
+                  to="/my-orders"
+                  className={`
+                    relative px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300
+                    ${
+                      isActive('/my-orders')
+                        ? 'text-lavender-700'
+                        : 'text-text-light hover:text-lavender-600 hover:bg-lavender-50'
+                    }
+                  `}
+                >
+                  طلباتي
+                  {isActive('/my-orders') && (
+                    <motion.div
+                      layoutId="activeNav"
+                      className="absolute inset-0 bg-lavender-100 rounded-xl -z-10"
+                      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                    />
+                  )}
+                </Link>
+              )}
             </nav>
 
             {/* Right Actions */}
@@ -232,6 +254,18 @@ export default function Header() {
                     {link.label}
                   </Link>
                 ))}
+                {isAuthenticated && (
+                  <Link
+                    to="/my-orders"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={`
+                      block px-4 py-3 rounded-xl text-sm font-semibold transition-all
+                      ${isActive('/my-orders') ? 'bg-lavender-100 text-lavender-700' : 'text-text-light hover:bg-lavender-50'}
+                    `}
+                  >
+                    طلباتي
+                  </Link>
+                )}
                 {!isAuthenticated && (
                   <Link
                     to="/login"
