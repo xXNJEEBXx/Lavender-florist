@@ -174,19 +174,20 @@ export default function Checkout() {
           origins: [STORE_LOCATION],
           destinations: [destination],
           travelMode: google.maps.TravelMode.DRIVING,
-      }, (response, status) => {
-        setIsCalculating(false);
-        if (status === 'OK' && response && response.rows[0].elements[0].status === 'OK') {
-          const durationSeconds = response.rows[0].elements[0].duration.value;
-          const minutes = Math.ceil(durationSeconds / 60);
-          setDeliveryMinutes(minutes);
-          if (minutes > 37) {
-            setIsRejecting(true);
+        }, (response, status) => {
+          setIsCalculating(false);
+          if (status === 'OK' && response && response.rows[0].elements[0].status === 'OK') {
+            const durationSeconds = response.rows[0].elements[0].duration.value;
+            const minutes = Math.ceil(durationSeconds / 60);
+            setDeliveryMinutes(minutes);
+            if (minutes > 37) {
+              setIsRejecting(true);
+            }
+          } else {
+            // Fallback if API fails to find it exactly, use mock to not block the user entirely
+            const fallbackMins = 15;
+            setDeliveryMinutes(fallbackMins);
           }
-        } else {
-          // Fallback if API fails to find it exactly, use mock to not block the user entirely
-          const fallbackMins = 15;
-          setDeliveryMinutes(fallbackMins);
         });
       } catch (err) {
         console.error('Distance Matrix Error:', err);
