@@ -5,7 +5,7 @@ import { useAuth } from '../store/AuthContext';
 import { Trash2 } from 'lucide-react';
 
 export default function Cart() {
-  const { items, updateQuantity, removeItem, subtotal } = useCart();
+  const { items, updateQuantity, removeItem, subtotal, getAvailableStock } = useCart();
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -64,8 +64,8 @@ export default function Cart() {
                       <button onClick={() => updateQuantity(item.product.id, item.quantity - 1)} className="w-8 h-8 flex items-center justify-center text-primary-600 hover:bg-primary-100 transition-colors">-</button>
                       <span className="w-8 text-center text-sm font-medium">{item.quantity}</span>
                       <button 
-                        onClick={() => updateQuantity(item.product.id, Math.min(item.product.calculated_stock || 1, item.quantity + 1))} 
-                        disabled={item.quantity >= (item.product.calculated_stock || 1)}
+                        onClick={() => updateQuantity(item.product.id, item.quantity + 1)} 
+                        disabled={getAvailableStock(item.product) === 0}
                         className="w-8 h-8 flex items-center justify-center text-primary-600 hover:bg-primary-100 transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
                       >
                         +

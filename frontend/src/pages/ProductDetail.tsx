@@ -12,7 +12,7 @@ export default function ProductDetail() {
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
   const [activeImage, setActiveImage] = useState<string | null>(null);
-  const { addItem } = useCart();
+  const { addItem, getAvailableStock } = useCart();
   const [isAdding, setIsAdding] = useState(false);
 
   useEffect(() => {
@@ -152,8 +152,8 @@ export default function ProductDetail() {
               </button>
               <span className="w-12 text-center font-semibold text-primary-900">{quantity}</span>
               <button 
-                onClick={() => setQuantity(Math.min(product.calculated_stock || 1, quantity + 1))}
-                disabled={!product.is_in_stock || quantity >= (product.calculated_stock || 1)}
+                onClick={() => setQuantity(Math.min(getAvailableStock(product), quantity + 1))}
+                disabled={!product.is_in_stock || quantity >= getAvailableStock(product)}
                 className="w-12 h-14 flex items-center justify-center text-primary-700 hover:bg-primary-100 transition-colors disabled:opacity-50"
               >
                 +
@@ -173,7 +173,7 @@ export default function ProductDetail() {
               className={`flex-1 rounded-xl font-semibold text-lg flex items-center justify-center gap-2 transition-colors shadow-lg ${product.is_in_stock ? 'bg-primary-800 text-white hover:bg-primary-900 shadow-primary-900/10' : 'bg-gray-200 text-gray-500 shadow-none cursor-not-allowed'}`}
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
-              {isAdding ? 'تمت الإضافة ✔️' : product.is_in_stock ? 'إضافة للسلة' : 'غير متوفر'}
+              {isAdding ? 'تمت الإضافة ✔️' : product.is_in_stock && getAvailableStock(product) > 0 ? 'إضافة للسلة' : 'تجاوزت الكمية المتوفرة'}
             </motion.button>
           </div>
 

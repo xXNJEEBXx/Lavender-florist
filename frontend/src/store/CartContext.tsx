@@ -16,6 +16,7 @@ interface CartContextType {
   updateQuantity: (productId: number, quantity: number) => void;
   clearCart: () => void;
   isInCart: (productId: number) => boolean;
+  getAvailableStock: (product: Product) => number;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -85,6 +86,35 @@ export function CartProvider({ children }: { children: ReactNode }) {
     0
   );
 
+  const getAvailableStock = (product: Product) => {
+    if (!product.components || product.components.length === 0) {
+      const inCart = items.find(i => i.product.id === product.id)?.quantity || 0;
+      return Math.max(0, (product.calculated_stock || 0) - inCart);
+    }
+
+    const usedComponents: Record<number, number> = {};
+    items.forEach(item => {
+      if (item.product.components) {
+        item.product.components.forEach(comp => {
+          usedComponents[comp.component_id] = (usedComponents[comp.component_id] || 0) + (comp.quantity * item.quantity);
+        });
+      }
+    });
+
+    let minAvailable = Infinity;
+    product.components.forEach(comp => {
+      const stock = comp.component.stock_quantity;
+      const used = usedComponents[comp.component_id] || 0;
+      const remainingStock = Math.max(0, stock - used);
+      const possibleUnits = Math.floor(remainingStock / comp.quantity);
+      if (possibleUnits < minAvailable) {
+        minAvailable = possibleUnits;
+      }
+    });
+
+    return minAvailable === Infinity ? 0 : minAvailable;
+  };
+
   return (
     <CartContext.Provider
       value={{
@@ -96,6 +126,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         updateQuantity,
         clearCart,
         isInCart,
+        getAvailableStock,
       }}
     >
       {children}
