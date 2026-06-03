@@ -541,7 +541,8 @@ export default function Checkout() {
                           },
                           () => {
                             alert("لم نتمكن من تحديد موقعك. تأكد من إعطاء الصلاحية للمتصفح.");
-                          }
+                          },
+                          { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
                         );
                       } else {
                         alert("المتصفح الخاص بك لا يدعم تحديد الموقع.");
