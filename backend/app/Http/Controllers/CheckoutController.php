@@ -19,13 +19,7 @@ class CheckoutController extends Controller
     public function process(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'phone' => 'required|string|max:20',
-            'email' => 'nullable|email|max:255',
-            
-            'address' => 'required|string|max:255',
-            'city' => 'required|string|max:100',
-            
+            'address_id' => 'required|exists:addresses,id',
             'delivery_type' => 'required|in:local,shipping',
             'delivery_fee' => 'required|numeric|min:0',
             'delivery_date' => 'nullable|date|after_or_equal:today',
@@ -45,18 +39,16 @@ class CheckoutController extends Controller
                 throw ValidationException::withMessages(['auth' => 'يجب تسجيل الدخول أولاً']);
             }
 
-            // 2. Save Address
-            $address = Address::create([
-                'user_id' => $customer->id,
-                'name' => 'عنوان التوصيل',
-                'recipient_name' => $validated['name'],
-                'recipient_phone' => $validated['phone'],
-                'city' => $validated['city'],
-                'street_address' => $validated['address'],
-                'is_default' => true
-            ]);
+            // 1. Check Address belongs to Customer
+            $address = Address::where('id', $validated['address_id'])
+                              ->where('user_id', $customer->id)
+                              ->first();
+                              
+            if (!$address) {
+                throw ValidationException::withMessages(['address_id' => 'العنوان غير صالح']);
+            }
 
-            // 3. Process Cart Items and Calculate Total
+            // 2. Process Cart Items and Calculate Total
             $subtotal = 0;
             $orderItemsData = [];
             $componentsToDeduct = [];
@@ -90,7 +82,7 @@ class CheckoutController extends Controller
                 }
             }
 
-            // 4. Create Order
+            // 3. Create Order
             $deliveryFee = $validated['delivery_fee'];
             $total = $subtotal + $deliveryFee;
 
@@ -110,7 +102,7 @@ class CheckoutController extends Controller
                 'notes' => $validated['notes'] ?? null
             ]);
 
-            // 5. Save Order Items and Gift Messages
+            // 4. Save Order Items and Gift Messages
             foreach ($orderItemsData as $itemData) {
                 $giftMessage = $itemData['gift_message'];
                 unset($itemData['gift_message']);
@@ -131,7 +123,7 @@ class CheckoutController extends Controller
                 }
             }
 
-            // 6. Deduct Components Stock (Inventory Management)
+            // 5. Deduct Components Stock (Inventory Management)
             foreach ($componentsToDeduct as $componentId => $qtyToDeduct) {
                 $component = Component::find($componentId);
                 if ($component) {

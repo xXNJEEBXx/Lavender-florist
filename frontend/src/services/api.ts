@@ -68,4 +68,9 @@ export const publicProductsApi = {
   checkout: (data: any) => api.post('/checkout', data).then(res => res.data),
 };
 
+export const customerApi = {
+  getAddresses: () => api.get('/addresses').then(res => res.data),
+  addAddress: (data: any) => api.post('/addresses', data).then(res => res.data),
+};
+
 export default api;

@@ -38,9 +38,8 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // Profile & Addresses
-    Route::get('/addresses', function(Request $request) {
-        return $request->user()->addresses;
-    });
+    Route::get('/addresses', [\App\Http\Controllers\AddressController::class, 'index']);
+    Route::post('/addresses', [\App\Http\Controllers\AddressController::class, 'store']);
 
     // Orders
     Route::get('/orders', function(Request $request) {

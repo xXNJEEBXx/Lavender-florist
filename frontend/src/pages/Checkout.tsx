@@ -1,17 +1,80 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
 import { useCart } from '../store/CartContext';
-import { publicProductsApi } from '../services/api';
-import { CheckCircle2, ChevronRight, MapPin, CreditCard, ShoppingBag, Truck } from 'lucide-react';
+import { publicProductsApi, customerApi } from '../services/api';
+import { CheckCircle2, ChevronRight, MapPin, CreditCard, ShoppingBag, Truck, Plus, X, Map as MapIcon } from 'lucide-react';
 
 export default function Checkout() {
   const { items, subtotal, clearCart } = useCart();
   const navigate = useNavigate();
 
+  // Address State
+  const [addresses, setAddresses] = useState<any[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<number | null>(null);
+  const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
+  const [isMapModalOpen, setIsMapModalOpen] = useState(false);
+
+  // Delivery State
   const [deliveryMinutes, setDeliveryMinutes] = useState<number | null>(null);
   const [isRejecting, setIsRejecting] = useState(false);
   const [isCalculating, setIsCalculating] = useState(false);
+
+  // Order State
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [orderNumber, setOrderNumber] = useState('');
+  const [notes, setNotes] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('cash_on_delivery');
+
+  // New Address Form State
+  const [newAddress, setNewAddress] = useState({
+    name: 'المنزل',
+    recipient_name: '',
+    recipient_phone: '',
+    city: 'الأحساء',
+    street_address: '',
+    is_default: true,
+  });
+
+  useEffect(() => {
+    loadAddresses();
+  }, []);
+
+  const loadAddresses = async () => {
+    try {
+      const data = await customerApi.getAddresses();
+      setAddresses(data);
+      if (data.length > 0) {
+        const defaultAddress = data.find((a: any) => a.is_default) || data[0];
+        setSelectedAddressId(defaultAddress.id);
+      }
+    } catch (err) {
+      console.error("Failed to load addresses", err);
+    }
+  };
+
+  const handleSaveAddress = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const data = await customerApi.addAddress(newAddress);
+      setAddresses([...addresses, data]);
+      setSelectedAddressId(data.id);
+      setIsAddressModalOpen(false);
+      setNewAddress({
+        name: 'المنزل',
+        recipient_name: '',
+        recipient_phone: '',
+        city: 'الأحساء',
+        street_address: '',
+        is_default: true,
+      });
+    } catch (err) {
+      console.error(err);
+      alert('حدث خطأ أثناء حفظ العنوان');
+    }
+  };
 
   const getDeliveryFee = (mins: number) => {
     if (mins <= 6) return 15;
@@ -26,25 +89,14 @@ export default function Checkout() {
   const deliveryFee = deliveryMinutes !== null && !isRejecting ? getDeliveryFee(deliveryMinutes) : 0;
   const total = subtotal + deliveryFee;
 
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [isSuccess, setIsSuccess] = useState(false);
-  const [orderNumber, setOrderNumber] = useState('');
-
-  const [formData, setFormData] = useState({
-    name: '',
-    phone: '',
-    email: '',
-    city: 'الرياض', // Default for now
-    address: '',
-    notes: '',
-    payment_method: 'cash_on_delivery',
-    delivery_type: 'local'
-  });
-
   const handleCalculateDelivery = () => {
+    if (!selectedAddressId) {
+      alert("الرجاء تحديد العنوان أولاً");
+      return;
+    }
     setIsCalculating(true);
     setIsRejecting(false);
+    
     // محاكاة الاتصال بـ Google Maps API
     setTimeout(() => {
       // توليد رقم عشوائي بين 3 و 45 لتجربة النظام
@@ -61,6 +113,10 @@ export default function Checkout() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (items.length === 0) return;
+    if (!selectedAddressId) {
+      setError('الرجاء اختيار عنوان التوصيل');
+      return;
+    }
     if (deliveryMinutes === null || isRejecting) {
       setError('الرجاء حساب رسوم التوصيل أولاً والتأكد من إمكانية التوصيل لموقعك.');
       return;
@@ -71,8 +127,11 @@ export default function Checkout() {
     
     try {
       const payload = {
-        ...formData,
+        address_id: selectedAddressId,
+        payment_method: paymentMethod,
+        delivery_type: 'local',
         delivery_fee: deliveryFee,
+        notes: notes,
         items: items.map(item => ({
           product_id: item.product.id,
           quantity: item.quantity,
@@ -111,10 +170,7 @@ export default function Checkout() {
             <br />
             رقم الطلب الخاص بك هو: <strong className="text-primary-900 font-mono bg-primary-50 px-2 py-1 rounded">{orderNumber}</strong>
           </p>
-          <Link 
-            to="/" 
-            className="inline-block px-8 py-4 bg-primary-800 text-white rounded-xl font-bold hover:bg-primary-900 transition-colors shadow-lg shadow-primary-900/10"
-          >
+          <Link to="/" className="inline-block px-8 py-4 bg-primary-800 text-white rounded-xl font-bold hover:bg-primary-900 transition-colors shadow-lg shadow-primary-900/10">
             العودة للصفحة الرئيسية
           </Link>
         </motion.div>
@@ -152,95 +208,92 @@ export default function Checkout() {
               </div>
             )}
 
-            {/* Customer Info */}
+            {/* Address Selection */}
             <div className="bg-white p-6 rounded-3xl border border-primary-100 shadow-sm">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 bg-primary-100 text-primary-600 rounded-xl flex items-center justify-center">
-                  <UserIcon className="w-5 h-5" />
-                </div>
-                <h2 className="text-xl font-bold text-primary-900">المعلومات الشخصية</h2>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-primary-900 mb-2">الاسم الكامل *</label>
-                  <input required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-primary-200 focus:ring-2 focus:ring-primary-500 transition-all outline-none" placeholder="الاسم" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-primary-900 mb-2">رقم الجوال *</label>
-                  <input required type="tel" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-primary-200 focus:ring-2 focus:ring-primary-500 transition-all outline-none" placeholder="05XXXXXXXX" dir="ltr" />
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-primary-900 mb-2">البريد الإلكتروني (اختياري)</label>
-                  <input type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-primary-200 focus:ring-2 focus:ring-primary-500 transition-all outline-none" placeholder="example@email.com" dir="ltr" />
-                </div>
-              </div>
-            </div>
-
-            {/* Shipping Address */}
-            <div className="bg-white p-6 rounded-3xl border border-primary-100 shadow-sm">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 bg-primary-100 text-primary-600 rounded-xl flex items-center justify-center">
-                  <MapPin className="w-5 h-5" />
-                </div>
-                <h2 className="text-xl font-bold text-primary-900">عنوان التوصيل</h2>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-primary-900 mb-2">المدينة *</label>
-                  <select required value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-primary-200 focus:ring-2 focus:ring-primary-500 transition-all outline-none bg-white">
-                    <option value="الرياض">الرياض</option>
-                    <option value="جدة">جدة</option>
-                    <option value="الدمام">الدمام</option>
-                    <option value="مكة">مكة المكرمة</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-primary-900 mb-2">الحي والشارع *</label>
-                  <input required value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-primary-200 focus:ring-2 focus:ring-primary-500 transition-all outline-none" placeholder="اسم الحي، الشارع، رقم المبنى" />
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-primary-900 mb-2">ملاحظات للمندوب (اختياري)</label>
-                  <textarea value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})} rows={2} className="w-full px-4 py-3 rounded-xl border border-primary-200 focus:ring-2 focus:ring-primary-500 transition-all outline-none resize-none" placeholder="مثال: يرجى الاتصال قبل الوصول بنصف ساعة" />
-                </div>
-              </div>
-
-              {/* Delivery Calculation */}
-              <div className="mt-6 p-5 bg-primary-50 rounded-2xl border border-primary-100">
-                <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-                  <div>
-                    <h3 className="font-bold text-primary-900 mb-1">تحديد رسوم التوصيل</h3>
-                    <p className="text-sm text-primary-600">نستخدم خرائط جوجل لحساب وقت وتكلفة التوصيل بدقة.</p>
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-primary-100 text-primary-600 rounded-xl flex items-center justify-center">
+                    <MapPin className="w-5 h-5" />
                   </div>
-                  <button 
-                    type="button" 
-                    onClick={handleCalculateDelivery}
-                    disabled={isCalculating}
-                    className="whitespace-nowrap px-6 py-3 bg-primary-800 text-white rounded-xl font-medium hover:bg-primary-900 transition-colors disabled:opacity-70"
-                  >
-                    {isCalculating ? 'جاري الحساب...' : 'حساب التوصيل'}
+                  <h2 className="text-xl font-bold text-primary-900">التوصيل إلى</h2>
+                </div>
+                <button type="button" onClick={() => setIsAddressModalOpen(true)} className="text-sm font-semibold text-primary-700 bg-primary-50 px-4 py-2 rounded-lg hover:bg-primary-100 transition-colors flex items-center gap-2">
+                  <Plus className="w-4 h-4" /> عنوان جديد
+                </button>
+              </div>
+
+              {addresses.length === 0 ? (
+                <div className="text-center py-8 border-2 border-dashed border-primary-200 rounded-2xl">
+                  <p className="text-primary-500 mb-4">ليس لديك عناوين محفوظة</p>
+                  <button type="button" onClick={() => setIsAddressModalOpen(true)} className="px-6 py-2 bg-primary-800 text-white rounded-xl hover:bg-primary-900 transition-colors">
+                    إضافة عنوان
                   </button>
                 </div>
-                
-                {deliveryMinutes !== null && (
-                  <div className="mt-4 pt-4 border-t border-primary-200">
-                    {isRejecting ? (
-                      <div className="text-rose-600 bg-rose-50 p-4 rounded-xl border border-rose-100">
-                        <p className="font-bold mb-1">نعتذر منك!</p>
-                        <p className="text-sm">المسافة لموقعك تستغرق ({deliveryMinutes} دقيقة) وهو خارج نطاق التوصيل المسموح به (أقصى حد 37 دقيقة).</p>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {addresses.map((address) => (
+                    <div 
+                      key={address.id} 
+                      onClick={() => {
+                        setSelectedAddressId(address.id);
+                        setDeliveryMinutes(null); // Reset fee calculation when address changes
+                      }}
+                      className={`cursor-pointer p-4 rounded-2xl border-2 transition-all ${selectedAddressId === address.id ? 'border-primary-500 bg-primary-50' : 'border-primary-100 hover:border-primary-300'}`}
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="font-bold text-primary-900">{address.name}</span>
+                        {selectedAddressId === address.id && <CheckCircle2 className="w-5 h-5 text-primary-600" />}
                       </div>
-                    ) : (
-                      <div className="text-emerald-700 bg-emerald-50 p-4 rounded-xl border border-emerald-100 flex justify-between items-center">
-                        <div>
-                          <p className="font-bold">يمكننا التوصيل لموقعك!</p>
-                          <p className="text-sm mt-1 text-emerald-600">الوقت المقدر: {deliveryMinutes} دقيقة</p>
-                          <p className="text-xs mt-2 text-primary-500 italic">* ملاحظة: السعر والوقت قد يختلف قليلاً مع الزحمة المرورية.</p>
-                        </div>
-                        <div className="text-2xl font-bold">{deliveryFee} ر.س</div>
-                      </div>
-                    )}
-                  </div>
-                )}
+                      <p className="text-sm text-primary-700 font-medium mb-1">{address.recipient_name} - {address.recipient_phone}</p>
+                      <p className="text-sm text-primary-500">{address.city} - {address.street_address}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Notes */}
+            <div className="bg-white p-6 rounded-3xl border border-primary-100 shadow-sm">
+              <label className="block text-sm font-bold text-primary-900 mb-2">ملاحظات إضافية للتوصيل (اختياري)</label>
+              <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} className="w-full px-4 py-3 rounded-xl border border-primary-200 focus:ring-2 focus:ring-primary-500 transition-all outline-none resize-none" placeholder="مثال: يرجى الاتصال قبل الوصول بنصف ساعة" />
+            </div>
+
+            {/* Delivery Calculation */}
+            <div className="bg-white p-6 rounded-3xl border border-primary-100 shadow-sm">
+              <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-bold text-primary-900 mb-1">رسوم التوصيل</h3>
+                  <p className="text-sm text-primary-600">نستخدم خرائط جوجل لحساب وقت وتكلفة التوصيل بدقة بناءً على عنوانك.</p>
+                </div>
+                <button 
+                  type="button" 
+                  onClick={handleCalculateDelivery}
+                  disabled={isCalculating || !selectedAddressId}
+                  className="whitespace-nowrap px-6 py-3 bg-primary-800 text-white rounded-xl font-medium hover:bg-primary-900 transition-colors disabled:opacity-70 shadow-lg shadow-primary-900/10"
+                >
+                  {isCalculating ? 'جاري الحساب...' : 'حساب التوصيل'}
+                </button>
               </div>
+              
+              {deliveryMinutes !== null && (
+                <div className="mt-6 pt-4 border-t border-primary-100">
+                  {isRejecting ? (
+                    <div className="text-rose-600 bg-rose-50 p-4 rounded-xl border border-rose-100">
+                      <p className="font-bold mb-1">نعتذر منك!</p>
+                      <p className="text-sm">المسافة لعنوانك تستغرق ({deliveryMinutes} دقيقة) وهو خارج نطاق التوصيل المسموح به (أقصى حد 37 دقيقة).</p>
+                    </div>
+                  ) : (
+                    <div className="text-emerald-700 bg-emerald-50 p-4 rounded-xl border border-emerald-100 flex justify-between items-center">
+                      <div>
+                        <p className="font-bold">يمكننا التوصيل لعنوانك!</p>
+                        <p className="text-sm mt-1 text-emerald-600">الوقت المقدر من المتجر: {deliveryMinutes} دقيقة</p>
+                        <p className="text-xs mt-2 text-primary-500 italic">* ملاحظة: السعر والوقت قد يختلف قليلاً مع الزحمة المرورية.</p>
+                      </div>
+                      <div className="text-2xl font-bold">{deliveryFee} ر.س</div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Payment Method */}
@@ -253,8 +306,8 @@ export default function Checkout() {
               </div>
               
               <div className="space-y-3">
-                <label className={`flex items-center gap-4 p-4 rounded-2xl border-2 cursor-pointer transition-all ${formData.payment_method === 'cash_on_delivery' ? 'border-primary-500 bg-primary-50' : 'border-primary-100 hover:border-primary-300'}`}>
-                  <input type="radio" name="payment" value="cash_on_delivery" checked={formData.payment_method === 'cash_on_delivery'} onChange={e => setFormData({...formData, payment_method: e.target.value})} className="w-5 h-5 text-primary-600 focus:ring-primary-500 border-gray-300" />
+                <label className={`flex items-center gap-4 p-4 rounded-2xl border-2 cursor-pointer transition-all ${paymentMethod === 'cash_on_delivery' ? 'border-primary-500 bg-primary-50' : 'border-primary-100 hover:border-primary-300'}`}>
+                  <input type="radio" name="payment" value="cash_on_delivery" checked={paymentMethod === 'cash_on_delivery'} onChange={e => setPaymentMethod(e.target.value)} className="w-5 h-5 text-primary-600 focus:ring-primary-500 border-gray-300" />
                   <div className="flex-1">
                     <h3 className="font-bold text-primary-900">الدفع عند الاستلام</h3>
                     <p className="text-sm text-primary-500 mt-1">ادفع نقداً أو بالشبكة عند وصول المندوب</p>
@@ -262,8 +315,8 @@ export default function Checkout() {
                   <Truck className="w-6 h-6 text-primary-400" />
                 </label>
                 
-                <label className={`flex items-center gap-4 p-4 rounded-2xl border-2 cursor-pointer transition-all ${formData.payment_method === 'bank_transfer' ? 'border-primary-500 bg-primary-50' : 'border-primary-100 hover:border-primary-300'}`}>
-                  <input type="radio" name="payment" value="bank_transfer" checked={formData.payment_method === 'bank_transfer'} onChange={e => setFormData({...formData, payment_method: e.target.value})} className="w-5 h-5 text-primary-600 focus:ring-primary-500 border-gray-300" />
+                <label className={`flex items-center gap-4 p-4 rounded-2xl border-2 cursor-pointer transition-all ${paymentMethod === 'bank_transfer' ? 'border-primary-500 bg-primary-50' : 'border-primary-100 hover:border-primary-300'}`}>
+                  <input type="radio" name="payment" value="bank_transfer" checked={paymentMethod === 'bank_transfer'} onChange={e => setPaymentMethod(e.target.value)} className="w-5 h-5 text-primary-600 focus:ring-primary-500 border-gray-300" />
                   <div className="flex-1">
                     <h3 className="font-bold text-primary-900">تحويل بنكي</h3>
                     <p className="text-sm text-primary-500 mt-1">سيتم تزويدك بحساباتنا بعد إتمام الطلب</p>
@@ -346,16 +399,126 @@ export default function Checkout() {
               <p className="text-center text-xs text-primary-400 mt-4">بضغطك على "تأكيد الطلب" أنت توافق على شروط وأحكام المتجر.</p>
             </div>
           </div>
-
         </form>
       </div>
-    </div>
-  );
-}
 
-// Simple icon for user info
-function UserIcon(props: any) {
-  return (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      {/* Add Address Modal */}
+      <AnimatePresence>
+        {isAddressModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-primary-950/40 backdrop-blur-sm" onClick={() => setIsAddressModalOpen(false)} />
+            
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }} 
+              animate={{ scale: 1, opacity: 1 }} 
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-3xl shadow-xl w-full max-w-lg relative z-10 overflow-hidden flex flex-col max-h-[90vh]"
+            >
+              <div className="p-6 border-b border-primary-100 flex justify-between items-center bg-primary-50">
+                <h3 className="text-xl font-bold text-primary-900">إضافة عنوان جديد</h3>
+                <button onClick={() => setIsAddressModalOpen(false)} className="p-2 hover:bg-white rounded-full text-primary-500">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              <form onSubmit={handleSaveAddress} className="p-6 overflow-y-auto">
+                <div className="space-y-4">
+                  {/* Google Maps Placeholder Button */}
+                  <div className="mb-6">
+                    <button 
+                      type="button" 
+                      onClick={() => setIsMapModalOpen(true)}
+                      className="w-full flex items-center justify-center gap-3 bg-emerald-50 text-emerald-700 border-2 border-emerald-200 hover:bg-emerald-100 p-4 rounded-xl font-bold transition-colors"
+                    >
+                      <MapIcon className="w-5 h-5" />
+                      تحديد الموقع عبر خرائط جوجل
+                    </button>
+                    {newAddress.street_address.includes('تم تحديد') && (
+                      <p className="text-sm text-emerald-600 mt-2 flex items-center gap-1">
+                        <CheckCircle2 className="w-4 h-4"/> تم تحديد الموقع بنجاح
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="col-span-2">
+                      <label className="block text-sm font-medium text-primary-900 mb-2">اسم للعنوان (مثال: المنزل، العمل)</label>
+                      <input required value={newAddress.name} onChange={e => setNewAddress({...newAddress, name: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-primary-200 focus:ring-primary-500 outline-none" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-primary-900 mb-2">اسم المستلم</label>
+                      <input required value={newAddress.recipient_name} onChange={e => setNewAddress({...newAddress, recipient_name: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-primary-200 focus:ring-primary-500 outline-none" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-primary-900 mb-2">رقم جوال المستلم</label>
+                      <input required type="tel" value={newAddress.recipient_phone} onChange={e => setNewAddress({...newAddress, recipient_phone: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-primary-200 focus:ring-primary-500 outline-none" dir="ltr" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-primary-900 mb-2">المدينة</label>
+                      <select required disabled value={newAddress.city} className="w-full px-4 py-3 rounded-xl border border-primary-200 bg-primary-50 outline-none text-primary-600">
+                        <option value="الأحساء">الأحساء (متاح حالياً فقط)</option>
+                      </select>
+                    </div>
+                    <div className="col-span-2">
+                      <label className="block text-sm font-medium text-primary-900 mb-2">اسم الحي والشارع</label>
+                      <input required value={newAddress.street_address} onChange={e => setNewAddress({...newAddress, street_address: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-primary-200 focus:ring-primary-500 outline-none" placeholder="الرجاء استخدام زر الخريطة أو كتابة العنوان" />
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="mt-8">
+                  <button type="submit" className="w-full py-4 bg-primary-800 text-white rounded-xl font-bold hover:bg-primary-900 transition-colors shadow-lg shadow-primary-900/10">
+                    حفظ العنوان
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Google Maps Fake Modal */}
+      <AnimatePresence>
+        {isMapModalOpen && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsMapModalOpen(false)} />
+            <motion.div 
+              initial={{ y: 50, opacity: 0 }} 
+              animate={{ y: 0, opacity: 1 }} 
+              exit={{ y: 50, opacity: 0 }}
+              className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl relative z-10 overflow-hidden"
+            >
+              <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                <h3 className="font-bold flex items-center gap-2"><MapIcon className="w-5 h-5 text-emerald-600"/> تحديد الموقع</h3>
+                <button onClick={() => setIsMapModalOpen(false)} className="p-2 hover:bg-gray-200 rounded-full"><X className="w-5 h-5" /></button>
+              </div>
+              <div className="relative h-[400px] bg-gray-200 flex flex-col items-center justify-center border-b border-gray-200">
+                {/* Mock Map Background */}
+                <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(#4285F4 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
+                
+                <MapPin className="w-12 h-12 text-rose-500 drop-shadow-xl z-10 mb-2 -mt-10" />
+                <div className="bg-white px-4 py-2 rounded-lg shadow-md z-10 text-sm font-bold text-gray-700">
+                  حرك الخريطة لتحديد الموقع
+                </div>
+                <div className="absolute bottom-4 left-0 right-0 text-center">
+                  <span className="bg-black/50 text-white text-xs px-3 py-1 rounded-full">واجهة خرائط جوجل (بانتظار API Key)</span>
+                </div>
+              </div>
+              <div className="p-6 bg-white flex justify-end">
+                <button 
+                  onClick={() => {
+                    setNewAddress({...newAddress, street_address: 'تم تحديد الموقع من الخريطة - الهفوف'});
+                    setIsMapModalOpen(false);
+                  }}
+                  className="px-8 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-colors shadow-lg"
+                >
+                  تأكيد الموقع
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
