@@ -70,17 +70,17 @@ export const publicProductsApi = {
 
 export const orderApi = {
   getOrders: async () => {
-    const response = await api.get('/customer/orders');
+    const response = await api.get('/orders');
     return response.data;
   },
   getOrderByNumber: async (orderNumber: string) => {
-    const response = await api.get(`/customer/orders/${orderNumber}`);
+    const response = await api.get(`/orders/${orderNumber}`);
     return response.data;
   },
   uploadReceipt: async (orderNumber: string, file: File) => {
     const formData = new FormData();
     formData.append('receipt', file);
-    const response = await api.post(`/customer/orders/${orderNumber}/receipt`, formData, {
+    const response = await api.post(`/orders/${orderNumber}/receipt`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       }
