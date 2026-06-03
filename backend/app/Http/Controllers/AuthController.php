@@ -158,12 +158,12 @@ class AuthController extends Controller
             $token = $user->createToken('auth_token')->plainTextToken;
 
             // In SPA, we typically redirect back to frontend with the token
-            $frontendUrl = config('app.frontend_url', 'http://localhost:5173');
-            return redirect()->away($frontendUrl . '/login?token=' . $token);
+            $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
+            return redirect()->away($frontendUrl . '/auth/callback?token=' . $token);
 
         } catch (\Exception $e) {
-            $frontendUrl = config('app.frontend_url', 'http://localhost:5173');
-            return redirect()->away($frontendUrl . '/login?error=google_auth_failed');
+            $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
+            return redirect()->away($frontendUrl . '/auth/callback?error=google_auth_failed');
         }
     }
 }

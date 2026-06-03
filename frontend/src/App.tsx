@@ -6,6 +6,7 @@ import Products from '@/pages/Products';
 import ProductDetail from '@/pages/ProductDetail';
 import Cart from '@/pages/Cart';
 import Login from '@/pages/Login';
+import AuthCallback from '@/pages/AuthCallback';
 import Checkout from '@/pages/Checkout';
 import OrderTracking from '@/pages/OrderTracking';
 import AdminLayout from '@/components/layout/AdminLayout';
@@ -25,8 +26,11 @@ function App() {
         <Router>
           <LoginModal />
           <Routes>
+            {/* Auth Routes */}
             <Route path="/login" element={<Login />} />
+            <Route path="/auth/callback" element={<AuthCallback />} />
 
+            {/* Customer Protected Routes (Basic) */}
             <Route element={<MainLayout />}>
               <Route path="/" element={<Home />} />
               <Route path="/products" element={<Products />} />
