@@ -14,6 +14,13 @@ export default function OrdersList() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  
+  const [toastMessage, setToastMessage] = useState<{message: string, type: 'success'|'error'} | null>(null);
+
+  const showToast = (message: string, type: 'success'|'error') => {
+    setToastMessage({ message, type });
+    setTimeout(() => setToastMessage(null), 3000);
+  };
 
   useEffect(() => {
     loadOrders();
@@ -50,9 +57,9 @@ export default function OrdersList() {
       setSelectedOrder(res.order);
       // Update the order in the list as well
       setOrders(orders.map(o => o.id === selectedOrder.id ? res.order : o));
-      alert('تم تأكيد الدفع بنجاح!');
+      showToast('تم تأكيد الدفع بنجاح!', 'success');
     } catch (error: any) {
-      alert(error.response?.data?.message || 'فشل تأكيد الدفع');
+      showToast(error.response?.data?.message || 'فشل تأكيد الدفع', 'error');
     } finally {
       setIsVerifying(false);
     }
@@ -65,8 +72,9 @@ export default function OrdersList() {
       const res = await adminOrdersApi.updateStatus(selectedOrder.id, newStatus);
       setSelectedOrder(res.order);
       setOrders(orders.map(o => o.id === selectedOrder.id ? res.order : o));
+      showToast('تم تحديث الحالة بنجاح!', 'success');
     } catch (error: any) {
-      alert(error.response?.data?.message || 'فشل تحديث الحالة');
+      showToast(error.response?.data?.message || 'فشل تحديث الحالة', 'error');
     } finally {
       setIsUpdatingStatus(false);
     }
@@ -417,6 +425,23 @@ export default function OrdersList() {
               
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      {/* Toast Notification */}
+      <AnimatePresence>
+        {toastMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className={`fixed bottom-8 left-1/2 -translate-x-1/2 px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 z-[60] font-bold text-white border-2 ${
+              toastMessage.type === 'success' ? 'bg-emerald-600 border-emerald-400' : 'bg-rose-600 border-rose-400'
+            }`}
+          >
+            {toastMessage.type === 'success' ? <CheckCircle2 className="w-6 h-6" /> : <X className="w-6 h-6" />}
+            {toastMessage.message}
+          </motion.div>
         )}
       </AnimatePresence>
 
