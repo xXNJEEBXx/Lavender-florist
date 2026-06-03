@@ -6,7 +6,7 @@ import { publicProductsApi, customerApi } from '../services/api';
 import { CheckCircle2, ChevronRight, MapPin, CreditCard, ShoppingBag, Truck, Plus, X, Map as MapIcon } from 'lucide-react';
 import { useJsApiLoader, GoogleMap, Marker } from '@react-google-maps/api';
 
-const STORE_LOCATION = { lat: 25.3833, lng: 49.5833 }; // Hofuf, Al-Ahsa
+const STORE_LOCATION = { lat: 25.4535688, lng: 49.5847893 }; // Actual Store Location
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 
 export default function Checkout() {
