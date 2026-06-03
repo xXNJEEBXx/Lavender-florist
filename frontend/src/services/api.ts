@@ -71,6 +71,8 @@ export const publicProductsApi = {
 export const customerApi = {
   getAddresses: () => api.get('/addresses').then(res => res.data),
   addAddress: (data: any) => api.post('/addresses', data).then(res => res.data),
+  updateAddress: (id: number, data: any) => api.put(`/addresses/${id}`, data).then(res => res.data),
+  deleteAddress: (id: number) => api.delete(`/addresses/${id}`).then(res => res.data),
 };
 
 export default api;

@@ -40,6 +40,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Profile & Addresses
     Route::get('/addresses', [\App\Http\Controllers\AddressController::class, 'index']);
     Route::post('/addresses', [\App\Http\Controllers\AddressController::class, 'store']);
+    Route::put('/addresses/{address}', [\App\Http\Controllers\AddressController::class, 'update']);
+    Route::delete('/addresses/{address}', [\App\Http\Controllers\AddressController::class, 'destroy']);
 
     // Orders
     Route::get('/orders', function(Request $request) {

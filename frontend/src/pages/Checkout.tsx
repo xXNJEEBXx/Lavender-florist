@@ -11,6 +11,7 @@ const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 
 export default function Checkout() {
   const { items, subtotal, clearCart } = useCart();
+  const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const navigate = useNavigate();
 
   const { isLoaded } = useJsApiLoader({
@@ -54,9 +55,13 @@ export default function Checkout() {
     is_default: true,
   });
 
+  const [editingAddressId, setEditingAddressId] = useState<number | null>(null);
+
   useEffect(() => {
-    loadAddresses();
-  }, []);
+    if (isAuthenticated) {
+      loadAddresses();
+    }
+  }, [isAuthenticated]);
 
   const loadAddresses = async () => {
     try {
@@ -89,10 +94,17 @@ export default function Checkout() {
 
     setIsSavingAddress(true);
     try {
-      const data = await customerApi.addAddress(newAddress);
-      setAddresses([...addresses, data]);
-      setSelectedAddressId(data.id);
+      if (editingAddressId) {
+        const data = await customerApi.updateAddress(editingAddressId, newAddress);
+        setAddresses(addresses.map(a => a.id === editingAddressId ? data : a));
+        setSelectedAddressId(data.id);
+      } else {
+        const data = await customerApi.addAddress(newAddress);
+        setAddresses([...addresses, data]);
+        setSelectedAddressId(data.id);
+      }
       setIsAddressModalOpen(false);
+      setEditingAddressId(null);
       setNewAddress({
         name: 'المنزل',
         recipient_name: '',
@@ -304,13 +316,34 @@ export default function Checkout() {
                       key={address.id} 
                       onClick={() => {
                         setSelectedAddressId(address.id);
-                        setDeliveryMinutes(null); // Reset fee calculation when address changes
+                        setDeliveryMinutes(null);
                       }}
                       className={`cursor-pointer p-4 rounded-2xl border-2 transition-all ${selectedAddressId === address.id ? 'border-primary-500 bg-primary-50' : 'border-primary-100 hover:border-primary-300'}`}
                     >
                       <div className="flex justify-between items-start mb-2">
                         <span className="font-bold text-primary-900">{address.name}</span>
-                        {selectedAddressId === address.id && <CheckCircle2 className="w-5 h-5 text-primary-600" />}
+                        <div className="flex gap-2">
+                          <button 
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingAddressId(address.id);
+                              setNewAddress({
+                                name: address.name,
+                                recipient_name: address.recipient_name,
+                                recipient_phone: address.recipient_phone,
+                                city: address.city,
+                                street_address: address.street_address,
+                                is_default: address.is_default
+                              });
+                              setIsAddressModalOpen(true);
+                            }}
+                            className="text-xs font-bold text-primary-600 hover:text-primary-800 transition-colors"
+                          >
+                            تعديل
+                          </button>
+                          {selectedAddressId === address.id && <CheckCircle2 className="w-5 h-5 text-primary-600" />}
+                        </div>
                       </div>
                       <p className="text-sm text-primary-700 font-medium mb-1">{address.recipient_name} - {address.recipient_phone}</p>
                       <p className="text-sm text-primary-500">{address.city} - {address.street_address}</p>
@@ -482,8 +515,8 @@ export default function Checkout() {
               exit={{ scale: 0.95, opacity: 0 }}
               className="bg-white rounded-3xl shadow-xl w-full max-w-lg relative z-10 overflow-hidden flex flex-col max-h-[90vh]"
             >
-              <div className="p-6 border-b border-primary-100 flex justify-between items-center bg-primary-50">
-                <h3 className="text-xl font-bold text-primary-900">إضافة عنوان جديد</h3>
+              <div className="p-6 border-b border-primary-100 flex justify-between items-center bg-primary-50 shrink-0">
+                <h3 className="text-xl font-bold text-primary-900">{editingAddressId ? 'تعديل العنوان' : 'إضافة عنوان جديد'}</h3>
                 <button onClick={() => setIsAddressModalOpen(false)} className="p-2 hover:bg-white rounded-full text-primary-500">
                   <X className="w-5 h-5" />
                 </button>
@@ -540,10 +573,34 @@ export default function Checkout() {
                   </div>
                 </div>
                 
-                <div className="mt-8">
-                  <button type="submit" disabled={isSavingAddress} className="w-full py-4 bg-primary-800 text-white rounded-xl font-bold hover:bg-primary-900 transition-colors shadow-lg shadow-primary-900/10 disabled:opacity-70">
+                <div className="mt-8 flex gap-3">
+                  <button type="submit" disabled={isSavingAddress} className="flex-1 py-4 bg-primary-800 text-white rounded-xl font-bold hover:bg-primary-900 transition-colors shadow-lg shadow-primary-900/10 disabled:opacity-70">
                     {isSavingAddress ? 'جاري الحفظ...' : 'حفظ العنوان'}
                   </button>
+                  {editingAddressId && (
+                    <button 
+                      type="button" 
+                      disabled={isSavingAddress} 
+                      onClick={async () => {
+                        if (confirm('هل أنت متأكد من حذف هذا العنوان؟')) {
+                          setIsSavingAddress(true);
+                          try {
+                            await customerApi.deleteAddress(editingAddressId);
+                            setAddresses(addresses.filter(a => a.id !== editingAddressId));
+                            if (selectedAddressId === editingAddressId) setSelectedAddressId(null);
+                            setIsAddressModalOpen(false);
+                          } catch (e) {
+                            alert('فشل الحذف');
+                          } finally {
+                            setIsSavingAddress(false);
+                          }
+                        }
+                      }}
+                      className="px-6 py-4 bg-rose-50 text-rose-600 rounded-xl font-bold hover:bg-rose-100 transition-colors disabled:opacity-70"
+                    >
+                      حذف
+                    </button>
+                  )}
                 </div>
               </form>
             </motion.div>
