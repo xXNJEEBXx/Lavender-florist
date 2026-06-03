@@ -151,7 +151,13 @@ export default function Checkout() {
     if (isLoaded && window.google) {
       const service = new google.maps.DistanceMatrixService();
       
-      let destination: string | google.maps.LatLngLiteral = selectedAddress.street_address;
+      let destination: string | google.maps.LatLngLiteral = selectedAddress.street_address || '';
+      
+      if (!destination || (typeof destination === 'string' && destination.trim() === '')) {
+        setIsCalculating(false);
+        setDeliveryMinutes(15); // Fallback
+        return;
+      }
       
       // If the address was saved as coordinates
       if (typeof destination === 'string' && destination.startsWith('إحداثيات:')) {
@@ -163,10 +169,11 @@ export default function Checkout() {
         destination = `${destination}, الأحساء, السعودية`;
       }
 
-      service.getDistanceMatrix({
-        origins: [STORE_LOCATION],
-        destinations: [destination],
-        travelMode: google.maps.TravelMode.DRIVING,
+      try {
+        service.getDistanceMatrix({
+          origins: [STORE_LOCATION],
+          destinations: [destination],
+          travelMode: google.maps.TravelMode.DRIVING,
       }, (response, status) => {
         setIsCalculating(false);
         if (status === 'OK' && response && response.rows[0].elements[0].status === 'OK') {
@@ -180,20 +187,27 @@ export default function Checkout() {
           // Fallback if API fails to find it exactly, use mock to not block the user entirely
           const fallbackMins = 15;
           setDeliveryMinutes(fallbackMins);
-        }
-      });
+        });
+      } catch (err) {
+        console.error('Distance Matrix Error:', err);
+        setIsCalculating(false);
+        setDeliveryMinutes(15); // Fallback
+      }
     } else {
       setIsCalculating(false);
       setDeliveryMinutes(15); // Fallback
     }
   };
 
+  const selectedAddressForHash = addresses.find(a => a.id === selectedAddressId);
+  const selectedAddressHash = selectedAddressForHash ? `${selectedAddressForHash.id}-${selectedAddressForHash.street_address}` : null;
+
   useEffect(() => {
     if (selectedAddressId && isLoaded && addresses.length > 0) {
       handleCalculateDelivery();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedAddressId, isLoaded]);
+  }, [selectedAddressId, isLoaded, selectedAddressHash]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
