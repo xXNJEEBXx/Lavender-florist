@@ -6,6 +6,8 @@ import Products from '@/pages/Products';
 import ProductDetail from '@/pages/ProductDetail';
 import Cart from '@/pages/Cart';
 import Login from '@/pages/Login';
+import Checkout from '@/pages/Checkout';
+import OrderTracking from '@/pages/OrderTracking';
 import AdminLayout from '@/components/layout/AdminLayout';
 import Dashboard from '@/pages/admin/Dashboard';
 import ProductsList from '@/pages/admin/ProductsList';
@@ -15,8 +17,6 @@ import OrdersList from '@/pages/admin/OrdersList';
 import { AuthProvider } from '@/store/AuthContext';
 import { CartProvider } from '@/store/CartContext';
 import LoginModal from '@/components/ui/LoginModal';
-
-import Checkout from '@/pages/Checkout';
 
 function App() {
   return (
@@ -33,6 +33,7 @@ function App() {
               <Route path="/products/:slug" element={<ProductDetail />} />
               <Route path="/cart" element={<Cart />} />
               <Route path="/checkout" element={<Checkout />} />
+              <Route path="/orders/:orderNumber" element={<OrderTracking />} />
             </Route>
 
             <Route path="/admin" element={<AdminLayout />}>

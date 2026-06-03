@@ -40,8 +40,6 @@ export default function Checkout() {
   // Order State
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [isSuccess, setIsSuccess] = useState(false);
-  const [orderNumber, setOrderNumber] = useState('');
   const [notes, setNotes] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('bank_transfer');
 
@@ -248,9 +246,8 @@ export default function Checkout() {
       
       const response = await publicProductsApi.checkout(payload);
       
-      setOrderNumber(response.order.order_number);
-      setIsSuccess(true);
       clearCart();
+      navigate(`/orders/${response.order.order_number}`);
       
     } catch (err: any) {
       setError(err.response?.data?.message || 'حدث خطأ أثناء معالجة الطلب. يرجى المحاولة مرة أخرى.');
@@ -258,32 +255,6 @@ export default function Checkout() {
       setIsLoading(false);
     }
   };
-
-  if (isSuccess) {
-    return (
-      <div className="max-w-3xl mx-auto px-4 py-20 text-center">
-        <motion.div
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: "spring" }}
-          className="bg-white p-10 rounded-3xl border border-primary-100 shadow-xl shadow-primary-900/5"
-        >
-          <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircle2 className="w-10 h-10" />
-          </div>
-          <h1 className="text-3xl font-bold font-serif text-primary-950 mb-4">تم استلام طلبك بنجاح!</h1>
-          <p className="text-primary-600 mb-8 max-w-md mx-auto leading-relaxed">
-            شكراً لتسوقك من لافندر فلوريست. سنقوم بتجهيز باقتك بكل حب واهتمام.
-            <br />
-            رقم الطلب الخاص بك هو: <strong className="text-primary-900 font-mono bg-primary-50 px-2 py-1 rounded">{orderNumber}</strong>
-          </p>
-          <Link to="/" className="inline-block px-8 py-4 bg-primary-800 text-white rounded-xl font-bold hover:bg-primary-900 transition-colors shadow-lg shadow-primary-900/10">
-            العودة للصفحة الرئيسية
-          </Link>
-        </motion.div>
-      </div>
-    );
-  }
 
   if (items.length === 0) {
     return (

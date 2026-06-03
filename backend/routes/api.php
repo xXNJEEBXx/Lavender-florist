@@ -47,6 +47,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/orders', function(Request $request) {
         return $request->user()->orders()->with('items')->latest()->get();
     });
+    Route::get('/orders/{order_number}', [\App\Http\Controllers\CustomerOrderController::class, 'show']);
+    Route::post('/orders/{order_number}/receipt', [\App\Http\Controllers\CustomerOrderController::class, 'uploadReceipt']);
 });
 
 // Protected Admin Routes

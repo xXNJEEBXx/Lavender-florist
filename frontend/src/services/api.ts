@@ -68,6 +68,27 @@ export const publicProductsApi = {
   checkout: (data: any) => api.post('/checkout', data).then(res => res.data),
 };
 
+export const orderApi = {
+  getOrders: async () => {
+    const response = await api.get('/customer/orders');
+    return response.data;
+  },
+  getOrderByNumber: async (orderNumber: string) => {
+    const response = await api.get(`/customer/orders/${orderNumber}`);
+    return response.data;
+  },
+  uploadReceipt: async (orderNumber: string, file: File) => {
+    const formData = new FormData();
+    formData.append('receipt', file);
+    const response = await api.post(`/customer/orders/${orderNumber}/receipt`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    return response.data;
+  }
+};
+
 export const customerApi = {
   getAddresses: () => api.get('/addresses').then(res => res.data),
   addAddress: (data: any) => api.post('/addresses', data).then(res => res.data),
