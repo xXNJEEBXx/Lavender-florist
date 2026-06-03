@@ -22,6 +22,9 @@ export default function MainLayout() {
           <Link to="/products" className="hover:text-primary-600 transition-colors">المنتجات</Link>
           <Link to="/about" className="hover:text-primary-600 transition-colors">من نحن</Link>
           <Link to="/contact" className="hover:text-primary-600 transition-colors">تواصل معنا</Link>
+          {isAuthenticated && (
+            <Link to="/my-orders" className="hover:text-primary-600 transition-colors font-bold text-primary-800">طلباتي</Link>
+          )}
         </nav>
         <div className="flex items-center gap-4">
           <button className="text-sm font-medium text-primary-700 hover:text-primary-900 transition-colors px-2">
@@ -42,8 +45,16 @@ export default function MainLayout() {
               
               {/* Simple Dropdown on Hover */}
               <div className="absolute left-0 mt-2 w-48 bg-white border border-primary-100 rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 overflow-hidden">
-                <Link to={user?.role === 'admin' ? '/admin' : '/profile'} className="block px-4 py-3 text-sm text-primary-800 hover:bg-primary-50">
-                  {user?.role === 'admin' ? 'لوحة التحكم' : 'حسابي'}
+                {user?.role === 'admin' && (
+                  <Link to="/admin" className="block px-4 py-3 text-sm text-primary-800 hover:bg-primary-50 border-b border-primary-50">
+                    لوحة التحكم
+                  </Link>
+                )}
+                <Link to="/profile" className="block px-4 py-3 text-sm text-primary-800 hover:bg-primary-50">
+                  حسابي
+                </Link>
+                <Link to="/my-orders" className="block px-4 py-3 text-sm text-primary-800 hover:bg-primary-50">
+                  طلباتي
                 </Link>
                 <button 
                   onClick={() => {
