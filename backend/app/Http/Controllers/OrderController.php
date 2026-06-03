@@ -1,0 +1,95 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Order;
+use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
+
+class OrderController extends Controller
+{
+    /**
+     * Display a listing of the resource.
+     */
+    public function index(Request $request)
+    {
+        $query = Order::with(['customer', 'items.product', 'address'])->latest();
+
+        // Optional filtering by status
+        if ($request->has('status') && $request->status !== 'all') {
+            $query->where('status', $request->status);
+        }
+
+        return response()->json($query->paginate(20));
+    }
+
+    /**
+     * Display the specified resource.
+     */
+    public function show(Order $order)
+    {
+        $order->load(['customer', 'items.product', 'address']);
+        return response()->json($order);
+    }
+
+    /**
+     * Update the specified resource in storage.
+     */
+    public function update(Request $request, Order $order)
+    {
+        $request->validate([
+            'status' => 'sometimes|in:pending,preparing,ready,delivering,delivered,cancelled',
+            'payment_status' => 'sometimes|in:pending,paid,refunded'
+        ]);
+
+        if ($request->has('status')) {
+            $order->status = $request->status;
+        }
+
+        if ($request->has('payment_status')) {
+            $order->payment_status = $request->payment_status;
+        }
+
+        $order->save();
+
+        return response()->json([
+            'message' => 'تم تحديث حالة الطلب بنجاح',
+            'order' => $order->load(['customer', 'items.product', 'address'])
+        ]);
+    }
+
+    /**
+     * Verify payment and start preparing the order.
+     */
+    public function verifyPayment(Order $order)
+    {
+        if ($order->payment_method !== 'bank_transfer') {
+            throw ValidationException::withMessages(['payment' => 'هذا الطلب ليس تحويلاً بنكياً']);
+        }
+
+        if (!$order->bank_transfer_receipt) {
+            throw ValidationException::withMessages(['payment' => 'لا يوجد إيصال مرفق للمراجعة']);
+        }
+
+        $order->payment_status = 'paid';
+        // Auto transition to preparing if it was pending
+        if ($order->status === 'pending') {
+            $order->status = 'preparing';
+        }
+        $order->save();
+
+        return response()->json([
+            'message' => 'تم تأكيد الدفع والبدء بتجهيز الطلب بنجاح',
+            'order' => $order->load(['customer', 'items.product', 'address'])
+        ]);
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     */
+    public function destroy(Order $order)
+    {
+        $order->delete();
+        return response()->json(['message' => 'تم حذف الطلب']);
+    }
+}

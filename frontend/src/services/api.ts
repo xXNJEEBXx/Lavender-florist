@@ -68,6 +68,13 @@ export const publicProductsApi = {
   checkout: (data: any) => api.post('/checkout', data).then(res => res.data),
 };
 
+export const adminOrdersApi = {
+  getAll: (status: string = 'all', page: number = 1) => api.get(`/admin/orders?status=${status}&page=${page}`).then(res => res.data),
+  getById: (id: number) => api.get(`/admin/orders/${id}`).then(res => res.data),
+  updateStatus: (id: number, status: string) => api.put(`/admin/orders/${id}`, { status }).then(res => res.data),
+  verifyPayment: (id: number) => api.post(`/admin/orders/${id}/verify-payment`).then(res => res.data),
+};
+
 export const orderApi = {
   getOrders: async () => {
     const response = await api.get('/orders');

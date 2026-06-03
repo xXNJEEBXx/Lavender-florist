@@ -66,7 +66,8 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\AdminMiddleware::class])
     Route::apiResource('products', \App\Http\Controllers\ProductController::class);
     
     // Orders Management
-    Route::apiResource('orders', \App\Http\Controllers\OrderController::class ?? \Illuminate\Routing\Controller::class);
+    Route::post('orders/{order}/verify-payment', [\App\Http\Controllers\OrderController::class, 'verifyPayment']);
+    Route::apiResource('orders', \App\Http\Controllers\OrderController::class);
     
     // Coupons
     Route::apiResource('coupons', \App\Http\Controllers\CouponController::class ?? \Illuminate\Routing\Controller::class);
