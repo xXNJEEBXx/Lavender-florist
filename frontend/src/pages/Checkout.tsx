@@ -330,12 +330,12 @@ export default function Checkout() {
                               e.stopPropagation();
                               setEditingAddressId(address.id);
                               setNewAddress({
-                                name: address.name,
-                                recipient_name: address.recipient_name,
-                                recipient_phone: address.recipient_phone,
-                                city: address.city,
-                                street_address: address.street_address,
-                                is_default: address.is_default
+                                name: address.name || '',
+                                recipient_name: address.recipient_name || '',
+                                recipient_phone: address.recipient_phone || '',
+                                city: address.city || 'الأحساء',
+                                street_address: address.street_address || '',
+                                is_default: address.is_default || false
                               });
                               setIsAddressModalOpen(true);
                             }}
@@ -541,7 +541,7 @@ export default function Checkout() {
                       <MapIcon className="w-5 h-5" />
                       تحديد الموقع عبر خرائط جوجل
                     </button>
-                    {newAddress.street_address.includes('تم تحديد') && (
+                    {(newAddress.street_address || '').includes('تم تحديد الموقع') && (
                       <p className="text-sm text-emerald-600 mt-2 flex items-center gap-1">
                         <CheckCircle2 className="w-4 h-4"/> تم تحديد الموقع بنجاح
                       </p>
