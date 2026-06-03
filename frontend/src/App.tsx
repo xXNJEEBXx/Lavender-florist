@@ -9,6 +9,7 @@ import Login from '@/pages/Login';
 import AuthCallback from '@/pages/AuthCallback';
 import Checkout from '@/pages/Checkout';
 import OrderTracking from '@/pages/OrderTracking';
+import MyOrders from '@/pages/MyOrders';
 import AdminLayout from '@/components/layout/AdminLayout';
 import Dashboard from '@/pages/admin/Dashboard';
 import ProductsList from '@/pages/admin/ProductsList';
@@ -38,6 +39,7 @@ function App() {
               <Route path="/cart" element={<Cart />} />
               <Route path="/checkout" element={<Checkout />} />
               <Route path="/orders/:orderNumber" element={<OrderTracking />} />
+              <Route path="/my-orders" element={<MyOrders />} />
             </Route>
 
             <Route path="/admin" element={<AdminLayout />}>

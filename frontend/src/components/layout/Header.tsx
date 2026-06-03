@@ -10,6 +10,7 @@ import {
   ChevronDown,
   LogOut,
   LayoutDashboard,
+  Package,
 } from 'lucide-react';
 import { useAuth } from '../../store/AuthContext';
 import { useCart } from '../../store/CartContext';
@@ -164,6 +165,14 @@ export default function Header() {
                             >
                               <User className="w-4 h-4 text-lavender-500" />
                               حسابي
+                            </Link>
+                            <Link
+                              to="/my-orders"
+                              onClick={() => setIsUserMenuOpen(false)}
+                              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm hover:bg-lavender-50 transition-colors"
+                            >
+                              <Package className="w-4 h-4 text-lavender-500" />
+                              طلباتي
                             </Link>
                             <button
                               onClick={() => { logout(); setIsUserMenuOpen(false); }}
