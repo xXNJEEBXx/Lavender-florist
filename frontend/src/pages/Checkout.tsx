@@ -8,8 +8,22 @@ import { CheckCircle2, ChevronRight, MapPin, CreditCard, ShoppingBag, Truck } fr
 export default function Checkout() {
   const { items, subtotal, clearCart } = useCart();
   const navigate = useNavigate();
-  
-  const deliveryFee = 15.00;
+
+  const [deliveryMinutes, setDeliveryMinutes] = useState<number | null>(null);
+  const [isRejecting, setIsRejecting] = useState(false);
+  const [isCalculating, setIsCalculating] = useState(false);
+
+  const getDeliveryFee = (mins: number) => {
+    if (mins <= 6) return 15;
+    if (mins <= 10) return 20;
+    if (mins <= 13) return 25;
+    if (mins <= 15) return 30;
+    if (mins <= 27) return 35;
+    if (mins <= 37) return 40;
+    return 0;
+  };
+
+  const deliveryFee = deliveryMinutes !== null && !isRejecting ? getDeliveryFee(deliveryMinutes) : 0;
   const total = subtotal + deliveryFee;
 
   const [isLoading, setIsLoading] = useState(false);
@@ -28,9 +42,29 @@ export default function Checkout() {
     delivery_type: 'local'
   });
 
+  const handleCalculateDelivery = () => {
+    setIsCalculating(true);
+    setIsRejecting(false);
+    // محاكاة الاتصال بـ Google Maps API
+    setTimeout(() => {
+      // توليد رقم عشوائي بين 3 و 45 لتجربة النظام
+      const minutes = Math.floor(Math.random() * 42) + 3;
+      setDeliveryMinutes(minutes);
+      
+      if (minutes > 37) {
+        setIsRejecting(true);
+      }
+      setIsCalculating(false);
+    }, 1500);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (items.length === 0) return;
+    if (deliveryMinutes === null || isRejecting) {
+      setError('الرجاء حساب رسوم التوصيل أولاً والتأكد من إمكانية التوصيل لموقعك.');
+      return;
+    }
     
     setIsLoading(true);
     setError('');
@@ -38,6 +72,7 @@ export default function Checkout() {
     try {
       const payload = {
         ...formData,
+        delivery_fee: deliveryFee,
         items: items.map(item => ({
           product_id: item.product.id,
           quantity: item.quantity,
@@ -168,6 +203,44 @@ export default function Checkout() {
                   <textarea value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})} rows={2} className="w-full px-4 py-3 rounded-xl border border-primary-200 focus:ring-2 focus:ring-primary-500 transition-all outline-none resize-none" placeholder="مثال: يرجى الاتصال قبل الوصول بنصف ساعة" />
                 </div>
               </div>
+
+              {/* Delivery Calculation */}
+              <div className="mt-6 p-5 bg-primary-50 rounded-2xl border border-primary-100">
+                <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+                  <div>
+                    <h3 className="font-bold text-primary-900 mb-1">تحديد رسوم التوصيل</h3>
+                    <p className="text-sm text-primary-600">نستخدم خرائط جوجل لحساب وقت وتكلفة التوصيل بدقة.</p>
+                  </div>
+                  <button 
+                    type="button" 
+                    onClick={handleCalculateDelivery}
+                    disabled={isCalculating}
+                    className="whitespace-nowrap px-6 py-3 bg-primary-800 text-white rounded-xl font-medium hover:bg-primary-900 transition-colors disabled:opacity-70"
+                  >
+                    {isCalculating ? 'جاري الحساب...' : 'حساب التوصيل'}
+                  </button>
+                </div>
+                
+                {deliveryMinutes !== null && (
+                  <div className="mt-4 pt-4 border-t border-primary-200">
+                    {isRejecting ? (
+                      <div className="text-rose-600 bg-rose-50 p-4 rounded-xl border border-rose-100">
+                        <p className="font-bold mb-1">نعتذر منك!</p>
+                        <p className="text-sm">المسافة لموقعك تستغرق ({deliveryMinutes} دقيقة) وهو خارج نطاق التوصيل المسموح به (أقصى حد 37 دقيقة).</p>
+                      </div>
+                    ) : (
+                      <div className="text-emerald-700 bg-emerald-50 p-4 rounded-xl border border-emerald-100 flex justify-between items-center">
+                        <div>
+                          <p className="font-bold">يمكننا التوصيل لموقعك!</p>
+                          <p className="text-sm mt-1 text-emerald-600">الوقت المقدر: {deliveryMinutes} دقيقة</p>
+                          <p className="text-xs mt-2 text-primary-500 italic">* ملاحظة: السعر والوقت قد يختلف قليلاً مع الزحمة المرورية.</p>
+                        </div>
+                        <div className="text-2xl font-bold">{deliveryFee} ر.س</div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Payment Method */}
@@ -248,12 +321,12 @@ export default function Checkout() {
               
               <div className="flex justify-between items-center mb-8 bg-primary-50 p-4 rounded-2xl border border-primary-100">
                 <span className="font-bold text-primary-900">الإجمالي النهائي</span>
-                <span className="font-bold text-accent-700 text-2xl">{total} ر.س</span>
+                <span className="font-bold text-accent-700 text-2xl">{deliveryMinutes === null ? '---' : total} ر.س</span>
               </div>
               
               <button 
                 type="submit"
-                disabled={isLoading}
+                disabled={isLoading || deliveryMinutes === null || isRejecting}
                 className="w-full bg-primary-800 text-white rounded-xl py-4 font-bold text-lg hover:bg-primary-900 active:bg-primary-950 transition-all shadow-lg shadow-primary-900/10 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {isLoading ? (
@@ -265,6 +338,10 @@ export default function Checkout() {
                   </>
                 )}
               </button>
+              
+              {deliveryMinutes === null && (
+                <p className="text-center text-sm text-rose-500 mt-4 font-medium">الرجاء حساب رسوم التوصيل أولاً</p>
+              )}
               
               <p className="text-center text-xs text-primary-400 mt-4">بضغطك على "تأكيد الطلب" أنت توافق على شروط وأحكام المتجر.</p>
             </div>

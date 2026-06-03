@@ -1,19 +1,33 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useAuth } from '../store/AuthContext';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
+  const location = useLocation();
+  const { setUser } = useAuth();
+  
+  const from = location.state?.from || '/';
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    // Placeholder login logic
+    
+    // Simulate login for prototype
+    setUser({
+      id: 1,
+      name: 'عميل لافندر',
+      email: email,
+      phone: '0500000000',
+      role: email === 'admin@lavender.com' ? 'admin' : 'customer'
+    } as any);
+
     if (email === 'admin@lavender.com') {
       navigate('/admin');
     } else {
-      navigate('/');
+      navigate(from);
     }
   };
 

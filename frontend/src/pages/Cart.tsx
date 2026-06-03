@@ -1,14 +1,25 @@
 import { motion } from 'framer-motion';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useCart } from '../store/CartContext';
+import { useAuth } from '../store/AuthContext';
 import { Trash2 } from 'lucide-react';
 
 export default function Cart() {
   const { items, updateQuantity, removeItem, subtotal } = useCart();
+  const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const deliveryFee = 15.00;
   const total = subtotal + deliveryFee;
+
+  const handleCheckoutClick = () => {
+    if (isAuthenticated) {
+      navigate('/checkout');
+    } else {
+      navigate('/login', { state: { from: '/checkout' } });
+    }
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 lg:px-8 py-12">
@@ -85,7 +96,7 @@ export default function Cart() {
               
               <p className="text-xs text-primary-500 mb-6">السعر يشمل ضريبة القيمة المضافة 15%</p>
               
-              <button onClick={() => navigate('/checkout')} className="w-full bg-primary-800 text-white rounded-xl py-4 font-semibold text-lg hover:bg-primary-900 transition-colors shadow-lg shadow-primary-900/10">
+              <button onClick={handleCheckoutClick} className="w-full bg-primary-800 text-white rounded-xl py-4 font-semibold text-lg hover:bg-primary-900 transition-colors shadow-lg shadow-primary-900/10">
                 إتمام الطلب والدفع
               </button>
               

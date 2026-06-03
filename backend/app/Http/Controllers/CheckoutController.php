@@ -27,6 +27,7 @@ class CheckoutController extends Controller
             'city' => 'required|string|max:100',
             
             'delivery_type' => 'required|in:local,shipping',
+            'delivery_fee' => 'required|numeric|min:0',
             'delivery_date' => 'nullable|date|after_or_equal:today',
             'payment_method' => 'required|in:cash_on_delivery,bank_transfer',
             'notes' => 'nullable|string',
@@ -37,17 +38,12 @@ class CheckoutController extends Controller
             'items.*.gift_message' => 'nullable|string'
         ]);
 
-        return DB::transaction(function () use ($validated) {
-            // 1. Get or Create Customer (Guest Checkout)
-            $customer = User::firstOrCreate(
-                ['phone' => $validated['phone']],
-                [
-                    'name' => $validated['name'],
-                    'email' => $validated['email'] ?? ($validated['phone'] . '@guest.local'),
-                    'password' => Hash::make(Str::random(16)),
-                    'role' => 'customer'
-                ]
-            );
+        return DB::transaction(function () use ($validated, $request) {
+            // 1. Get Logged in Customer
+            $customer = $request->user();
+            if (!$customer) {
+                throw ValidationException::withMessages(['auth' => 'يجب تسجيل الدخول أولاً']);
+            }
 
             // 2. Save Address
             $address = Address::create([
@@ -95,7 +91,7 @@ class CheckoutController extends Controller
             }
 
             // 4. Create Order
-            $deliveryFee = 15.00; // Fixed for now
+            $deliveryFee = $validated['delivery_fee'];
             $total = $subtotal + $deliveryFee;
 
             $order = Order::create([

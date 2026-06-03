@@ -23,10 +23,9 @@ Route::get('/products/{product:slug}', function(App\Models\Product $product) {
     return response()->json($product->load(['images', 'components']));
 });
 
-Route::post('/checkout', [\App\Http\Controllers\CheckoutController::class, 'process']);
-
 // Protected Customer Routes
 Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/checkout', [\App\Http\Controllers\CheckoutController::class, 'process']);
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/auth/me', [AuthController::class, 'me']);
 
