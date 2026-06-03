@@ -4,16 +4,30 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useCart } from '../store/CartContext';
 import { publicProductsApi, customerApi } from '../services/api';
 import { CheckCircle2, ChevronRight, MapPin, CreditCard, ShoppingBag, Truck, Plus, X, Map as MapIcon } from 'lucide-react';
+import { useJsApiLoader, GoogleMap, Marker } from '@react-google-maps/api';
+
+const STORE_LOCATION = { lat: 25.3833, lng: 49.5833 }; // Hofuf, Al-Ahsa
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 
 export default function Checkout() {
   const { items, subtotal, clearCart } = useCart();
   const navigate = useNavigate();
+
+  const { isLoaded } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: GOOGLE_MAPS_API_KEY,
+    language: 'ar'
+  });
 
   // Address State
   const [addresses, setAddresses] = useState<any[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<number | null>(null);
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
   const [isMapModalOpen, setIsMapModalOpen] = useState(false);
+  
+  // Map State
+  const [mapCenter, setMapCenter] = useState(STORE_LOCATION);
+  const [selectedLocation, setSelectedLocation] = useState<google.maps.LatLngLiteral | null>(null);
 
   // Delivery State
   const [deliveryMinutes, setDeliveryMinutes] = useState<number | null>(null);
@@ -94,20 +108,42 @@ export default function Checkout() {
       alert("الرجاء تحديد العنوان أولاً");
       return;
     }
+    
+    const selectedAddress = addresses.find(a => a.id === selectedAddressId);
+    if (!selectedAddress) return;
+
     setIsCalculating(true);
     setIsRejecting(false);
     
-    // محاكاة الاتصال بـ Google Maps API
-    setTimeout(() => {
-      // توليد رقم عشوائي بين 3 و 45 لتجربة النظام
-      const minutes = Math.floor(Math.random() * 42) + 3;
-      setDeliveryMinutes(minutes);
-      
-      if (minutes > 37) {
-        setIsRejecting(true);
-      }
+    if (isLoaded && window.google) {
+      const service = new google.maps.DistanceMatrixService();
+      // We use the street_address string if we didn't save coords, or if we saved coords we could use them. 
+      // For now we use the street_address string. Al Ahsa is appended to ensure better accuracy.
+      const destinationStr = `${selectedAddress.street_address}, الأحساء, السعودية`;
+
+      service.getDistanceMatrix({
+        origins: [STORE_LOCATION],
+        destinations: [destinationStr],
+        travelMode: google.maps.TravelMode.DRIVING,
+      }, (response, status) => {
+        setIsCalculating(false);
+        if (status === 'OK' && response && response.rows[0].elements[0].status === 'OK') {
+          const durationSeconds = response.rows[0].elements[0].duration.value;
+          const minutes = Math.ceil(durationSeconds / 60);
+          setDeliveryMinutes(minutes);
+          if (minutes > 37) {
+            setIsRejecting(true);
+          }
+        } else {
+          // Fallback if API fails to find it exactly, use mock to not block the user entirely
+          const fallbackMins = 15;
+          setDeliveryMinutes(fallbackMins);
+        }
+      });
+    } else {
       setIsCalculating(false);
-    }, 1500);
+      setDeliveryMinutes(15); // Fallback
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -477,40 +513,63 @@ export default function Checkout() {
         )}
       </AnimatePresence>
 
-      {/* Google Maps Fake Modal */}
+      {/* Google Maps Real Modal */}
       <AnimatePresence>
-        {isMapModalOpen && (
+        {isMapModalOpen && isLoaded && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsMapModalOpen(false)} />
             <motion.div 
               initial={{ y: 50, opacity: 0 }} 
               animate={{ y: 0, opacity: 1 }} 
               exit={{ y: 50, opacity: 0 }}
-              className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl relative z-10 overflow-hidden"
+              className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl relative z-10 overflow-hidden flex flex-col"
             >
               <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
                 <h3 className="font-bold flex items-center gap-2"><MapIcon className="w-5 h-5 text-emerald-600"/> تحديد الموقع</h3>
                 <button onClick={() => setIsMapModalOpen(false)} className="p-2 hover:bg-gray-200 rounded-full"><X className="w-5 h-5" /></button>
               </div>
-              <div className="relative h-[400px] bg-gray-200 flex flex-col items-center justify-center border-b border-gray-200">
-                {/* Mock Map Background */}
-                <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(#4285F4 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
-                
-                <MapPin className="w-12 h-12 text-rose-500 drop-shadow-xl z-10 mb-2 -mt-10" />
-                <div className="bg-white px-4 py-2 rounded-lg shadow-md z-10 text-sm font-bold text-gray-700">
-                  حرك الخريطة لتحديد الموقع
-                </div>
-                <div className="absolute bottom-4 left-0 right-0 text-center">
-                  <span className="bg-black/50 text-white text-xs px-3 py-1 rounded-full">واجهة خرائط جوجل (بانتظار API Key)</span>
-                </div>
-              </div>
-              <div className="p-6 bg-white flex justify-end">
-                <button 
-                  onClick={() => {
-                    setNewAddress({...newAddress, street_address: 'تم تحديد الموقع من الخريطة - الهفوف'});
-                    setIsMapModalOpen(false);
+              
+              <div className="h-[400px] w-full relative">
+                <GoogleMap
+                  mapContainerStyle={{ width: '100%', height: '100%' }}
+                  center={mapCenter}
+                  zoom={13}
+                  onClick={(e) => {
+                    if (e.latLng) {
+                      setSelectedLocation({ lat: e.latLng.lat(), lng: e.latLng.lng() });
+                    }
                   }}
-                  className="px-8 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-colors shadow-lg"
+                >
+                  {selectedLocation && (
+                    <Marker position={selectedLocation} />
+                  )}
+                </GoogleMap>
+              </div>
+              
+              <div className="p-6 bg-white flex justify-end gap-3 border-t border-gray-100">
+                <button 
+                  onClick={() => setIsMapModalOpen(false)}
+                  className="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+                >
+                  إلغاء
+                </button>
+                <button 
+                  disabled={!selectedLocation}
+                  onClick={() => {
+                    if (selectedLocation) {
+                      // Reverse Geocode
+                      const geocoder = new google.maps.Geocoder();
+                      geocoder.geocode({ location: selectedLocation }, (results, status) => {
+                        if (status === 'OK' && results && results[0]) {
+                          setNewAddress({...newAddress, street_address: results[0].formatted_address});
+                        } else {
+                          setNewAddress({...newAddress, street_address: `إحداثيات: ${selectedLocation.lat.toFixed(4)}, ${selectedLocation.lng.toFixed(4)}`});
+                        }
+                        setIsMapModalOpen(false);
+                      });
+                    }
+                  }}
+                  className="px-8 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-colors shadow-lg disabled:opacity-50"
                 >
                   تأكيد الموقع
                 </button>
