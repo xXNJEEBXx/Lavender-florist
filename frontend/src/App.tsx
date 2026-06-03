@@ -16,6 +16,8 @@ import { AuthProvider } from '@/store/AuthContext';
 import { CartProvider } from '@/store/CartContext';
 import LoginModal from '@/components/ui/LoginModal';
 
+import Checkout from '@/pages/Checkout';
+
 function App() {
   return (
     <AuthProvider>
@@ -24,12 +26,13 @@ function App() {
           <LoginModal />
           <Routes>
             <Route path="/login" element={<Login />} />
-            
+
             <Route element={<MainLayout />}>
               <Route path="/" element={<Home />} />
               <Route path="/products" element={<Products />} />
               <Route path="/products/:slug" element={<ProductDetail />} />
               <Route path="/cart" element={<Cart />} />
+              <Route path="/checkout" element={<Checkout />} />
             </Route>
 
             <Route path="/admin" element={<AdminLayout />}>

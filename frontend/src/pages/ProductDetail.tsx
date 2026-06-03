@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { publicProductsApi } from '../services/api';
 import type { Product } from '../types';
+import { useCart } from '../store/CartContext';
 
 export default function ProductDetail() {
   const { slug } = useParams();
@@ -11,7 +12,8 @@ export default function ProductDetail() {
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
   const [activeImage, setActiveImage] = useState<string | null>(null);
-  const [selectedAddon, setSelectedAddon] = useState<string | null>(null);
+  const { addItem } = useCart();
+  const [isAdding, setIsAdding] = useState(false);
 
   useEffect(() => {
     if (!slug) return;
@@ -160,11 +162,18 @@ export default function ProductDetail() {
             
             <motion.button 
               whileTap={{ scale: product.is_in_stock ? 0.98 : 1 }}
-              disabled={!product.is_in_stock}
+              disabled={!product.is_in_stock || isAdding}
+              onClick={() => {
+                setIsAdding(true);
+                addItem(product, quantity);
+                setTimeout(() => {
+                  navigate('/cart');
+                }, 400);
+              }}
               className={`flex-1 rounded-xl font-semibold text-lg flex items-center justify-center gap-2 transition-colors shadow-lg ${product.is_in_stock ? 'bg-primary-800 text-white hover:bg-primary-900 shadow-primary-900/10' : 'bg-gray-200 text-gray-500 shadow-none cursor-not-allowed'}`}
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
-              {product.is_in_stock ? 'إضافة للسلة' : 'غير متوفر'}
+              {isAdding ? 'تمت الإضافة ✔️' : product.is_in_stock ? 'إضافة للسلة' : 'غير متوفر'}
             </motion.button>
           </div>
 
