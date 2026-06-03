@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { adminActivityLogsApi } from '../../../services/api';
+import { adminActivityLogsApi } from '../../services/api';
 import { 
   TrendingUp, 
   ShoppingBag, 
