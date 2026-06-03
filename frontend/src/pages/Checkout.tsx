@@ -23,6 +23,7 @@ export default function Checkout() {
 
   // Address State
   const [addresses, setAddresses] = useState<any[]>([]);
+  const [isAddressesLoading, setIsAddressesLoading] = useState(true);
   const [selectedAddressId, setSelectedAddressId] = useState<number | null>(null);
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
   const [isMapModalOpen, setIsMapModalOpen] = useState(false);
@@ -65,6 +66,7 @@ export default function Checkout() {
 
   const loadAddresses = async () => {
     try {
+      setIsAddressesLoading(true);
       const data = await customerApi.getAddresses();
       setAddresses(data);
       if (data.length > 0) {
@@ -73,6 +75,8 @@ export default function Checkout() {
       }
     } catch (err) {
       console.error("Failed to load addresses", err);
+    } finally {
+      setIsAddressesLoading(false);
     }
   };
 
@@ -329,7 +333,19 @@ export default function Checkout() {
                 </button>
               </div>
 
-              {addresses.length === 0 ? (
+              {isAddressesLoading ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {[1, 2].map((i) => (
+                    <div key={i} className="p-4 rounded-2xl border-2 border-primary-100 bg-primary-50/50 animate-pulse">
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="h-5 bg-primary-200 rounded-md w-1/3"></div>
+                      </div>
+                      <div className="h-4 bg-primary-100 rounded-md w-1/2 mb-2"></div>
+                      <div className="h-4 bg-primary-100 rounded-md w-2/3"></div>
+                    </div>
+                  ))}
+                </div>
+              ) : addresses.length === 0 ? (
                 <div className="text-center py-8 border-2 border-dashed border-primary-200 rounded-2xl">
                   <p className="text-primary-500 mb-4">ليس لديك عناوين محفوظة</p>
                   <button type="button" onClick={() => setIsAddressModalOpen(true)} className="px-6 py-2 bg-primary-800 text-white rounded-xl hover:bg-primary-900 transition-colors">

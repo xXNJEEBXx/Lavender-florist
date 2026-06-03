@@ -138,13 +138,12 @@ class CheckoutController extends Controller
                     // Create stock log (optional but good practice)
                     DB::table('component_stock_logs')->insert([
                         'component_id' => $componentId,
-                        'user_id' => $customer->id, // or admin id
-                        'type' => 'consumed',
-                        'quantity' => $qtyToDeduct,
-                        'balance_after' => $component->stock_quantity,
+                        'performed_by' => $customer->id,
+                        'type' => 'consumption',
+                        'quantity' => -$qtyToDeduct,
+                        'stock_after' => $component->stock_quantity,
                         'notes' => 'Consumed for order ' . $order->order_number,
-                        'created_at' => now(),
-                        'updated_at' => now()
+                        'created_at' => now()
                     ]);
                 }
             }
