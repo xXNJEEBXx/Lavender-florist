@@ -152,7 +152,7 @@ class CheckoutController extends Controller
             // Log activity
             ActivityLog::create([
                 'event_type' => 'created',
-                'actor_type' => \App\Models\User::class,
+                'actor_type' => 'customer',
                 'actor_id' => $customer->id,
                 'subject_type' => Order::class,
                 'subject_id' => $order->id,

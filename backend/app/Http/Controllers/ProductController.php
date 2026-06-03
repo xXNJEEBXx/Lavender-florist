@@ -81,7 +81,7 @@ class ProductController extends Controller
 
         ActivityLog::create([
             'event_type' => 'created',
-            'actor_type' => \App\Models\User::class,
+            'actor_type' => 'admin',
             'actor_id' => $user->id ?? 1,
             'subject_type' => Product::class,
             'subject_id' => $product->id,
@@ -153,7 +153,7 @@ class ProductController extends Controller
 
         ActivityLog::create([
             'event_type' => 'updated',
-            'actor_type' => \App\Models\User::class,
+            'actor_type' => 'admin',
             'actor_id' => $user->id ?? 1,
             'subject_type' => Product::class,
             'subject_id' => $product->id,
@@ -177,7 +177,7 @@ class ProductController extends Controller
 
         ActivityLog::create([
             'event_type' => 'deleted',
-            'actor_type' => \App\Models\User::class,
+            'actor_type' => 'admin',
             'actor_id' => $user->id ?? 1,
             'subject_type' => Product::class,
             'subject_id' => $productId,

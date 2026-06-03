@@ -69,7 +69,7 @@ class OrderController extends Controller
 
         ActivityLog::create([
             'event_type' => 'updated',
-            'actor_type' => \App\Models\User::class,
+            'actor_type' => 'admin',
             'actor_id' => $user->id ?? 1,
             'subject_type' => Order::class,
             'subject_id' => $order->id,
@@ -108,7 +108,7 @@ class OrderController extends Controller
 
         ActivityLog::create([
             'event_type' => 'updated',
-            'actor_type' => \App\Models\User::class,
+            'actor_type' => 'admin',
             'actor_id' => $user->id ?? 1,
             'subject_type' => Order::class,
             'subject_id' => $order->id,
