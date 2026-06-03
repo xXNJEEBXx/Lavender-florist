@@ -78,7 +78,7 @@ export default function ProductDetail() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.3 }}
-                src={activeImage || ''}
+                src={activeImage || undefined}
                 alt={product.name}
                 className="w-full h-full object-cover"
                 style={{ display: activeImage ? 'block' : 'none' }}
