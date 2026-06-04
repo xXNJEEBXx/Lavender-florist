@@ -167,9 +167,10 @@ export default function Checkout() {
   const totalWaitTimeMinutes = queueTimeMinutes + cartPrepTime + deliveryTimeAdded;
   
   const formatWaitTime = (mins: number) => {
-    if (mins < 60) return `${mins} دقيقة`;
-    const hrs = Math.floor(mins / 60);
-    const m = mins % 60;
+    const roundedMins = Math.round(mins);
+    if (roundedMins < 60) return `${roundedMins} دقيقة`;
+    const hrs = Math.floor(roundedMins / 60);
+    const m = roundedMins % 60;
     return m > 0 ? `${hrs} ساعة و ${m} دقيقة` : `${hrs} ساعة`;
   };
 
