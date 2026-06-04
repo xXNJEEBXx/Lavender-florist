@@ -23,6 +23,10 @@ api.interceptors.request.use((config) => {
 export const fetchProducts = () => api.get('/products').then(res => res.data);
 export const fetchProductBySlug = (slug: string) => api.get(`/products/${slug}`).then(res => res.data);
 
+export const storeApi = {
+  getQueueStatus: () => api.get('/store/queue-status').then(res => res.data),
+};
+
 // Basic Auth
 export const getCsrfCookie = () => axios.get('/sanctum/csrf-cookie', { withCredentials: true });
 

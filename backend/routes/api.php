@@ -16,6 +16,8 @@ Route::get('/store/working-hours', function() {
     return response()->json(['message' => 'Store is open (placeholder)']);
 });
 
+Route::get('/store/queue-status', [\App\Http\Controllers\QueueController::class, 'status']);
+
 Route::get('/products', function() {
     return response()->json(App\Models\Product::with(['primaryImage', 'components'])->active()->ordered()->get());
 });

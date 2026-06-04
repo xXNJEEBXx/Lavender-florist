@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { publicProductsApi } from '../services/api';
+import { publicProductsApi, storeApi } from '../services/api';
 import type { Product } from '../types';
 import { useCart } from '../store/CartContext';
 
@@ -14,6 +14,7 @@ export default function ProductDetail() {
   const [activeImage, setActiveImage] = useState<string | null>(null);
   const { addItem, getAvailableStock } = useCart();
   const [isAdding, setIsAdding] = useState(false);
+  const [queueTimeMinutes, setQueueTimeMinutes] = useState<number>(0);
 
   useEffect(() => {
     if (!slug) return;
@@ -32,6 +33,10 @@ export default function ProductDetail() {
         navigate('/'); // Redirect to home if not found
       })
       .finally(() => setLoading(false));
+
+    storeApi.getQueueStatus()
+      .then(data => setQueueTimeMinutes(data.queue_time_minutes || 0))
+      .catch(err => console.error(err));
   }, [slug, navigate]);
 
   if (loading) {
@@ -186,12 +191,19 @@ export default function ProductDetail() {
               </li>
               <li className="flex items-center gap-3 text-primary-800">
                 <svg className="text-accent-500" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                تغليف فاخر يليق بإهدائكم
+                تغليف فاخر مجاني
               </li>
               {product.preparation_time_minutes && (
-                <li className="flex items-center gap-3 text-primary-800">
-                  <svg className="text-accent-500" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                  مدة التحضير المقدرة: {product.preparation_time_minutes} دقيقة
+                <li className="flex flex-col gap-1 text-primary-800">
+                  <div className="flex items-center gap-3">
+                    <svg className="text-accent-500" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    <span>وقت التجهيز الأساسي: <span className="font-bold">{product.preparation_time_minutes} دقيقة</span></span>
+                  </div>
+                  {queueTimeMinutes > 0 && (
+                    <div className="flex items-center gap-3 mt-1 mr-8 text-amber-600 text-sm bg-amber-50 p-2 rounded-lg border border-amber-100">
+                      <span>⚠️ يوجد طابور طلبات حالي قد يضيف <span className="font-bold">{queueTimeMinutes} دقيقة</span> للوقت المتوقع.</span>
+                    </div>
+                  )}
                 </li>
               )}
             </ul>

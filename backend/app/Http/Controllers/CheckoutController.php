@@ -22,6 +22,7 @@ class CheckoutController extends Controller
         $validated = $request->validate([
             'address_id' => 'nullable|exists:addresses,id',
             'delivery_type' => 'required|in:local,shipping,pickup',
+            'delivery_speed' => 'nullable|in:standard,express',
             'delivery_fee' => 'required|numeric|min:0',
             'delivery_date' => 'nullable|date|after_or_equal:today',
             'payment_method' => 'required|in:cash_on_delivery,bank_transfer',
@@ -108,6 +109,7 @@ class CheckoutController extends Controller
                 'customer_id' => $customer->id,
                 'status' => 'pending',
                 'delivery_type' => $validated['delivery_type'],
+                'delivery_speed' => $validated['delivery_speed'] ?? 'standard',
                 'address_id' => $address ? $address->id : null,
                 'delivery_date' => $validated['delivery_date'] ?? null,
                 'delivery_fee' => $deliveryFee,

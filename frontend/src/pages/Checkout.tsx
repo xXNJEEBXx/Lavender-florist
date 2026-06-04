@@ -3,8 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
 import { useCart } from '../store/CartContext';
 import { useAuth } from '../store/AuthContext';
-import { publicProductsApi, customerApi } from '../services/api';
-import { CheckCircle2, ChevronRight, MapPin, CreditCard, ShoppingBag, Truck, Plus, X, Map as MapIcon } from 'lucide-react';
+import { publicProductsApi, customerApi, storeApi } from '../services/api';
+import { CheckCircle2, ChevronRight, MapPin, CreditCard, ShoppingBag, Truck, Plus, X, Map as MapIcon, Zap, Clock, Info } from 'lucide-react';
 import { useJsApiLoader, GoogleMap, Marker } from '@react-google-maps/api';
 
 const STORE_LOCATION = { lat: 25.4535688, lng: 49.5847893 }; // Actual Store Location
@@ -34,9 +34,14 @@ export default function Checkout() {
 
   // Delivery State
   const [deliveryType, setDeliveryType] = useState<'local' | 'pickup'>('local');
+  const [deliverySpeed, setDeliverySpeed] = useState<'standard' | 'express'>('standard');
   const [deliveryMinutes, setDeliveryMinutes] = useState<number | null>(null);
   const [isRejecting, setIsRejecting] = useState(false);
   const [isCalculating, setIsCalculating] = useState(false);
+  
+  // Queue State
+  const [queueTimeMinutes, setQueueTimeMinutes] = useState<number>(0);
+  const [isQueueLoading, setIsQueueLoading] = useState(true);
 
   // Order State
   const [isLoading, setIsLoading] = useState(false);
@@ -62,7 +67,20 @@ export default function Checkout() {
     if (isAuthenticated) {
       loadAddresses();
     }
+    loadQueueStatus();
   }, [isAuthenticated]);
+
+  const loadQueueStatus = async () => {
+    try {
+      setIsQueueLoading(true);
+      const data = await storeApi.getQueueStatus();
+      setQueueTimeMinutes(data.queue_time_minutes || 0);
+    } catch (err) {
+      console.error("Failed to load queue status", err);
+    } finally {
+      setIsQueueLoading(false);
+    }
+  };
 
   const loadAddresses = async () => {
     try {
@@ -140,8 +158,20 @@ export default function Checkout() {
     return 0;
   };
 
-  const deliveryFee = deliveryMinutes !== null && !isRejecting ? getDeliveryFee(deliveryMinutes) : 0;
+  const deliveryFeeBase = deliveryMinutes !== null && !isRejecting ? getDeliveryFee(deliveryMinutes) : 0;
+  const deliveryFee = deliveryType === 'local' && deliverySpeed === 'express' ? deliveryFeeBase + 20 : deliveryFeeBase;
   const total = subtotal + deliveryFee;
+
+  const cartPrepTime = items.reduce((sum, item) => sum + (item.quantity * (item.product.preparation_time_minutes || 0)), 0);
+  const deliveryTimeAdded = deliveryType === 'pickup' ? 0 : (deliverySpeed === 'express' ? 60 : 240);
+  const totalWaitTimeMinutes = queueTimeMinutes + cartPrepTime + deliveryTimeAdded;
+  
+  const formatWaitTime = (mins: number) => {
+    if (mins < 60) return `${mins} دقيقة`;
+    const hrs = Math.floor(mins / 60);
+    const m = mins % 60;
+    return m > 0 ? `${hrs} ساعة و ${m} دقيقة` : `${hrs} ساعة`;
+  };
 
   const handleCalculateDelivery = () => {
     if (deliveryType === 'pickup') return;
@@ -239,6 +269,7 @@ export default function Checkout() {
         address_id: deliveryType === 'pickup' ? null : selectedAddressId,
         payment_method: paymentMethod,
         delivery_type: deliveryType,
+        delivery_speed: deliveryType === 'pickup' ? 'standard' : deliverySpeed,
         delivery_fee: deliveryFee,
         notes: notes,
         items: items.map(item => ({
@@ -316,6 +347,39 @@ export default function Checkout() {
                   <span className="font-bold text-primary-900">استلام من الفرع</span>
                 </button>
               </div>
+
+              {deliveryType === 'local' && (
+                <div className="mt-6 pt-6 border-t border-primary-100">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Zap className="w-5 h-5 text-primary-600" />
+                    <h3 className="text-lg font-bold text-primary-900">سرعة التوصيل</h3>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <button
+                      type="button"
+                      onClick={() => setDeliverySpeed('standard')}
+                      className={`p-4 rounded-xl border-2 text-right transition-all ${deliverySpeed === 'standard' ? 'border-primary-500 bg-primary-50' : 'border-primary-100 hover:border-primary-300'}`}
+                    >
+                      <div className="flex justify-between items-start mb-1">
+                        <span className="font-bold text-primary-900">توصيل عادي</span>
+                        {deliverySpeed === 'standard' && <CheckCircle2 className="w-5 h-5 text-primary-600" />}
+                      </div>
+                      <p className="text-sm text-primary-600">خلال 4 ساعات كحد أقصى (تضاف رسوم التوصيل الأساسية)</p>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDeliverySpeed('express')}
+                      className={`p-4 rounded-xl border-2 text-right transition-all ${deliverySpeed === 'express' ? 'border-primary-500 bg-primary-50' : 'border-primary-100 hover:border-primary-300'}`}
+                    >
+                      <div className="flex justify-between items-start mb-1">
+                        <span className="font-bold text-primary-900">توصيل سريع 🚀</span>
+                        {deliverySpeed === 'express' && <CheckCircle2 className="w-5 h-5 text-primary-600" />}
+                      </div>
+                      <p className="text-sm text-primary-600">خلال ساعة واحدة (+20 ريال رسوم إضافية)</p>
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Address Selection */}
@@ -479,11 +543,51 @@ export default function Checkout() {
                   </div>
                 )}
                 {deliveryType === 'local' && !isCalculating && !isRejecting && deliveryMinutes !== null && (
-                  <p className="text-xs text-primary-500 italic bg-primary-50 p-2 rounded-lg">* السعر والوقت قد يختلف قليلاً مع الزحمة المرورية.</p>
+                  <p className="text-xs text-primary-500 italic bg-primary-50 p-2 rounded-lg">* السعر والوقت للقيادة قد يختلف قليلاً مع الزحمة المرورية.</p>
                 )}
               </div>
+
+              {/* Time Breakdown Section */}
+              <div className="bg-primary-50 p-4 rounded-2xl border border-primary-100 mb-6 space-y-2">
+                <div className="flex items-center gap-2 mb-2">
+                  <Clock className="w-5 h-5 text-primary-600" />
+                  <span className="font-bold text-primary-900">تفاصيل الوقت المتوقع</span>
+                </div>
+                
+                {queueTimeMinutes > 0 && (
+                  <div className="flex justify-between text-sm text-primary-700">
+                    <div className="flex items-center gap-1">
+                      <span>طابور الطلبات السابقة</span>
+                      <div className="group relative">
+                        <Info className="w-4 h-4 text-primary-400 cursor-help" />
+                        <div className="absolute right-0 bottom-full mb-2 w-48 p-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                          بسبب وجود طلبات سابقة قيد التجهيز في المحل حالياً
+                        </div>
+                      </div>
+                    </div>
+                    <span className="font-medium text-amber-600">{formatWaitTime(queueTimeMinutes)}</span>
+                  </div>
+                )}
+                
+                <div className="flex justify-between text-sm text-primary-700">
+                  <span>تجهيز منتجاتك</span>
+                  <span className="font-medium text-primary-600">{formatWaitTime(cartPrepTime)}</span>
+                </div>
+
+                {deliveryType === 'local' && (
+                  <div className="flex justify-between text-sm text-primary-700">
+                    <span>التوصيل المتوقع</span>
+                    <span className="font-medium text-primary-600">{formatWaitTime(deliveryTimeAdded)}</span>
+                  </div>
+                )}
+
+                <div className="pt-2 mt-2 border-t border-primary-200 flex justify-between items-center">
+                  <span className="font-bold text-primary-900">الوقت الإجمالي المتوقع</span>
+                  <span className="font-bold text-accent-700">{formatWaitTime(totalWaitTimeMinutes)}</span>
+                </div>
+              </div>
               
-              <div className="flex justify-between items-center mb-8 bg-primary-50 p-4 rounded-2xl border border-primary-100">
+              <div className="flex justify-between items-center mb-8 bg-white p-4 rounded-2xl border-2 border-primary-500 shadow-sm">
                 <span className="font-bold text-primary-900">الإجمالي النهائي</span>
                 <span className="font-bold text-accent-700 text-2xl">{isCalculating ? '---' : total} ر.س</span>
               </div>
