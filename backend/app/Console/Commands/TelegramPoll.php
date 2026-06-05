@@ -27,10 +27,16 @@ class TelegramPoll extends Command
         $daemon = $this->option('daemon');
 
         while (true) {
-            $response = Http::get("https://api.telegram.org/bot{$token}/getUpdates");
-            
-            if (!$response->successful()) {
-                $this->error('Failed to connect to Telegram API. Retrying in 5 seconds...');
+            try {
+                $response = Http::timeout(60)->get("https://api.telegram.org/bot{$token}/getUpdates");
+                
+                if (!$response->successful()) {
+                    $this->error('Failed to connect to Telegram API. Retrying in 5 seconds...');
+                    sleep(5);
+                    continue;
+                }
+            } catch (\Exception $e) {
+                $this->error("Connection timeout or error: " . $e->getMessage() . " Retrying in 5 seconds...");
                 sleep(5);
                 continue;
             }
@@ -56,7 +62,11 @@ class TelegramPoll extends Command
 
             if (!empty($updates)) {
                 $lastUpdateId = end($updates)['update_id'];
-                Http::get("https://api.telegram.org/bot{$token}/getUpdates", ['offset' => $lastUpdateId + 1]);
+                try {
+                    Http::timeout(60)->get("https://api.telegram.org/bot{$token}/getUpdates", ['offset' => $lastUpdateId + 1]);
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error('TelegramPoll Error acknowledging update', ['error' => $e->getMessage()]);
+                }
                 $this->info("Processed {$synced} updates.");
             }
 

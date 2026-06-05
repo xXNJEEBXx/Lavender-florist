@@ -307,12 +307,12 @@ export default function OrdersList() {
              );
           } else {
              nextStatus = 'delivering';
-             label = 'تم استلام الطلب من المندوب';
+             label = 'تم تسليم الطلب للمندوب';
           }
        }
     } else if (order.status === 'delivering') {
        nextStatus = 'delivered';
-       label = 'تم التسليم';
+       label = 'تم تسليم الطلب للعميل';
     } else {
        return null;
     }
@@ -842,7 +842,7 @@ export default function OrdersList() {
                     {(['preparing', 'ready', 'delivering', 'delivered'] as const).map(s => (
                       <button key={s} onClick={() => handleStatusChange(s)} disabled={isUpdatingStatus || selectedOrder.status === s || (s === 'delivering' && selectedOrder.delivery_type === 'pickup')}
                         className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${selectedOrder.status === s ? 'bg-white shadow text-primary-900' : 'text-primary-600 hover:text-primary-900 disabled:opacity-30'}`}>
-                        {{ preparing: 'قيد التجهيز', ready: 'تم التجهيز', delivering: 'تم استلام الطلب', delivered: 'تم التسليم' }[s]}
+                        {{ preparing: 'قيد التجهيز', ready: 'تم التجهيز', delivering: 'تم تسليم الطلب للمندوب', delivered: 'تم تسليم الطلب للعميل' }[s]}
                       </button>
                     ))}
                   </div>
