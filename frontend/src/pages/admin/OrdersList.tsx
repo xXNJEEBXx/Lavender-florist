@@ -16,6 +16,15 @@ function formatElapsed(mins: number): string {
   return m > 0 ? `${h} س ${m} د` : `${h} س`;
 }
 
+function formatDuration(ms: number) {
+  if (ms < 0) return '0 دقيقة';
+  const mins = Math.floor(ms / 60000);
+  if (mins < 60) return `${mins} دقيقة`;
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return m > 0 ? `${h} س و ${m} دقيقة` : `${h} س`;
+}
+
 function getUrgency(status: string, createdAt: string): 'ok' | 'warn' | 'danger' {
   if (['delivered', 'cancelled'].includes(status)) return 'ok';
   const elapsed = getElapsedMinutes(createdAt);
@@ -249,7 +258,7 @@ export default function OrdersList() {
     } else if (order.status === 'preparing') {
       if (order.delivery_type === 'pickup') {
          nextStatus = 'ready';
-         label = 'جاهز للتسليم';
+         label = 'تم التجهيز';
       } else {
          return (
           <button
@@ -265,14 +274,14 @@ export default function OrdersList() {
     } else if (order.status === 'ready') {
        if (order.delivery_type === 'pickup') {
           nextStatus = 'delivered';
-          label = 'تسليم الطلب';
+          label = 'تم التسليم';
        } else {
           nextStatus = 'delivering';
-          label = 'جاري التوصيل';
+          label = 'تم استلام الطلب';
        }
     } else if (order.status === 'delivering') {
        nextStatus = 'delivered';
-       label = 'مكتمل';
+       label = 'تم التسليم';
     } else {
        return null;
     }
@@ -741,6 +750,48 @@ export default function OrdersList() {
                         <div className="flex justify-between text-xl font-bold text-primary-950 pt-4 border-t border-primary-100 mt-2"><span>الإجمالي</span><span>{selectedOrder.total} ر.س</span></div>
                       </div>
                     </div>
+
+                    {/* Status History */}
+                    {selectedOrder.status_history && selectedOrder.status_history.length > 0 && (
+                      <div className="bg-white p-5 rounded-2xl border border-primary-100 shadow-sm col-span-1 lg:col-span-3">
+                        <h3 className="font-bold text-primary-900 mb-4 flex items-center gap-2"><Clock className="w-5 h-5 text-primary-500" /> الجدول الزمني للطلب</h3>
+                        <div className="space-y-0">
+                          {selectedOrder.status_history.map((hist: any, index: number, arr: any[]) => {
+                            let duration = '';
+                            if (index > 0) {
+                              const prevTime = new Date(arr[index - 1].created_at).getTime();
+                              const currTime = new Date(hist.created_at).getTime();
+                              duration = formatDuration(currTime - prevTime);
+                            }
+                            const getLabel = (s: string) => {
+                               if (s === 'pending') return (selectedOrder.payment_method === 'bank_transfer') ? 'بانتظار تأكيد الحوالة' : 'معلق';
+                               if (s === 'preparing') return 'قيد التجهيز';
+                               if (s === 'ready') return (selectedOrder.delivery_type === 'pickup') ? 'جاهز للتسليم' : 'جاهز للاستلام من المندوب';
+                               if (s === 'delivering') return 'جاري التوصيل';
+                               if (s === 'delivered') return 'مكتمل';
+                               if (s === 'cancelled') return 'ملغي';
+                               return s;
+                            };
+
+                            return (
+                              <div key={hist.id} className="flex gap-4">
+                                <div className="flex flex-col items-center">
+                                  <div className={`w-3 h-3 rounded-full mt-1.5 ${index === arr.length - 1 ? 'bg-primary-600 ring-4 ring-primary-100' : 'bg-primary-300'}`} />
+                                  {index < arr.length - 1 && <div className="w-0.5 h-full bg-primary-100 my-1" />}
+                                </div>
+                                <div className="flex-1 pb-4">
+                                  <div className="flex items-center justify-between">
+                                    <span className="font-bold text-sm text-primary-900">{getLabel(hist.to_status)}</span>
+                                    <span className="text-xs text-primary-500" dir="ltr">{new Date(hist.created_at).toLocaleString('ar-SA')}</span>
+                                  </div>
+                                  {duration && <p className="text-xs text-primary-600 mt-1">استغرق: <span className="font-bold">{duration}</span> مابين الحالة السابقة وهذه الحالة.</p>}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -753,7 +804,7 @@ export default function OrdersList() {
                     {(['preparing', 'ready', 'delivering', 'delivered'] as const).map(s => (
                       <button key={s} onClick={() => handleStatusChange(s)} disabled={isUpdatingStatus || selectedOrder.status === s || (s === 'delivering' && selectedOrder.delivery_type === 'pickup')}
                         className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${selectedOrder.status === s ? 'bg-white shadow text-primary-900' : 'text-primary-600 hover:text-primary-900 disabled:opacity-30'}`}>
-                        {{ preparing: 'تجهيز', ready: 'جاهز', delivering: 'توصيل', delivered: 'مكتمل' }[s]}
+                        {{ preparing: 'قيد التجهيز', ready: 'تم التجهيز', delivering: 'تم استلام الطلب', delivered: 'تم التسليم' }[s]}
                       </button>
                     ))}
                   </div>

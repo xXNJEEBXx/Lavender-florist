@@ -38,7 +38,7 @@ class OrderController extends Controller
      */
     public function show(Order $order)
     {
-        $order->load(['customer', 'items.product', 'address', 'driver']);
+        $order->load(['customer', 'items.product.primaryImage', 'address', 'driver', 'statusHistory']);
         return response()->json($order);
     }
 
