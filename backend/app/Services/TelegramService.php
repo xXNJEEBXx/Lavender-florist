@@ -43,7 +43,15 @@ class TelegramService
             $payload['reply_markup'] = $replyMarkup; // If null, it removes the keyboard. If false, ignores it.
         }
 
-        return Http::post("{$this->apiUrl}/editMessageText", $payload)->json();
+        $response = Http::post("{$this->apiUrl}/editMessageText", $payload);
+        if (!$response->successful()) {
+            \Illuminate\Support\Facades\Log::error('Telegram editMessageText failed', [
+                'status' => $response->status(),
+                'response' => $response->json(),
+                'payload' => $payload,
+            ]);
+        }
+        return $response->json();
     }
 
     public function answerCallbackQuery($callbackQueryId, $text = null, $showAlert = false)

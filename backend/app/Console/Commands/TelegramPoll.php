@@ -41,23 +41,23 @@ class TelegramPoll extends Command
         $updates = $response->json()['result'] ?? [];
         $synced = 0;
 
+        $webhookController = app(\App\Http\Controllers\TelegramWebhookController::class);
+
         foreach ($updates as $update) {
-            if (isset($update['message']['text']) && $update['message']['text'] === '/start') {
-                $username = $update['message']['from']['username'] ?? null;
-                $chatId = $update['message']['chat']['id'];
-
-                if ($username) {
-                    $driver = Driver::where('telegram_username', $username)
-                        ->orWhere('telegram_username', '@' . $username)
-                        ->first();
-
-                    if ($driver && $driver->telegram_chat_id != $chatId) {
-                        $driver->update(['telegram_chat_id' => $chatId]);
-                        $telegram->sendMessage($chatId, "مرحباً بك {$driver->name}! تم ربط حسابك في نظام توصيل لافندر بنجاح. 🌸 ستصلك طلبات التوصيل هنا.");
-                        $this->info("Synced driver: {$driver->name} (@{$username})");
-                        $synced++;
-                    }
+            try {
+                if (isset($update['message'])) {
+                    // Make handleMessage public or call it via reflection/internal method
+                    // For simplicity, we can simulate a Request to the handle method
+                    $request = request()->merge($update);
+                    $webhookController->handle($request);
+                    $synced++;
+                } elseif (isset($update['callback_query'])) {
+                    $request = request()->merge($update);
+                    $webhookController->handle($request);
+                    $synced++;
                 }
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('TelegramPoll Error processing update', ['error' => $e->getMessage()]);
             }
         }
 
