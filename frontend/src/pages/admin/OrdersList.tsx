@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, FileText, CheckCircle2, Clock, Package, Truck, X, MapPin, Download, AlertTriangle, Timer, ChevronDown, ChevronUp } from 'lucide-react';
 import { adminOrdersApi } from '../../services/api';
@@ -71,15 +71,6 @@ export default function OrdersList() {
     setTimeout(() => setToastMessage(null), 3000);
   };
 
-  useEffect(() => { loadOrders(); }, [statusFilter, page]);
-
-  useEffect(() => {
-    const id = setInterval(() => {
-      if (!isModalOpen) loadOrders(true);
-    }, 60000);
-    return () => clearInterval(id);
-  }, [statusFilter, page, isModalOpen]);
-
   const loadOrders = async (silent = false) => {
     try {
       if (!silent) setIsLoading(true);
@@ -106,6 +97,23 @@ export default function OrdersList() {
       setIsLoading(false);
     }
   };
+
+  const loadOrdersRef = useRef(loadOrders);
+  
+  useEffect(() => {
+    loadOrdersRef.current = loadOrders;
+  });
+
+  useEffect(() => { loadOrders(); }, [statusFilter, page]);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      if (!isModalOpen && loadOrdersRef.current) {
+        loadOrdersRef.current(true);
+      }
+    }, 60000);
+    return () => clearInterval(id);
+  }, [isModalOpen]);
 
   const toggleExpand = (id: number) => {
     setExpandedRows(prev => {
