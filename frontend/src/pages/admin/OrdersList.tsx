@@ -205,38 +205,77 @@ export default function OrdersList() {
     return `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
   };
 
-  const getStatusBadge = (status: string) => {
-    const badges: Record<string, { label: string, color: string }> = {
-      pending:    { label: 'جديد',          color: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
-      preparing:  { label: 'قيد التجهيز',   color: 'bg-blue-100 text-blue-800 border-blue-200' },
-      ready:      { label: 'جاهز',          color: 'bg-purple-100 text-purple-800 border-purple-200' },
-      delivering: { label: 'جاري التوصيل',  color: 'bg-indigo-100 text-indigo-800 border-indigo-200' },
-      delivered:  { label: 'مكتمل',         color: 'bg-green-100 text-green-800 border-green-200' },
-      cancelled:  { label: 'ملغي',          color: 'bg-red-100 text-red-800 border-red-200' },
-    };
-    const b = badges[status] || { label: status, color: 'bg-gray-100 text-gray-800' };
-    return <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold border ${b.color}`}>{b.label}</span>;
+  const getStatusBadge = (order: any) => {
+    const status = order.status;
+    let label = '';
+    
+    if (status === 'pending') {
+       label = (order.payment_method === 'bank_transfer') ? 'بانتظار تأكيد الحوالة' : 'معلق';
+    } else if (status === 'preparing') {
+       label = 'قيد التجهيز';
+    } else if (status === 'ready') {
+       label = (order.delivery_type === 'pickup') ? 'جاهز للتسليم' : 'جاهز للاستلام من المندوب';
+    } else if (status === 'delivering') {
+       label = 'جاري التوصيل';
+    } else if (status === 'delivered') {
+       label = 'مكتمل';
+    } else if (status === 'cancelled') {
+       label = 'ملغي';
+    } else {
+       label = status;
+    }
+
+    const color = {
+      pending:    'bg-yellow-100 text-yellow-800 border-yellow-200',
+      preparing:  'bg-blue-100 text-blue-800 border-blue-200',
+      ready:      'bg-purple-100 text-purple-800 border-purple-200',
+      delivering: 'bg-indigo-100 text-indigo-800 border-indigo-200',
+      delivered:  'bg-green-100 text-green-800 border-green-200',
+      cancelled:  'bg-red-100 text-red-800 border-red-200',
+    }[status as string] || 'bg-gray-100 text-gray-800';
+
+    return <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold border ${color}`}>{label}</span>;
   };
 
   const isActive = (s: string) => !['delivered', 'cancelled'].includes(s);
 
   const getNextActionButton = (order: any) => {
-    if (order.status === 'preparing' && order.delivery_type !== 'pickup') {
-      // For delivery: "تم التجهيز - إرسال للمندوب"
-      return (
-        <button
-          onClick={(e) => { e.stopPropagation(); handleSendToDeliveryFromRow(order.id, false); }}
-          disabled={updatingRowId === order.id || order.driver_id !== null}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-primary-600 text-white hover:bg-primary-700 transition-colors disabled:opacity-50 whitespace-nowrap"
-        >
-          {updatingRowId === order.id ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Truck className="w-3.5 h-3.5" />}
-          إرسال للمندوب
-        </button>
-      );
+    let nextStatus = '';
+    let label = '';
+    
+    if (order.status === 'pending') {
+      nextStatus = 'preparing';
+      label = 'بدء التجهيز';
+    } else if (order.status === 'preparing') {
+      if (order.delivery_type === 'pickup') {
+         nextStatus = 'ready';
+         label = 'جاهز للتسليم';
+      } else {
+         return (
+          <button
+            onClick={(e) => { e.stopPropagation(); handleSendToDeliveryFromRow(order.id, false); }}
+            disabled={updatingRowId === order.id || order.driver_id !== null}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-primary-600 text-white hover:bg-primary-700 transition-colors disabled:opacity-50 whitespace-nowrap"
+          >
+            {updatingRowId === order.id ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Truck className="w-3.5 h-3.5" />}
+            إرسال للمندوب
+          </button>
+         );
+      }
+    } else if (order.status === 'ready') {
+       if (order.delivery_type === 'pickup') {
+          nextStatus = 'delivered';
+          label = 'تسليم الطلب';
+       } else {
+          nextStatus = 'delivering';
+          label = 'جاري التوصيل';
+       }
+    } else if (order.status === 'delivering') {
+       nextStatus = 'delivered';
+       label = 'مكتمل';
+    } else {
+       return null;
     }
-
-    const next = nextStatus[order.status];
-    if (!next) return null;
 
     const colors: Record<string, string> = {
       pending:    'bg-blue-600 hover:bg-blue-700 text-white',
@@ -247,12 +286,12 @@ export default function OrdersList() {
 
     return (
       <button
-        onClick={(e) => { e.stopPropagation(); handleStatusChange(next.status, order.id); }}
+        onClick={(e) => { e.stopPropagation(); handleStatusChange(nextStatus, order.id); }}
         disabled={updatingRowId === order.id}
         className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors disabled:opacity-50 whitespace-nowrap ${colors[order.status] || 'bg-primary-600 text-white hover:bg-primary-700'}`}
       >
         {updatingRowId === order.id ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
-        {next.label}
+        {label}
       </button>
     );
   };
@@ -317,10 +356,10 @@ export default function OrdersList() {
                 <th className="px-4 py-3.5 text-primary-900 font-bold text-sm">رقم الطلب</th>
                 <th className="px-4 py-3.5 text-primary-900 font-bold text-sm">العميل</th>
                 <th className="px-4 py-3.5 text-primary-900 font-bold text-sm">المبلغ</th>
-                <th className="px-4 py-3.5 text-primary-900 font-bold text-sm">الحالة</th>
                 <th className="px-4 py-3.5 text-primary-900 font-bold text-sm">الوقت</th>
                 <th className="px-4 py-3.5 text-primary-900 font-bold text-sm">المندوب</th>
                 <th className="px-4 py-3.5 text-primary-900 font-bold text-sm">الدفع</th>
+                <th className="px-4 py-3.5 text-primary-900 font-bold text-sm">الحالة</th>
                 <th className="px-4 py-3.5 text-primary-900 font-bold text-sm text-center">إجراءات</th>
               </tr>
             </thead>
@@ -363,7 +402,6 @@ export default function OrdersList() {
                           <div className="text-xs text-primary-500" dir="ltr">{order.customer?.phone}</div>
                         </td>
                         <td className="px-4 py-3 font-bold text-primary-900 text-sm">{order.total} ر.س</td>
-                        <td className="px-4 py-3">{getStatusBadge(order.status)}</td>
                         <td className="px-4 py-3">
                           {isActive(order.status) ? (
                             <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold ${
@@ -407,6 +445,7 @@ export default function OrdersList() {
                             <span className="text-xs text-gray-400">غير مدفوع</span>
                           )}
                         </td>
+                        <td className="px-4 py-3">{getStatusBadge(order)}</td>
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-center gap-2" onClick={e => e.stopPropagation()}>
                             {getNextActionButton(order)}
@@ -498,7 +537,7 @@ export default function OrdersList() {
                 <div className="flex justify-between items-start">
                   <div className="flex items-center gap-3 flex-wrap">
                     <h2 className="text-xl font-bold text-primary-900">طلب #{selectedOrder.order_number}</h2>
-                    {getStatusBadge(selectedOrder.status)}
+                    {getStatusBadge(selectedOrder)}
                     {isActive(selectedOrder.status) && (() => {
                       const urg = getUrgency(selectedOrder.status, selectedOrder.created_at);
                       const el = getElapsedMinutes(selectedOrder.created_at);
