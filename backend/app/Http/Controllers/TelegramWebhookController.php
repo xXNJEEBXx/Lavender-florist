@@ -106,8 +106,12 @@ class TelegramWebhookController extends Controller
                 $newText = "✅ <b>تم استلام الطلب!</b>\n\n";
                 $newText .= "رقم الطلب: <b>{$order->order_number}</b>\n";
                 $newText .= "العميل: {$address->recipient_name} ({$address->recipient_phone})\n";
-                $newText .= "العنوان: {$address->city}, {$address->street}\n\n";
-                $newText .= "الرجاء الضغط على الزر أدناه عند وصولك وتسليم الطلب للعميل.";
+                $newText .= "العنوان: {$address->city}, {$address->street}\n";
+                if ($address->door_image_path) {
+                    $doorImageUrl = url($address->door_image_path);
+                    $newText .= "صورة الباب: <a href=\"{$doorImageUrl}\">اضغط هنا للمشاهدة</a>\n";
+                }
+                $newText .= "\nالرجاء الضغط على الزر أدناه عند وصولك وتسليم الطلب للعميل.";
 
                 $replyMarkup = [
                     'inline_keyboard' => [
@@ -150,8 +154,12 @@ class TelegramWebhookController extends Controller
         $newText = "✅ <b>تم استلام الطلب!</b>\n\n";
         $newText .= "رقم الطلب: <b>{$order->order_number}</b>\n";
         $newText .= "العميل: {$address->recipient_name} ({$address->recipient_phone})\n";
-        $newText .= "العنوان: {$address->city}, {$address->street}\n\n";
-        $newText .= "الرجاء الضغط على الزر أدناه عند وصولك وتسليم الطلب للعميل.";
+        $newText .= "العنوان: {$address->city}, {$address->street}\n";
+        if ($address->door_image_path) {
+            $doorImageUrl = url($address->door_image_path);
+            $newText .= "صورة الباب: <a href=\"{$doorImageUrl}\">اضغط هنا للمشاهدة</a>\n";
+        }
+        $newText .= "\nالرجاء الضغط على الزر أدناه عند وصولك وتسليم الطلب للعميل.";
 
         $replyMarkup = [
             'inline_keyboard' => [
