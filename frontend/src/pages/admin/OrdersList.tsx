@@ -181,6 +181,13 @@ export default function OrdersList() {
 
   const handleSendToDelivery = async (skipPrimary: boolean = false) => {
     if (!selectedOrder) return;
+    
+    if (selectedOrder.delivery_date) {
+        const timeStr = selectedOrder.delivery_time_slot ? ` الفتره (${selectedOrder.delivery_time_slot})` : '';
+        const msg = `هذا الطلب مجدول للتوصيل بتاريخ ${selectedOrder.delivery_date}${timeStr}.\nهل أنت متأكد من إرساله للمندوب الآن؟`;
+        if (!window.confirm(msg)) return;
+    }
+
     try {
       setIsUpdatingStatus(true);
       const res = await adminOrdersApi.sendToDelivery(selectedOrder.id, skipPrimary);
@@ -193,7 +200,14 @@ export default function OrdersList() {
     }
   };
 
-  const handleSendToDeliveryFromRow = async (orderId: number, skipPrimary: boolean = false) => {
+  const handleSendToDeliveryFromRow = async (order: any, skipPrimary: boolean = false) => {
+    if (order.delivery_date) {
+        const timeStr = order.delivery_time_slot ? ` الفتره (${order.delivery_time_slot})` : '';
+        const msg = `هذا الطلب مجدول للتوصيل بتاريخ ${order.delivery_date}${timeStr}.\nهل أنت متأكد من إرساله للمندوب الآن؟`;
+        if (!window.confirm(msg)) return;
+    }
+    const orderId = order.id;
+
     try {
       setUpdatingRowId(orderId);
       const res = await adminOrdersApi.sendToDelivery(orderId, skipPrimary);
@@ -283,7 +297,7 @@ export default function OrdersList() {
           if (order.driver_id === null) {
              return (
               <button
-                onClick={(e) => { e.stopPropagation(); handleSendToDeliveryFromRow(order.id, false); }}
+                onClick={(e) => { e.stopPropagation(); handleSendToDeliveryFromRow(order, false); }}
                 disabled={updatingRowId === order.id}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-primary-600 text-white hover:bg-primary-700 transition-colors disabled:opacity-50 whitespace-nowrap"
               >
