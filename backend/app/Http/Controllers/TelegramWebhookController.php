@@ -74,6 +74,9 @@ class TelegramWebhookController extends Controller
         if (str_starts_with($data, 'accept_order_')) {
             $orderId = str_replace('accept_order_', '', $data);
             $this->acceptOrder($orderId, $driver, $chatId, $messageId, $callbackQueryId);
+        } elseif (str_starts_with($data, 'picked_up_order_')) {
+            $orderId = str_replace('picked_up_order_', '', $data);
+            $this->pickedUpOrder($orderId, $driver, $chatId, $messageId, $callbackQueryId);
         } elseif (str_starts_with($data, 'delivered_order_')) {
             $orderId = str_replace('delivered_order_', '', $data);
             $this->markAsDelivered($orderId, $driver, $chatId, $messageId, $callbackQueryId);
@@ -95,31 +98,21 @@ class TelegramWebhookController extends Controller
         if ($order->driver_id) {
             \Illuminate\Support\Facades\Log::info("Order already assigned", ['driver_id' => $order->driver_id]);
             if ($order->driver_id == $driver->id) {
-                $this->telegram->answerCallbackQuery($callbackQueryId, 'لقد قمت باستلام هذا الطلب مسبقاً.');
+                $this->telegram->answerCallbackQuery($callbackQueryId, 'لقد قمت بقبول هذا الطلب مسبقاً.');
                 
-                // Force update the message just in case it wasn't updated previously
-                $address = $order->address;
-                $mapsUrl = $address->latitude && $address->longitude 
-                    ? "https://maps.google.com/?q={$address->latitude},{$address->longitude}"
-                    : "https://maps.google.com/?q=" . urlencode($address->street);
-                
-                $newText = "✅ <b>تم استلام الطلب!</b>\n\n";
-                $newText .= "رقم الطلب: <b>{$order->order_number}</b>\n";
-                $newText .= "العميل: {$address->recipient_name} ({$address->recipient_phone})\n";
-                $newText .= "العنوان: {$address->city}, {$address->street}\n";
-                if ($address->door_image_path) {
-                    $doorImageUrl = url($address->door_image_path);
-                    $newText .= "صورة الباب: <a href=\"{$doorImageUrl}\">اضغط هنا للمشاهدة</a>\n";
-                }
-                $newText .= "\nالرجاء الضغط على الزر أدناه عند وصولك وتسليم الطلب للعميل.";
+                // Force update the message
+                $newText = "✅ <b>تم قبول الطلب!</b>\n\n";
+                $newText .= "رقم الطلب: <b>{$order->order_number}</b>\n\n";
+                $newText .= "يرجى التوجه للمتجر لاستلام الطلب.\n";
+                $newText .= "الرجاء الضغط على الزر أدناه عند استلامك للطلب من المتجر.";
 
                 $replyMarkup = [
                     'inline_keyboard' => [
                         [
-                            ['text' => '📍 موقع العميل (خرائط جوجل)', 'url' => $mapsUrl]
+                            ['text' => '📍 موقع المتجر', 'url' => 'https://maps.app.goo.gl/354B4zP1gTzU2yvA9']
                         ],
                         [
-                            ['text' => '📦 تم تسليم الطلب للعميل', 'callback_data' => "delivered_order_{$order->id}"]
+                            ['text' => '📦 تم استلام الطلب من المتجر', 'callback_data' => "picked_up_order_{$order->id}"]
                         ]
                     ]
                 ];
@@ -128,8 +121,6 @@ class TelegramWebhookController extends Controller
 
             } else {
                 $this->telegram->answerCallbackQuery($callbackQueryId, 'نعتذر، تم استلام الطلب من مندوب آخر.', true);
-                
-                // Update the message for this driver to show it's taken
                 $this->telegram->editMessageText($chatId, $messageId, "عذراً، هذا الطلب لم يعد متاحاً وتم استلامه من مندوب آخر. 🌸");
             }
             return;
@@ -138,20 +129,95 @@ class TelegramWebhookController extends Controller
         // Accept the order
         $order->update([
             'driver_id' => $driver->id,
+            // Keep status as ready or preparing, driver is just assigned
+        ]);
+        \Illuminate\Support\Facades\Log::info("Order DB updated successfully (driver assigned)");
+
+        $this->telegram->answerCallbackQuery($callbackQueryId, 'تم تسجيل الطلب باسمك بنجاح! توجه للمتجر.');
+
+        // Update the message to show "Picked up from store" button
+        $newText = "✅ <b>تم قبول الطلب!</b>\n\n";
+        $newText .= "رقم الطلب: <b>{$order->order_number}</b>\n\n";
+        $newText .= "يرجى التوجه للمتجر لاستلام الطلب.\n";
+        $newText .= "الرجاء الضغط على الزر أدناه عند استلامك للطلب من المتجر.";
+
+        $replyMarkup = [
+            'inline_keyboard' => [
+                [
+                    ['text' => '📍 موقع المتجر', 'url' => 'https://maps.app.goo.gl/354B4zP1gTzU2yvA9']
+                ],
+                [
+                    ['text' => '📦 تم استلام الطلب من المتجر', 'callback_data' => "picked_up_order_{$order->id}"]
+                ]
+            ]
+        ];
+
+        $res = $this->telegram->editMessageText($chatId, $messageId, $newText, $replyMarkup);
+        \Illuminate\Support\Facades\Log::info("Normal editMessageText response (accept)", ['response' => $res]);
+    }
+
+    protected function pickedUpOrder($orderId, $driver, $chatId, $messageId, $callbackQueryId)
+    {
+        $order = Order::find($orderId);
+
+        if (!$order) {
+            $this->telegram->answerCallbackQuery($callbackQueryId, 'الطلب غير موجود!', true);
+            return;
+        }
+
+        if ($order->driver_id != $driver->id) {
+            $this->telegram->answerCallbackQuery($callbackQueryId, 'هذا الطلب ليس مسنداً إليك!', true);
+            return;
+        }
+
+        if ($order->status == 'delivering' || $order->status == 'delivered') {
+            $this->telegram->answerCallbackQuery($callbackQueryId, 'لقد قمت بتأكيد الاستلام مسبقاً.');
+            
+            // Force update message
+            $address = $order->address;
+            $mapsUrl = $address->latitude && $address->longitude 
+                ? "https://maps.google.com/?q={$address->latitude},{$address->longitude}"
+                : "https://maps.google.com/?q=" . urlencode($address->street);
+            
+            $newText = "🚗 <b>جاري التوصيل للعميل!</b>\n\n";
+            $newText .= "رقم الطلب: <b>{$order->order_number}</b>\n";
+            $newText .= "العميل: {$address->recipient_name} ({$address->recipient_phone})\n";
+            $newText .= "العنوان: {$address->city}, {$address->street}\n";
+            if ($address->door_image_path) {
+                $doorImageUrl = url($address->door_image_path);
+                $newText .= "صورة الباب: <a href=\"{$doorImageUrl}\">اضغط هنا للمشاهدة</a>\n";
+            }
+            $newText .= "\nالرجاء الضغط على الزر أدناه عند وصولك وتسليم الطلب للعميل.";
+
+            $replyMarkup = [
+                'inline_keyboard' => [
+                    [
+                        ['text' => '📍 موقع العميل (خرائط جوجل)', 'url' => $mapsUrl]
+                    ],
+                    [
+                        ['text' => '✅ تم تسليم الطلب للعميل', 'callback_data' => "delivered_order_{$order->id}"]
+                    ]
+                ]
+            ];
+            $this->telegram->editMessageText($chatId, $messageId, $newText, $replyMarkup);
+            return;
+        }
+
+        // Pick up the order
+        $order->update([
             'status' => 'delivering',
             'delivering_at' => now(),
         ]);
-        \Illuminate\Support\Facades\Log::info("Order DB updated successfully");
 
-        $this->telegram->answerCallbackQuery($callbackQueryId, 'تم تسجيل الطلب باسمك بنجاح! توجه للعميل.');
+        $this->telegram->answerCallbackQuery($callbackQueryId, 'تم تأكيد استلام الطلب من المتجر! توجه للعميل.');
 
-        // Update the message to show "Delivered" button
+        // Update the message to show Customer info and "Delivered" button
         $address = $order->address;
         $mapsUrl = $address->latitude && $address->longitude 
             ? "https://maps.google.com/?q={$address->latitude},{$address->longitude}"
             : "https://maps.google.com/?q=" . urlencode($address->street);
         
-        $newText = "✅ <b>تم استلام الطلب!</b>\n\n";
+        $newText = "🚗 <b>جاري التوصيل للعميل!</b>\n\n";
         $newText .= "رقم الطلب: <b>{$order->order_number}</b>\n";
         $newText .= "العميل: {$address->recipient_name} ({$address->recipient_phone})\n";
         $newText .= "العنوان: {$address->city}, {$address->street}\n";
@@ -167,13 +233,12 @@ class TelegramWebhookController extends Controller
                     ['text' => '📍 موقع العميل (خرائط جوجل)', 'url' => $mapsUrl]
                 ],
                 [
-                    ['text' => '📦 تم تسليم الطلب للعميل', 'callback_data' => "delivered_order_{$order->id}"]
+                    ['text' => '✅ تم تسليم الطلب للعميل', 'callback_data' => "delivered_order_{$order->id}"]
                 ]
             ]
         ];
 
-        $res = $this->telegram->editMessageText($chatId, $messageId, $newText, $replyMarkup);
-        \Illuminate\Support\Facades\Log::info("Normal editMessageText response", ['response' => $res]);
+        $this->telegram->editMessageText($chatId, $messageId, $newText, $replyMarkup);
     }
 
     protected function markAsDelivered($orderId, $driver, $chatId, $messageId, $callbackQueryId)
@@ -203,10 +268,16 @@ class TelegramWebhookController extends Controller
 
         $this->telegram->answerCallbackQuery($callbackQueryId, 'تم تسليم الطلب بنجاح! عمل رائع 🌟', true);
 
+        // Calculate driver earnings
+        $totalEarnings = Order::where('driver_id', $driver->id)
+            ->where('status', 'delivered')
+            ->sum('delivery_fee');
+
         // Update the message
         $newText = "🎉 <b>اكتمل الطلب!</b>\n\n";
         $newText .= "رقم الطلب: {$order->order_number}\n";
-        $newText .= "شكراً لك {$driver->name} على مجهودك. 🌸";
+        $newText .= "شكراً لك {$driver->name} على مجهودك. 🌸\n\n";
+        $newText .= "💰 <b>إجمالي مبالغك المستحقة:</b> {$totalEarnings} ر.س";
 
         $this->telegram->editMessageText($chatId, $messageId, $newText, null); // Remove keyboard
     }

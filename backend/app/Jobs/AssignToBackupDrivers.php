@@ -65,7 +65,7 @@ class AssignToBackupDrivers implements ShouldQueue
         $replyMarkup = [
             'inline_keyboard' => [
                 [
-                    ['text' => '✅ قبول واستلام الطلب', 'callback_data' => "accept_order_{$this->order->id}"]
+                    ['text' => '✅ قبول الطلب', 'callback_data' => "accept_order_{$this->order->id}"]
                 ]
             ]
         ];

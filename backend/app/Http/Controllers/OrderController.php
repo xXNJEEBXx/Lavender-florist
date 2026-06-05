@@ -173,7 +173,7 @@ class OrderController extends Controller
             $replyMarkup = [
                 'inline_keyboard' => [
                     [
-                        ['text' => '✅ قبول واستلام الطلب', 'callback_data' => "accept_order_{$order->id}"]
+                        ['text' => '✅ قبول الطلب', 'callback_data' => "accept_order_{$order->id}"]
                     ]
                 ]
             ];
