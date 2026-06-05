@@ -94,6 +94,31 @@ class TelegramWebhookController extends Controller
         if ($order->driver_id) {
             if ($order->driver_id == $driver->id) {
                 $this->telegram->answerCallbackQuery($callbackQueryId, 'لقد قمت باستلام هذا الطلب مسبقاً.');
+                
+                // Force update the message just in case it wasn't updated previously
+                $address = $order->address;
+                $mapsUrl = $address->latitude && $address->longitude 
+                    ? "https://maps.google.com/?q={$address->latitude},{$address->longitude}"
+                    : "https://maps.google.com/?q=" . urlencode($address->street);
+                
+                $newText = "✅ <b>تم استلام الطلب!</b>\n\n";
+                $newText .= "رقم الطلب: <b>{$order->order_number}</b>\n";
+                $newText .= "العميل: {$address->recipient_name} ({$address->recipient_phone})\n";
+                $newText .= "العنوان: {$address->city}, {$address->street}\n\n";
+                $newText .= "الرجاء الضغط على الزر أدناه عند وصولك وتسليم الطلب للعميل.";
+
+                $replyMarkup = [
+                    'inline_keyboard' => [
+                        [
+                            ['text' => '📍 موقع العميل (خرائط جوجل)', 'url' => $mapsUrl]
+                        ],
+                        [
+                            ['text' => '📦 تم تسليم الطلب للعميل', 'callback_data' => "delivered_order_{$order->id}"]
+                        ]
+                    ]
+                ];
+                $this->telegram->editMessageText($chatId, $messageId, $newText, $replyMarkup);
+
             } else {
                 $this->telegram->answerCallbackQuery($callbackQueryId, 'نعتذر، تم استلام الطلب من مندوب آخر.', true);
                 
