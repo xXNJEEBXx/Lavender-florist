@@ -51,9 +51,7 @@ class AssignToBackupDrivers implements ShouldQueue
         $address = $this->order->address;
         $telegram = app(TelegramService::class);
         $address = $this->order->address;
-        $mapsUrl = $address->latitude && $address->longitude 
-            ? "https://maps.google.com/?q={$address->latitude},{$address->longitude}"
-            : "https://maps.google.com/?q=" . urlencode($address->street);
+        $storeLocationUrl = "https://maps.google.com/?q=Lavender+Florist";
 
         $minutes = $this->order->delivery_minutes ? $this->order->delivery_minutes . ' دقيقة' : 'غير محدد';
         
@@ -62,7 +60,7 @@ class AssignToBackupDrivers implements ShouldQueue
         $messageText .= "📍 <b>المدينة/الحي:</b> {$address->city} - {$address->street}\n";
         $messageText .= "💵 <b>مبلغ التوصيل:</b> {$this->order->delivery_fee} ريال\n";
         $messageText .= "⏱️ <b>المسافة تقريباً:</b> {$minutes}\n\n";
-        $messageText .= "🗺️ <a href=\"{$mapsUrl}\">عرض الموقع على الخريطة</a>\n";
+        $messageText .= "🏪 <b>نقطة الاستلام:</b> <a href=\"{$storeLocationUrl}\">موقع المتجر (لافندر فلوريست)</a>\n";
 
         $replyMarkup = [
             'inline_keyboard' => [

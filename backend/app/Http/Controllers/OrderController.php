@@ -159,9 +159,7 @@ class OrderController extends Controller
             }
 
             $address = $order->address;
-            $mapsUrl = $address->latitude && $address->longitude 
-                ? "https://maps.google.com/?q={$address->latitude},{$address->longitude}"
-                : "https://maps.google.com/?q=" . urlencode($address->street);
+            $storeLocationUrl = "https://maps.google.com/?q=Lavender+Florist";
 
             $minutes = $order->delivery_minutes ? $order->delivery_minutes . ' دقيقة' : 'غير محدد';
             
@@ -170,7 +168,7 @@ class OrderController extends Controller
             $messageText .= "📍 <b>المدينة/الحي:</b> {$address->city} - {$address->street}\n";
             $messageText .= "💵 <b>مبلغ التوصيل:</b> {$order->delivery_fee} ريال\n";
             $messageText .= "⏱️ <b>المسافة تقريباً:</b> {$minutes}\n\n";
-            $messageText .= "🗺️ <a href=\"{$mapsUrl}\">عرض الموقع على الخريطة</a>\n";
+            $messageText .= "🏪 <b>نقطة الاستلام:</b> <a href=\"{$storeLocationUrl}\">موقع المتجر (لافندر فلوريست)</a>\n";
 
             $replyMarkup = [
                 'inline_keyboard' => [

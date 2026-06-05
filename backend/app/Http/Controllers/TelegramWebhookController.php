@@ -114,7 +114,9 @@ class TelegramWebhookController extends Controller
 
         // Update the message to show "Delivered" button
         $address = $order->address;
-        $mapsUrl = "https://maps.google.com/?q={$address->street}"; // Fallback if no lat/lng
+        $mapsUrl = $address->latitude && $address->longitude 
+            ? "https://maps.google.com/?q={$address->latitude},{$address->longitude}"
+            : "https://maps.google.com/?q=" . urlencode($address->street);
         
         $newText = "✅ <b>تم استلام الطلب!</b>\n\n";
         $newText .= "رقم الطلب: <b>{$order->order_number}</b>\n";
