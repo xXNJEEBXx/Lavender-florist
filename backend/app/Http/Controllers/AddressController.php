@@ -26,8 +26,17 @@ class AddressController extends Controller
             'recipient_phone' => 'required|string|max:20',
             'city' => 'required|string|max:100',
             'street_address' => 'required|string|max:255',
-            'is_default' => 'boolean'
+            'is_default' => 'boolean',
+            'door_image' => 'nullable|image|max:5120',
+            'latitude' => 'nullable|numeric',
+            'longitude' => 'nullable|numeric',
         ]);
+
+        $doorImagePath = null;
+        if ($request->hasFile('door_image')) {
+            $path = $request->file('door_image')->store('addresses', 'public');
+            $doorImagePath = '/storage/' . $path;
+        }
 
         $addressData = [
             'user_id' => $request->user()->id,
@@ -36,7 +45,10 @@ class AddressController extends Controller
             'recipient_phone' => $validated['recipient_phone'],
             'city' => $validated['city'],
             'street' => $validated['street_address'],
+            'door_image_path' => $doorImagePath,
             'is_default' => $validated['is_default'] ?? false,
+            'latitude' => $validated['latitude'] ?? null,
+            'longitude' => $validated['longitude'] ?? null,
         ];
 
         // If this is set as default, unset others
@@ -64,8 +76,17 @@ class AddressController extends Controller
             'recipient_phone' => 'required|string|max:20',
             'city' => 'required|string|max:100',
             'street_address' => 'required|string|max:255',
-            'is_default' => 'boolean'
+            'is_default' => 'boolean',
+            'door_image' => 'nullable|image|max:5120',
+            'latitude' => 'nullable|numeric',
+            'longitude' => 'nullable|numeric',
         ]);
+
+        $doorImagePath = $address->door_image_path;
+        if ($request->hasFile('door_image')) {
+            $path = $request->file('door_image')->store('addresses', 'public');
+            $doorImagePath = '/storage/' . $path;
+        }
 
         $addressData = [
             'label' => $validated['name'],
@@ -73,7 +94,10 @@ class AddressController extends Controller
             'recipient_phone' => $validated['recipient_phone'],
             'city' => $validated['city'],
             'street' => $validated['street_address'],
+            'door_image_path' => $doorImagePath,
             'is_default' => $validated['is_default'] ?? false,
+            'latitude' => $validated['latitude'] ?? null,
+            'longitude' => $validated['longitude'] ?? null,
         ];
 
         if (!empty($validated['is_default'])) {

@@ -12,9 +12,10 @@ Route::prefix('auth')->group(function () {
     Route::get('/google/callback', [AuthController::class, 'handleGoogleCallback']);
 });
 
-Route::get('/store/working-hours', function() {
-    return response()->json(['message' => 'Store is open (placeholder)']);
-});
+Route::get('/store/working-hours', [\App\Http\Controllers\WorkingHoursController::class, 'index']);
+Route::get('/store/available-slots', [\App\Http\Controllers\ScheduleController::class, 'availableSlots']);
+
+Route::post('/telegram/webhook', [\App\Http\Controllers\TelegramWebhookController::class, 'handle']);
 
 Route::get('/store/queue-status', [\App\Http\Controllers\QueueController::class, 'status']);
 
@@ -72,8 +73,20 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\AdminMiddleware::class])
     
     // Orders Management
     Route::post('orders/{order}/verify-payment', [\App\Http\Controllers\OrderController::class, 'verifyPayment']);
+    Route::post('orders/{order}/send-to-delivery', [\App\Http\Controllers\OrderController::class, 'sendToDelivery']);
     Route::apiResource('orders', \App\Http\Controllers\OrderController::class);
     
+    // Drivers Management
+    Route::apiResource('drivers', \App\Http\Controllers\DriverController::class);
+    
+    // Working Hours Management
+    Route::apiResource('working-hours', \App\Http\Controllers\WorkingHoursController::class)->except(['show']);
+    
+    // Admin Breaks
+    Route::get('breaks', [\App\Http\Controllers\AdminBreakController::class, 'index']);
+    Route::post('breaks', [\App\Http\Controllers\AdminBreakController::class, 'store']);
+    Route::delete('breaks/{break}', [\App\Http\Controllers\AdminBreakController::class, 'destroy']);
+    
     // Coupons
-    Route::apiResource('coupons', \App\Http\Controllers\CouponController::class ?? \Illuminate\Routing\Controller::class);
+    // Route::apiResource('coupons', \App\Http\Controllers\CouponController::class);
 });

@@ -6,7 +6,11 @@ use App\Models\Order;
 use App\Models\ActivityLog;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use App\Models\Driver;
+use App\Jobs\AssignToBackupDrivers;
+use App\Services\TelegramService;
 
 class OrderController extends Controller
 {
@@ -15,11 +19,15 @@ class OrderController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Order::with(['customer', 'items.product', 'address'])->latest();
+        $query = Order::with(['customer', 'items.product.primaryImage', 'address', 'driver'])->latest();
 
         // Optional filtering by status
         if ($request->has('status') && $request->status !== 'all') {
-            $query->where('status', $request->status);
+            if ($request->status === 'incomplete') {
+                $query->whereNotIn('status', ['delivered', 'cancelled']);
+            } else {
+                $query->where('status', $request->status);
+            }
         }
 
         return response()->json($query->paginate(20));
@@ -30,7 +38,7 @@ class OrderController extends Controller
      */
     public function show(Order $order)
     {
-        $order->load(['customer', 'items.product', 'address']);
+        $order->load(['customer', 'items.product', 'address', 'driver']);
         return response()->json($order);
     }
 
@@ -120,6 +128,65 @@ class OrderController extends Controller
             'message' => 'تم تأكيد الدفع والبدء بتجهيز الطلب بنجاح',
             'order' => $order->load(['customer', 'items.product', 'address'])
         ]);
+    }
+
+    public function sendToDelivery(Request $request, Order $order, TelegramService $telegram)
+    {
+        $validated = $request->validate([
+            'skip_primary' => 'boolean'
+        ]);
+
+        if ($order->status !== 'ready') {
+            $order->update(['status' => 'ready', 'ready_at' => now()]);
+        }
+
+        $skipPrimary = $validated['skip_primary'] ?? false;
+        
+        $order->update(['delivery_offered_at' => now()]);
+
+        if ($skipPrimary) {
+            // Dispatch immediately to backups
+            AssignToBackupDrivers::dispatch($order);
+            return response()->json(['message' => 'تم تخطي الأساسي وإرسال الطلب للمناديب الاحتياطيين.']);
+        } else {
+            // Send to primary
+            $primaryDriver = Driver::where('is_primary', true)->where('is_active', true)->whereNotNull('telegram_chat_id')->first();
+            
+            if (!$primaryDriver) {
+                // No primary driver, send to backups immediately
+                AssignToBackupDrivers::dispatch($order);
+                return response()->json(['message' => 'لا يوجد مندوب أساسي مسجل، تم تحويل الطلب للمناديب الاحتياطيين.']);
+            }
+
+            $address = $order->address;
+            $mapsUrl = $address->latitude && $address->longitude 
+                ? "https://maps.google.com/?q={$address->latitude},{$address->longitude}"
+                : "https://maps.google.com/?q=" . urlencode($address->street);
+
+            $minutes = $order->delivery_minutes ? $order->delivery_minutes . ' دقيقة' : 'غير محدد';
+            
+            $messageText = "🚨 <b>طلب توصيل جديد!</b> 🚨\n\n";
+            $messageText .= "📦 <b>رقم الطلب:</b> {$order->order_number}\n";
+            $messageText .= "📍 <b>المدينة/الحي:</b> {$address->city} - {$address->street}\n";
+            $messageText .= "💵 <b>مبلغ التوصيل:</b> {$order->delivery_fee} ريال\n";
+            $messageText .= "⏱️ <b>المسافة تقريباً:</b> {$minutes}\n\n";
+            $messageText .= "🗺️ <a href=\"{$mapsUrl}\">عرض الموقع على الخريطة</a>\n";
+
+            $replyMarkup = [
+                'inline_keyboard' => [
+                    [
+                        ['text' => '✅ قبول واستلام الطلب', 'callback_data' => "accept_order_{$order->id}"]
+                    ]
+                ]
+            ];
+
+            $telegram->sendMessage($primaryDriver->telegram_chat_id, $messageText, $replyMarkup);
+
+            // Schedule the job for backup drivers after 5 minutes silently
+            AssignToBackupDrivers::dispatch($order)->delay(now()->addMinutes(5));
+
+            return response()->json(['message' => 'تم إرسال الطلب للمندوب بنجاح.']);
+        }
     }
 
     /**

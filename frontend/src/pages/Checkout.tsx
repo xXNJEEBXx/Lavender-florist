@@ -38,7 +38,13 @@ export default function Checkout() {
   const [deliveryMinutes, setDeliveryMinutes] = useState<number | null>(null);
   const [isRejecting, setIsRejecting] = useState(false);
   const [isCalculating, setIsCalculating] = useState(false);
+  const [isScheduled, setIsScheduled] = useState(false);
+  const [scheduledDate, setScheduledDate] = useState('');
+  const [scheduledTime, setScheduledTime] = useState('');
   
+  const [availableDays, setAvailableDays] = useState<any[]>([]);
+  const [isLoadingSlots, setIsLoadingSlots] = useState(false);
+
   // Queue State
   const [queueTimeMinutes, setQueueTimeMinutes] = useState<number>(0);
   const [isQueueLoading, setIsQueueLoading] = useState(true);
@@ -59,6 +65,7 @@ export default function Checkout() {
     city: 'الأحساء',
     street_address: '',
     is_default: true,
+    door_image: null as File | null,
   });
 
   const [editingAddressId, setEditingAddressId] = useState<number | null>(null);
@@ -116,12 +123,27 @@ export default function Checkout() {
 
     setIsSavingAddress(true);
     try {
+      const formData = new FormData();
+      formData.append('name', newAddress.name);
+      formData.append('recipient_name', newAddress.recipient_name);
+      formData.append('recipient_phone', newAddress.recipient_phone);
+      formData.append('city', newAddress.city);
+      formData.append('street_address', newAddress.street_address);
+      formData.append('is_default', newAddress.is_default ? '1' : '0');
+      if (selectedLocation) {
+        formData.append('latitude', selectedLocation.lat.toString());
+        formData.append('longitude', selectedLocation.lng.toString());
+      }
+      if (newAddress.door_image) {
+        formData.append('door_image', newAddress.door_image);
+      }
+
       if (editingAddressId) {
-        const data = await customerApi.updateAddress(editingAddressId, newAddress);
+        const data = await customerApi.updateAddress(editingAddressId, formData);
         setAddresses(addresses.map(a => a.id === editingAddressId ? data : a));
         setSelectedAddressId(data.id);
       } else {
-        const data = await customerApi.addAddress(newAddress);
+        const data = await customerApi.addAddress(formData);
         setAddresses([...addresses, data]);
         setSelectedAddressId(data.id);
       }
@@ -134,6 +156,7 @@ export default function Checkout() {
         city: 'الأحساء',
         street_address: '',
         is_default: true,
+        door_image: null,
       });
     } catch (err: any) {
       console.error(err);
@@ -147,6 +170,9 @@ export default function Checkout() {
     }
   };
 
+  const selectedAddressForHash = addresses.find(a => a.id === selectedAddressId);
+  const selectedAddressHash = selectedAddressForHash ? `${selectedAddressForHash.id}-${selectedAddressForHash.street_address}` : null;
+
   const getDeliveryFee = (mins: number) => {
     if (deliveryType === 'pickup') return 0;
     if (mins <= 6) return 15;
@@ -159,13 +185,52 @@ export default function Checkout() {
   };
 
   const deliveryFeeBase = deliveryMinutes !== null && !isRejecting ? getDeliveryFee(deliveryMinutes) : 0;
-  const deliveryFee = deliveryType === 'local' && deliverySpeed === 'express' ? deliveryFeeBase + 20 : deliveryFeeBase;
+  const hasDoorImageDiscount = selectedAddressForHash && selectedAddressForHash.door_image_path ? 2 : 0;
+  const deliveryFeeSpeed = deliveryType === 'local' && deliverySpeed === 'express' ? deliveryFeeBase + 20 : deliveryFeeBase;
+  const deliveryFee = Math.max(0, deliveryFeeSpeed - hasDoorImageDiscount);
   const total = subtotal + deliveryFee;
 
   const cartPrepTime = items.reduce((sum, item) => sum + (item.quantity * (item.product.preparation_time_minutes || 0)), 0);
   const deliveryTimeAdded = deliveryType === 'pickup' ? 0 : (deliverySpeed === 'express' ? 60 : 240);
   const totalWaitTimeMinutes = queueTimeMinutes + cartPrepTime + deliveryTimeAdded;
-  
+
+  const loadSlots = async () => {
+    try {
+      setIsLoadingSlots(true);
+      const data = await storeApi.getAvailableSlots(cartPrepTime, deliveryType, deliverySpeed);
+      setAvailableDays(data.available_days || []);
+      
+      if (data.available_days?.length > 0) {
+        // If current selected date is not in the list, auto-select the first one
+        const dateExists = data.available_days.some((d: any) => d.date === scheduledDate);
+        if (!dateExists) {
+          setScheduledDate(data.available_days[0].date);
+          setScheduledTime('');
+        }
+      } else {
+        setScheduledDate('');
+        setScheduledTime('');
+      }
+    } catch (err) {
+      console.error("Failed to load slots", err);
+    } finally {
+      setIsLoadingSlots(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isScheduled && deliverySpeed === 'express') {
+      setDeliverySpeed('standard');
+    }
+  }, [isScheduled, deliverySpeed]);
+
+  useEffect(() => {
+    if (isScheduled) {
+      loadSlots();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isScheduled, deliveryType, deliverySpeed, cartPrepTime]);
+
   const formatWaitTime = (mins: number) => {
     const roundedMins = Math.round(mins);
     if (roundedMins < 60) return `${roundedMins} دقيقة`;
@@ -236,9 +301,6 @@ export default function Checkout() {
     }
   };
 
-  const selectedAddressForHash = addresses.find(a => a.id === selectedAddressId);
-  const selectedAddressHash = selectedAddressForHash ? `${selectedAddressForHash.id}-${selectedAddressForHash.street_address}` : null;
-
   useEffect(() => {
     if (deliveryType === 'pickup') {
       setDeliveryMinutes(0);
@@ -262,6 +324,13 @@ export default function Checkout() {
       return;
     }
     
+    if (isScheduled) {
+      if (!scheduledDate || !scheduledTime) {
+        setError('الرجاء اختيار تاريخ ووقت الجدولة');
+        return;
+      }
+    }
+    
     setIsLoading(true);
     setError('');
     
@@ -269,9 +338,13 @@ export default function Checkout() {
       const payload = {
         address_id: deliveryType === 'pickup' ? null : selectedAddressId,
         payment_method: paymentMethod,
+        delivery_date: isScheduled ? scheduledDate : null,
+        scheduled_date: isScheduled ? scheduledDate : null,
+        scheduled_time: isScheduled ? scheduledTime : null,
         delivery_type: deliveryType,
         delivery_speed: deliveryType === 'pickup' ? 'standard' : deliverySpeed,
         delivery_fee: deliveryFee,
+        delivery_minutes: deliveryType === 'local' ? deliveryMinutes : 0,
         notes: notes,
         items: items.map(item => ({
           product_id: item.product.id,
@@ -315,7 +388,7 @@ export default function Checkout() {
         <form onSubmit={handleSubmit} className="flex flex-col lg:flex-row gap-8 items-start">
           
           {/* Main Details */}
-          <div className="flex-1 space-y-6 w-full">
+          <div className="flex-1 space-y-6 w-full min-w-0">
             {error && (
               <div className="bg-rose-50 text-rose-600 p-4 rounded-2xl border border-rose-100 text-sm font-medium">
                 {error}
@@ -349,7 +422,90 @@ export default function Checkout() {
                 </button>
               </div>
 
-              {deliveryType === 'local' && (
+              <div className="mt-6 pt-6 border-t border-primary-100">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Clock className="w-5 h-5 text-primary-600" />
+                    <h3 className="text-lg font-bold text-primary-900">وقت التجهيز</h3>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <button
+                      type="button"
+                      onClick={() => setIsScheduled(false)}
+                      className={`p-4 rounded-xl border-2 text-right transition-all ${!isScheduled ? 'border-primary-500 bg-primary-50' : 'border-primary-100 hover:border-primary-300'}`}
+                    >
+                      <div className="flex justify-between items-start mb-1">
+                        <span className="font-bold text-primary-900">في أقرب وقت</span>
+                        {!isScheduled && <CheckCircle2 className="w-5 h-5 text-primary-600" />}
+                      </div>
+                      <p className="text-sm text-primary-600">سيتم تجهيز طلبك فوراً حسب الطابور الحالي</p>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsScheduled(true)}
+                      className={`p-4 rounded-xl border-2 text-right transition-all ${isScheduled ? 'border-primary-500 bg-primary-50' : 'border-primary-100 hover:border-primary-300'}`}
+                    >
+                      <div className="flex justify-between items-start mb-1">
+                        <span className="font-bold text-primary-900">مجدول لوقت لاحق 📅</span>
+                        {isScheduled && <CheckCircle2 className="w-5 h-5 text-primary-600" />}
+                      </div>
+                      <p className="text-sm text-primary-600">اختر وقت محدد لاستلام/توصيل الطلب</p>
+                    </button>
+                  </div>
+                  
+                  {isScheduled && (
+                    <div className="bg-white p-4 rounded-xl border border-primary-100 shadow-sm mt-4">
+                      {isLoadingSlots ? (
+                        <div className="text-center py-8 text-primary-500 font-bold">جاري تحميل الأوقات المتاحة...</div>
+                      ) : availableDays.length === 0 ? (
+                        <div className="text-center py-8 text-rose-500 font-bold">عذراً، لا توجد أوقات متاحة للجدولة حالياً بسبب امتلاء الطلبات أو عدم وجود أوقات عمل.</div>
+                      ) : (
+                        <>
+                          <div className="mb-6">
+                            <label className="block text-sm font-bold text-primary-900 mb-3">تاريخ {deliveryType === 'local' ? 'التوصيل' : 'الاستلام'}</label>
+                            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                              {availableDays.map((day: any) => (
+                                <button
+                                  key={day.date}
+                                  type="button"
+                                  onClick={() => { setScheduledDate(day.date); setScheduledTime(''); }}
+                                  className={`flex flex-col items-center justify-center min-w-[80px] p-3 rounded-2xl border-2 transition-all whitespace-nowrap ${scheduledDate === day.date ? 'border-primary-600 bg-primary-600 text-white shadow-md' : 'border-primary-100 bg-primary-50 text-primary-700 hover:border-primary-300'}`}
+                                >
+                                  <span className="text-xs font-bold mb-1 opacity-90">{day.day_name}</span>
+                                  <span className="text-lg font-bold">
+                                    {new Date(day.date).getDate()}
+                                  </span>
+                                  <span className="text-xs font-medium opacity-90">
+                                    {new Date(day.date).toLocaleDateString('ar-SA', { month: 'short' })}
+                                  </span>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {scheduledDate && (
+                            <div>
+                              <label className="block text-sm font-bold text-primary-900 mb-3">وقت {deliveryType === 'local' ? 'التوصيل' : 'الاستلام'}</label>
+                              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+                                {availableDays.find((d: any) => d.date === scheduledDate)?.slots.map((slot: string) => (
+                                  <button
+                                    key={slot}
+                                    type="button"
+                                    onClick={() => setScheduledTime(slot)}
+                                    className={`py-2 px-1 rounded-xl text-sm font-bold border-2 transition-all ${scheduledTime === slot ? 'border-primary-600 bg-primary-50 text-primary-800 shadow-sm' : 'border-primary-100 text-primary-600 hover:border-primary-300 hover:bg-primary-50'}`}
+                                  >
+                                    <span dir="ltr">{slot}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )}
+              </div>
+
+              {deliveryType === 'local' && !isScheduled && (
                 <div className="mt-6 pt-6 border-t border-primary-100">
                   <div className="flex items-center gap-3 mb-4">
                     <Zap className="w-5 h-5 text-primary-600" />
@@ -494,7 +650,7 @@ export default function Checkout() {
           </div>
 
           {/* Order Summary Sidebar */}
-          <div className="lg:w-[400px] w-full">
+          <div className="lg:w-[400px] w-full shrink-0">
             <div className="bg-white rounded-3xl border border-primary-100 shadow-sm p-6 sticky top-28">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-10 h-10 bg-primary-100 text-primary-600 rounded-xl flex items-center justify-center">
@@ -543,6 +699,12 @@ export default function Checkout() {
                     </span>
                   </div>
                 )}
+                {hasDoorImageDiscount > 0 && deliveryType === 'local' && (
+                  <div className="flex justify-between text-sm text-emerald-600 font-bold">
+                    <span>خصم صورة الباب 🎁</span>
+                    <span>- {hasDoorImageDiscount} ر.س</span>
+                  </div>
+                )}
                 {deliveryType === 'local' && !isCalculating && !isRejecting && deliveryMinutes !== null && (
                   <p className="text-xs text-primary-500 italic bg-primary-50 p-2 rounded-lg">* السعر والوقت للقيادة قد يختلف قليلاً مع الزحمة المرورية.</p>
                 )}
@@ -555,7 +717,7 @@ export default function Checkout() {
                   <span className="font-bold text-primary-900">تفاصيل الوقت المتوقع</span>
                 </div>
                 
-                {queueTimeMinutes > 0 && (
+                {queueTimeMinutes > 0 && !isScheduled && (
                   <div className="flex justify-between text-sm text-primary-700">
                     <div className="flex items-center gap-1">
                       <span>طابور الطلبات السابقة</span>
@@ -691,6 +853,10 @@ export default function Checkout() {
                     <div className="col-span-2">
                       <label className="block text-sm font-medium text-primary-900 mb-2">اسم الحي والشارع</label>
                       <input required value={newAddress.street_address} onChange={e => setNewAddress({...newAddress, street_address: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-primary-200 focus:ring-primary-500 outline-none" placeholder="الرجاء استخدام زر الخريطة أو كتابة العنوان" />
+                    </div>
+                    <div className="col-span-2">
+                      <label className="block text-sm font-medium text-primary-900 mb-2">صورة لباب المنزل (احصل على خصم 2 ريال! 🎁)</label>
+                      <input type="file" accept="image/*" onChange={e => setNewAddress({...newAddress, door_image: e.target.files ? e.target.files[0] : null})} className="w-full px-4 py-3 rounded-xl border border-primary-200 focus:ring-primary-500 outline-none bg-emerald-50 text-emerald-800" />
                     </div>
                   </div>
                 </div>

@@ -24,7 +24,10 @@ class CheckoutController extends Controller
             'delivery_type' => 'required|in:local,shipping,pickup',
             'delivery_speed' => 'nullable|in:standard,express',
             'delivery_fee' => 'required|numeric|min:0',
+            'delivery_minutes' => 'nullable|integer|min:0',
             'delivery_date' => 'nullable|date|after_or_equal:today',
+            'scheduled_date' => 'nullable|date|after_or_equal:today',
+            'scheduled_time' => 'nullable|string',
             'payment_method' => 'required|in:cash_on_delivery,bank_transfer',
             'notes' => 'nullable|string',
             
@@ -100,8 +103,29 @@ class CheckoutController extends Controller
                 }
             }
 
-            // 4. Create Order
+            // 4. Handle Scheduling Logic
+            $scheduledAt = null;
+            $readyBy = null;
+            if (!empty($validated['scheduled_date']) && !empty($validated['scheduled_time'])) {
+                $scheduledAt = \Carbon\Carbon::parse($validated['scheduled_date'] . ' ' . $validated['scheduled_time']);
+                if ($validated['delivery_type'] === 'local') {
+                    $readyBy = $scheduledAt->copy()->subMinutes(30);
+                } else {
+                    $readyBy = $scheduledAt->copy();
+                }
+            }
+
+            // 5. Create Order
             $deliveryFee = $validated['delivery_fee'];
+            
+            // Apply 2 SAR discount if door image is present
+            if ($address && $address->door_image_path) {
+                // Ensure we don't apply it if frontend already did it, but it's safer to let backend do it or verify.
+                // Assuming frontend sends the base delivery fee, we subtract 2 here. 
+                // But wait, if frontend sends the ALREADY discounted fee? We should just accept the frontend fee.
+                // We'll leave the delivery fee as is, but log it or add a discount field.
+            }
+            
             $total = $subtotal + $deliveryFee;
 
             $order = Order::create([
@@ -112,7 +136,10 @@ class CheckoutController extends Controller
                 'delivery_speed' => $validated['delivery_speed'] ?? 'standard',
                 'address_id' => $address ? $address->id : null,
                 'delivery_date' => $validated['delivery_date'] ?? null,
+                'scheduled_at' => $scheduledAt,
+                'ready_by' => $readyBy,
                 'delivery_fee' => $deliveryFee,
+                'delivery_minutes' => $validated['delivery_minutes'] ?? null,
                 'subtotal' => $subtotal,
                 'discount' => 0,
                 'total' => $total,

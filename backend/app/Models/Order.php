@@ -13,6 +13,7 @@ class Order extends Model
     protected $fillable = [
         'order_number', 'customer_id', 'status', 'delivery_type', 'delivery_speed',
         'address_id', 'delivery_date', 'delivery_time_slot', 'delivery_fee',
+        'delivery_minutes', 'driver_id', 'delivery_offered_at', 'scheduled_at', 'ready_by',
         'estimated_delivery_at', 'driver_notes', 'subtotal', 'discount',
         'coupon_id', 'total', 'payment_method', 'payment_status',
         'bank_transfer_receipt', 'notes', 'estimated_preparation_time',
@@ -31,6 +32,9 @@ class Order extends Model
             'delivering_at'        => 'datetime',
             'delivered_at'         => 'datetime',
             'cancelled_at'         => 'datetime',
+            'delivery_offered_at'  => 'datetime',
+            'scheduled_at'         => 'datetime',
+            'ready_by'             => 'datetime',
             'subtotal'             => 'decimal:2',
             'discount'             => 'decimal:2',
             'delivery_fee'         => 'decimal:2',
@@ -46,6 +50,7 @@ class Order extends Model
     // Relationships
     public function customer()       { return $this->belongsTo(User::class, 'customer_id'); }
     public function address()        { return $this->belongsTo(Address::class); }
+    public function driver()         { return $this->belongsTo(Driver::class); }
     public function coupon()         { return $this->belongsTo(Coupon::class); }
     public function items()          { return $this->hasMany(OrderItem::class); }
     public function statusHistory()  { return $this->hasMany(OrderStatusHistory::class); }

@@ -15,6 +15,9 @@ import Dashboard from '@/pages/admin/Dashboard';
 import ProductsList from '@/pages/admin/ProductsList';
 import ComponentsList from '@/pages/admin/ComponentsList';
 import OrdersList from '@/pages/admin/OrdersList';
+import DriversList from '@/pages/admin/DriversList';
+import AdminBreaks from '@/pages/admin/AdminBreaks';
+import AdminWorkingHours from '@/pages/admin/AdminWorkingHours';
 
 import { AuthProvider } from '@/store/AuthContext';
 import { CartProvider } from '@/store/CartContext';
@@ -47,6 +50,9 @@ function App() {
               <Route path="products" element={<ProductsList />} />
               <Route path="components" element={<ComponentsList />} />
               <Route path="orders" element={<OrdersList />} />
+              <Route path="drivers" element={<DriversList />} />
+              <Route path="breaks" element={<AdminBreaks />} />
+              <Route path="working-hours" element={<AdminWorkingHours />} />
             </Route>
           </Routes>
         </Router>

@@ -23,9 +23,7 @@ api.interceptors.request.use((config) => {
 export const fetchProducts = () => api.get('/products').then(res => res.data);
 export const fetchProductBySlug = (slug: string) => api.get(`/products/${slug}`).then(res => res.data);
 
-export const storeApi = {
-  getQueueStatus: () => api.get('/store/queue-status').then(res => res.data),
-};
+
 
 // Basic Auth
 export const getCsrfCookie = () => axios.get('/sanctum/csrf-cookie', { withCredentials: true });
@@ -70,6 +68,19 @@ export const adminComponentsApi = {
   delete: (id: number) => api.delete(`/admin/components/${id}`).then(res => res.data),
 };
 
+export const storeApi = {
+  getQueueStatus: async () => {
+    const { data } = await api.get('/store/queue-status');
+    return data;
+  },
+  getAvailableSlots: async (prepMinutes: number, deliveryType: string, deliverySpeed: string) => {
+    const { data } = await api.get('/store/available-slots', {
+      params: { prep_minutes: prepMinutes, delivery_type: deliveryType, delivery_speed: deliverySpeed }
+    });
+    return data;
+  }
+};
+
 export const publicProductsApi = {
   getAll: () => api.get('/products').then(res => res.data),
   getBySlug: (slug: string) => api.get(`/products/${slug}`).then(res => res.data),
@@ -79,8 +90,46 @@ export const publicProductsApi = {
 export const adminOrdersApi = {
   getAll: (status: string = 'all', page: number = 1) => api.get(`/admin/orders?status=${status}&page=${page}`).then(res => res.data),
   getById: (id: number) => api.get(`/admin/orders/${id}`).then(res => res.data),
-  updateStatus: (id: number, status: string) => api.put(`/admin/orders/${id}`, { status }).then(res => res.data),
-  verifyPayment: (id: number) => api.post(`/admin/orders/${id}/verify-payment`).then(res => res.data),
+  verifyPayment: async (id: number) => {
+    const { data } = await api.post(`/admin/orders/${id}/verify-payment`);
+    return data;
+  },
+  updateStatus: async (id: number, status: string) => {
+    const { data } = await api.put(`/admin/orders/${id}`, { status });
+    return data;
+  },
+  sendToDelivery: async (id: number, skipPrimary: boolean = false) => {
+    const { data } = await api.post(`/admin/orders/${id}/send-to-delivery`, { skip_primary: skipPrimary });
+    return data;
+  }
+};
+
+export const adminSettingsApi = {
+  getWorkingHours: async () => {
+    const { data } = await api.get('/admin/working-hours');
+    return data;
+  },
+  saveWorkingHours: async (payload: any) => {
+    const { data } = await api.post('/admin/working-hours', payload);
+    return data;
+  },
+  deleteWorkingHours: async (id: number) => {
+    const { data } = await api.delete(`/admin/working-hours/${id}`);
+    return data;
+  },
+  
+  getBreaks: async () => {
+    const { data } = await api.get('/admin/breaks');
+    return data;
+  },
+  saveBreak: async (payload: any) => {
+    const { data } = await api.post('/admin/breaks', payload);
+    return data;
+  },
+  deleteBreak: async (id: number) => {
+    const { data } = await api.delete(`/admin/breaks/${id}`);
+    return data;
+  }
 };
 
 export const orderApi = {
@@ -106,8 +155,19 @@ export const orderApi = {
 
 export const customerApi = {
   getAddresses: () => api.get('/addresses').then(res => res.data),
-  addAddress: (data: any) => api.post('/addresses', data).then(res => res.data),
-  updateAddress: (id: number, data: any) => api.put(`/addresses/${id}`, data).then(res => res.data),
+  addAddress: (data: any) => {
+    if (data instanceof FormData) {
+      return api.post('/addresses', data, { headers: { 'Content-Type': 'multipart/form-data' } }).then(res => res.data);
+    }
+    return api.post('/addresses', data).then(res => res.data);
+  },
+  updateAddress: (id: number, data: any) => {
+    if (data instanceof FormData) {
+      data.append('_method', 'PUT');
+      return api.post(`/addresses/${id}`, data, { headers: { 'Content-Type': 'multipart/form-data' } }).then(res => res.data);
+    }
+    return api.put(`/addresses/${id}`, data).then(res => res.data);
+  },
   deleteAddress: (id: number) => api.delete(`/addresses/${id}`).then(res => res.data),
 };
 

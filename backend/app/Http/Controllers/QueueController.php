@@ -13,6 +13,10 @@ class QueueController extends Controller
         // Get orders currently in the prep queue
         $activeOrders = Order::with('items.product')
             ->whereIn('status', ['pending', 'preparing'])
+            ->where(function ($query) {
+                $query->whereNull('ready_by')
+                      ->orWhere('ready_by', '<=', Carbon::now()->addMinutes(60));
+            })
             ->get();
 
         $totalQueueTimeMinutes = 0;

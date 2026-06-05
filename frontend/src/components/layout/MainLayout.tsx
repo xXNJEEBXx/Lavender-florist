@@ -1,8 +1,10 @@
 import { Outlet, Link } from 'react-router-dom';
 import { useAuth } from '../../store/AuthContext';
+import { useCart } from '../../store/CartContext';
 
 export default function MainLayout() {
   const { openLoginModal, isAuthenticated, user, logout } = useAuth();
+  const { itemCount } = useCart();
   
   return (
     <div className="min-h-screen flex flex-col">
@@ -32,7 +34,11 @@ export default function MainLayout() {
           </button>
           <Link to="/cart" className="h-10 w-10 rounded-full bg-primary-50 flex items-center justify-center text-primary-700 hover:bg-primary-100 cursor-pointer transition-colors relative">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
-            <span className="absolute -top-1 -right-1 bg-accent-600 text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full">2</span>
+            {itemCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-accent-600 text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full">
+                {itemCount > 99 ? '99+' : itemCount}
+              </span>
+            )}
           </Link>
           {isAuthenticated ? (
             <div className="relative group">

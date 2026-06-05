@@ -7,7 +7,10 @@ import {
   LogOut, 
   Settings,
   Flower2,
-  Store
+  Store,
+  Truck,
+  Clock,
+  CalendarOff
 } from 'lucide-react';
 
 export default function AdminSidebar() {
@@ -17,6 +20,7 @@ export default function AdminSidebar() {
     { name: 'المنتجات', path: '/admin/products', icon: <Flower2 size={20} /> },
     { name: 'المواد الخام', path: '/admin/components', icon: <Package size={20} /> },
     { name: 'الطلبات', path: '/admin/orders', icon: <ShoppingCart size={20} /> },
+    { name: 'المناديب', path: '/admin/drivers', icon: <Truck size={20} /> },
     { name: 'العملاء', path: '/admin/customers', icon: <Users size={20} /> },
     { name: 'الإعدادات', path: '/admin/settings', icon: <Settings size={20} /> },
   ];
@@ -52,6 +56,14 @@ export default function AdminSidebar() {
               {item.name}
             </NavLink>
           ))}
+            <NavLink to="/admin/working-hours" className={({isActive}) => `flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${isActive ? 'bg-primary-50 text-primary-700 font-bold' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
+              <Clock className="w-5 h-5" />
+              <span>أوقات العمل</span>
+            </NavLink>
+            <NavLink to="/admin/breaks" className={({isActive}) => `flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${isActive ? 'bg-primary-50 text-primary-700 font-bold' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
+              <CalendarOff className="w-5 h-5" />
+              <span>إجازات المشرف</span>
+            </NavLink>
         </div>
       </div>
     </div>
