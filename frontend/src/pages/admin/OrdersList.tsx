@@ -197,10 +197,27 @@ export default function OrdersList() {
     try {
       setUpdatingRowId(orderId);
       const res = await adminOrdersApi.sendToDelivery(orderId, skipPrimary);
-      showToast(res.message, 'success');
-      loadOrders();
+      setOrders(orders.map(o => o.id === orderId ? { ...o, status: 'ready', driver_id: res.driver_id || -1 } : o));
+      showToast(res.message || 'تم إرسال الطلب للمندوب', 'success');
+      loadOrders(true);
     } catch (error: any) {
       showToast(error.response?.data?.message || 'فشل الإرسال للتوصيل', 'error');
+    } finally {
+      setUpdatingRowId(null);
+    }
+  };
+
+  const handleVerifyPaymentFromRow = async (orderId: number) => {
+    try {
+      setUpdatingRowId(orderId);
+      const res = await adminOrdersApi.verifyPayment(orderId);
+      setOrders(orders.map(o => o.id === orderId ? res.order : o));
+      showToast('تم تأكيد الدفع والبدء بالتجهيز', 'success');
+      if (selectedOrder?.id === orderId) {
+        setSelectedOrder(res.order);
+      }
+    } catch (error: any) {
+      showToast(error.response?.data?.message || 'فشل تأكيد الدفع', 'error');
     } finally {
       setUpdatingRowId(null);
     }
@@ -254,30 +271,30 @@ export default function OrdersList() {
     
     if (order.status === 'pending') {
       nextStatus = 'preparing';
-      label = 'بدء التجهيز';
+      label = 'تأكيد الحوالة';
     } else if (order.status === 'preparing') {
-      if (order.delivery_type === 'pickup') {
-         nextStatus = 'ready';
-         label = 'تم التجهيز';
-      } else {
-         return (
-          <button
-            onClick={(e) => { e.stopPropagation(); handleSendToDeliveryFromRow(order.id, false); }}
-            disabled={updatingRowId === order.id || order.driver_id !== null}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-primary-600 text-white hover:bg-primary-700 transition-colors disabled:opacity-50 whitespace-nowrap"
-          >
-            {updatingRowId === order.id ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Truck className="w-3.5 h-3.5" />}
-            إرسال للمندوب
-          </button>
-         );
-      }
+      nextStatus = 'ready';
+      label = 'تم التجهيز';
     } else if (order.status === 'ready') {
        if (order.delivery_type === 'pickup') {
           nextStatus = 'delivered';
           label = 'تم التسليم';
        } else {
-          nextStatus = 'delivering';
-          label = 'تم استلام الطلب';
+          if (order.driver_id === null) {
+             return (
+              <button
+                onClick={(e) => { e.stopPropagation(); handleSendToDeliveryFromRow(order.id, false); }}
+                disabled={updatingRowId === order.id}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-primary-600 text-white hover:bg-primary-700 transition-colors disabled:opacity-50 whitespace-nowrap"
+              >
+                {updatingRowId === order.id ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Truck className="w-3.5 h-3.5" />}
+                إرسال للمندوب
+              </button>
+             );
+          } else {
+             nextStatus = 'delivering';
+             label = 'تم استلام الطلب من المندوب';
+          }
        }
     } else if (order.status === 'delivering') {
        nextStatus = 'delivered';
@@ -295,11 +312,18 @@ export default function OrdersList() {
 
     return (
       <button
-        onClick={(e) => { e.stopPropagation(); handleStatusChange(nextStatus, order.id); }}
+        onClick={(e) => { 
+            e.stopPropagation(); 
+            if (order.status === 'pending' && order.payment_method === 'bank_transfer') {
+               handleVerifyPaymentFromRow(order.id);
+            } else {
+               handleStatusChange(nextStatus, order.id); 
+            }
+        }}
         disabled={updatingRowId === order.id}
         className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors disabled:opacity-50 whitespace-nowrap ${colors[order.status] || 'bg-primary-600 text-white hover:bg-primary-700'}`}
       >
-        {updatingRowId === order.id ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+        {updatingRowId === order.id && <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />}
         {label}
       </button>
     );
