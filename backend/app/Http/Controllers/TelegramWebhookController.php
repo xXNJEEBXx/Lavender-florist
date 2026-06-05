@@ -85,6 +85,7 @@ class TelegramWebhookController extends Controller
     protected function acceptOrder($orderId, $driver, $chatId, $messageId, $callbackQueryId)
     {
         $order = Order::find($orderId);
+        \Illuminate\Support\Facades\Log::info("Telegram acceptOrder started", ['order_id' => $orderId, 'driver_id' => $driver->id]);
 
         if (!$order) {
             $this->telegram->answerCallbackQuery($callbackQueryId, 'الطلب غير موجود!', true);
@@ -92,6 +93,7 @@ class TelegramWebhookController extends Controller
         }
 
         if ($order->driver_id) {
+            \Illuminate\Support\Facades\Log::info("Order already assigned", ['driver_id' => $order->driver_id]);
             if ($order->driver_id == $driver->id) {
                 $this->telegram->answerCallbackQuery($callbackQueryId, 'لقد قمت باستلام هذا الطلب مسبقاً.');
                 
@@ -117,7 +119,8 @@ class TelegramWebhookController extends Controller
                         ]
                     ]
                 ];
-                $this->telegram->editMessageText($chatId, $messageId, $newText, $replyMarkup);
+                $res = $this->telegram->editMessageText($chatId, $messageId, $newText, $replyMarkup);
+                \Illuminate\Support\Facades\Log::info("Force editMessageText response", ['response' => $res]);
 
             } else {
                 $this->telegram->answerCallbackQuery($callbackQueryId, 'نعتذر، تم استلام الطلب من مندوب آخر.', true);
@@ -134,6 +137,7 @@ class TelegramWebhookController extends Controller
             'status' => 'delivering',
             'delivering_at' => now(),
         ]);
+        \Illuminate\Support\Facades\Log::info("Order DB updated successfully");
 
         $this->telegram->answerCallbackQuery($callbackQueryId, 'تم تسجيل الطلب باسمك بنجاح! توجه للعميل.');
 
@@ -160,7 +164,8 @@ class TelegramWebhookController extends Controller
             ]
         ];
 
-        $this->telegram->editMessageText($chatId, $messageId, $newText, $replyMarkup);
+        $res = $this->telegram->editMessageText($chatId, $messageId, $newText, $replyMarkup);
+        \Illuminate\Support\Facades\Log::info("Normal editMessageText response", ['response' => $res]);
     }
 
     protected function markAsDelivered($orderId, $driver, $chatId, $messageId, $callbackQueryId)
