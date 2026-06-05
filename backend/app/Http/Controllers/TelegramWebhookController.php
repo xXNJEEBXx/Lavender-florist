@@ -109,7 +109,7 @@ class TelegramWebhookController extends Controller
                 $replyMarkup = [
                     'inline_keyboard' => [
                         [
-                            ['text' => '📍 موقع المتجر', 'url' => 'https://maps.app.goo.gl/354B4zP1gTzU2yvA9']
+                            ['text' => '📍 موقع المتجر', 'url' => 'https://maps.app.goo.gl/M87h2oPSSwYsdJng9']
                         ],
                         [
                             ['text' => '📦 تم استلام الطلب من المتجر', 'callback_data' => "picked_up_order_{$order->id}"]
@@ -144,7 +144,7 @@ class TelegramWebhookController extends Controller
         $replyMarkup = [
             'inline_keyboard' => [
                 [
-                    ['text' => '📍 موقع المتجر', 'url' => 'https://maps.app.goo.gl/354B4zP1gTzU2yvA9']
+                    ['text' => '📍 موقع المتجر', 'url' => 'https://maps.app.goo.gl/M87h2oPSSwYsdJng9']
                 ],
                 [
                     ['text' => '📦 تم استلام الطلب من المتجر', 'callback_data' => "picked_up_order_{$order->id}"]
