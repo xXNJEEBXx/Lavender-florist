@@ -74,20 +74,20 @@ export default function OrdersList() {
   useEffect(() => { loadOrders(); }, [statusFilter, page]);
 
   useEffect(() => {
-    const id = setInterval(() => { if (!isModalOpen) loadOrders(); }, 60000);
+    const id = setInterval(() => {
+      if (!isModalOpen) loadOrders(true);
+    }, 60000);
     return () => clearInterval(id);
   }, [statusFilter, page, isModalOpen]);
 
-  const loadOrders = async () => {
+  const loadOrders = async (silent = false) => {
     try {
-      setIsLoading(true);
-      // For "incomplete", we send a custom param; for "all", send no filter
+      if (!silent) setIsLoading(true);
       const filterParam = statusFilter === 'incomplete' ? 'incomplete' : 'all';
       const data = await adminOrdersApi.getAll(filterParam, page);
       setOrders(data.data);
       setTotalPages(data.last_page);
       setTotalCount(data.total);
-      // Load incomplete count separately if viewing all
       if (statusFilter === 'all') {
         try {
           const inc = await adminOrdersApi.getAll('incomplete', 1);
@@ -95,7 +95,6 @@ export default function OrdersList() {
         } catch {}
       } else {
         setIncompleteCount(data.total);
-        // Also load all count
         try {
           const all = await adminOrdersApi.getAll('all', 1);
           setTotalCount(all.total);
