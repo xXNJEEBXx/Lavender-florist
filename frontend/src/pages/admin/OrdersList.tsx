@@ -120,7 +120,7 @@ export default function OrdersList() {
       if (!isModalOpen && loadOrdersRef.current) {
         loadOrdersRef.current(true);
       }
-    }, 60000);
+    }, 10000);
     return () => clearInterval(id);
   }, [isModalOpen]);
 

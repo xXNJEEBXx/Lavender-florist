@@ -1,14 +1,18 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, Plus, Edit2, Trash2, CheckCircle2, X, Star } from 'lucide-react';
+import { Users, Plus, Edit2, Trash2, CheckCircle2, X, Star, Wallet } from 'lucide-react';
 import api from '../../services/api';
 
 export default function DriversList() {
   const [drivers, setDrivers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isPayModalOpen, setIsPayModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  
+  const [payDriver, setPayDriver] = useState<any>(null);
+  const [payAmount, setPayAmount] = useState<number | ''>('');
 
   const [formData, setFormData] = useState({
     name: '',
@@ -95,6 +99,28 @@ export default function DriversList() {
     }
   };
 
+  const handlePayOpen = (driver: any) => {
+    setPayDriver(driver);
+    setPayAmount(driver.balance || '');
+    setIsPayModalOpen(true);
+  };
+
+  const handlePaySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!payDriver || !payAmount) return;
+    setIsSaving(true);
+    try {
+      await api.post(`/admin/drivers/${payDriver.id}/pay`, { amount: Number(payAmount) });
+      showToast('تم سداد المستحقات بنجاح', 'success');
+      setIsPayModalOpen(false);
+      loadDrivers();
+    } catch (error: any) {
+      showToast(error.response?.data?.message || 'حدث خطأ أثناء السداد', 'error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <div>
       <div className="flex justify-between items-center mb-8">
@@ -120,6 +146,7 @@ export default function DriversList() {
                 <th className="px-6 py-4 text-primary-900 font-bold">حساب تيليجرام</th>
                 <th className="px-6 py-4 text-primary-900 font-bold">الدور</th>
                 <th className="px-6 py-4 text-primary-900 font-bold">الحالة</th>
+                <th className="px-6 py-4 text-primary-900 font-bold">المستحقات</th>
                 <th className="px-6 py-4 text-primary-900 font-bold text-center">إجراءات</th>
               </tr>
             </thead>
@@ -155,8 +182,14 @@ export default function DriversList() {
                         <span className="text-rose-500 text-sm font-bold">غير نشط</span>
                       )}
                     </td>
+                    <td className="px-6 py-4 font-bold text-amber-600">
+                      {driver.balance} ر.س
+                    </td>
                     <td className="px-6 py-4 text-center">
                       <div className="flex items-center justify-center gap-2">
+                        <button onClick={() => handlePayOpen(driver)} title="تسديد المستحقات" className="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors">
+                          <Wallet className="w-4 h-4" />
+                        </button>
                         <button onClick={() => handleOpenModal(driver)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
                           <Edit2 className="w-4 h-4" />
                         </button>
@@ -214,6 +247,42 @@ export default function DriversList() {
                   <button type="submit" disabled={isSaving} className="w-full py-4 bg-primary-800 text-white rounded-xl font-bold hover:bg-primary-900 transition-colors shadow-lg shadow-primary-900/10 disabled:opacity-70">
                     {isSaving ? 'جاري الحفظ...' : 'حفظ البيانات'}
                   </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isPayModalOpen && payDriver && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsPayModalOpen(false)} className="absolute inset-0 bg-primary-950/40 backdrop-blur-sm" />
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative bg-white rounded-3xl shadow-2xl max-w-sm w-full overflow-hidden flex flex-col">
+              <div className="p-6 border-b border-primary-100 flex justify-between items-center bg-primary-50/30">
+                <h2 className="text-xl font-bold text-primary-900">تسديد مستحقات المندوب</h2>
+                <button onClick={() => setIsPayModalOpen(false)} className="p-2 text-primary-400 hover:text-primary-700 bg-white rounded-full hover:bg-primary-50 transition-colors"><X className="w-6 h-6" /></button>
+              </div>
+              <form onSubmit={handlePaySubmit} className="p-6">
+                <div className="text-center mb-6">
+                  <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <Wallet className="w-8 h-8" />
+                  </div>
+                  <h3 className="font-bold text-primary-900 text-lg">{payDriver.name}</h3>
+                  <p className="text-primary-500 mt-1">الرصيد الحالي: <span className="font-bold text-amber-600">{payDriver.balance} ر.س</span></p>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-primary-900 mb-2">المبلغ المسدد (ر.س)</label>
+                    <input type="number" step="0.01" min="0.01" max={payDriver.balance} required value={payAmount} onChange={e => setPayAmount(e.target.value === '' ? '' : Number(e.target.value))} className="w-full px-4 py-3 rounded-xl border border-primary-200 focus:ring-primary-500 outline-none text-center font-bold text-xl" dir="ltr" />
+                  </div>
+                </div>
+                <div className="mt-8">
+                  <button type="submit" disabled={isSaving || payDriver.balance <= 0} className="w-full py-4 bg-amber-500 text-white rounded-xl font-bold hover:bg-amber-600 transition-colors shadow-lg shadow-amber-500/20 disabled:opacity-50">
+                    {isSaving ? 'جاري التنفيذ...' : 'تأكيد السداد'}
+                  </button>
+                  <p className="text-xs text-primary-400 text-center mt-3">سيتم إرسال إشعار للمندوب عبر تيليجرام.</p>
                 </div>
               </form>
             </motion.div>

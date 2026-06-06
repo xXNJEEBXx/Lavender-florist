@@ -68,6 +68,44 @@ class DriverController extends Controller
     }
 
     /**
+     * Pay dues to the driver and notify them via Telegram.
+     */
+    public function payDues(Request $request, Driver $driver, \App\Services\TelegramService $telegram)
+    {
+        $validated = $request->validate([
+            'amount' => 'required|numeric|min:0.01',
+        ]);
+
+        $amount = $validated['amount'];
+        
+        if ($amount > $driver->balance) {
+            return response()->json(['message' => 'Amount exceeds driver balance.'], 422);
+        }
+
+        $driver->update([
+            'balance' => $driver->balance - $amount
+        ]);
+
+        if ($driver->telegram_chat_id) {
+            $message = "💸 <b>إشعار سداد مستحقات</b>\n\n";
+            $message .= "تم سداد مبلغ: <b>{$amount} ر.س</b> لك.\n";
+            $message .= "الرصيد المتبقي لك: <b>{$driver->balance} ر.س</b>\n\n";
+            $message .= "شكراً لجهودك المستمرة! 🌸";
+            
+            try {
+                $telegram->sendMessage($driver->telegram_chat_id, $message);
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('Failed to send telegram payment msg: ' . $e->getMessage());
+            }
+        }
+
+        return response()->json([
+            'message' => 'Dues settled successfully.',
+            'driver' => $driver
+        ]);
+    }
+
+    /**
      * Remove the specified resource from storage.
      */
     public function destroy(Driver $driver)

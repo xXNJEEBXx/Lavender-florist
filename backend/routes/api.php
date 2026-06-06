@@ -48,7 +48,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Orders
     Route::get('/orders', function(Request $request) {
-        return $request->user()->orders()->with('items')->latest()->get();
+        return $request->user()->orders()->with(['items', 'driver'])->latest()->get();
     });
     Route::get('/orders/{order_number}', [\App\Http\Controllers\CustomerOrderController::class, 'show']);
     Route::post('/orders/{order_number}/receipt', [\App\Http\Controllers\CustomerOrderController::class, 'uploadReceipt']);
@@ -77,6 +77,7 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\AdminMiddleware::class])
     Route::apiResource('orders', \App\Http\Controllers\OrderController::class);
     
     // Drivers Management
+    Route::post('drivers/{driver}/pay', [\App\Http\Controllers\DriverController::class, 'payDues']);
     Route::apiResource('drivers', \App\Http\Controllers\DriverController::class);
     
     // Working Hours Management

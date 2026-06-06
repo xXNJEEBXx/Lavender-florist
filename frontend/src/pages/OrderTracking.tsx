@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { CheckCircle2, Copy, FileText, Upload, Clock, Package } from 'lucide-react';
+import { CheckCircle2, Copy, FileText, Upload, Clock, Package, Truck } from 'lucide-react';
 import { orderApi } from '../services/api';
 
 export default function OrderTracking() {
@@ -18,12 +18,16 @@ export default function OrderTracking() {
   useEffect(() => {
     if (orderNumber) {
       loadOrder();
+      // Auto-refresh every 10 seconds
+      const id = setInterval(loadOrder, 10000);
+      return () => clearInterval(id);
     }
   }, [orderNumber]);
 
   const loadOrder = async () => {
     try {
-      setIsLoading(true);
+      // Don't show loading on subsequent fetches to avoid flicker
+      if (!order) setIsLoading(true);
       const data = await orderApi.getOrderByNumber(orderNumber!);
       setOrder(data);
     } catch (err: any) {
@@ -80,7 +84,9 @@ export default function OrderTracking() {
 
   const needsTransfer = order.payment_method === 'bank_transfer' && !order.bank_transfer_receipt;
   const underReview = order.payment_method === 'bank_transfer' && order.bank_transfer_receipt && order.status === 'pending';
-  const isPreparing = order.status === 'preparing' || order.status === 'ready' || order.status === 'delivering';
+  
+  const statusOrder = ['pending', 'preparing', 'ready', 'delivering', 'delivered'];
+  const currentStepIndex = statusOrder.indexOf(order.status);
 
   return (
     <div className="bg-primary-50/30 min-h-screen py-12">
@@ -176,26 +182,68 @@ export default function OrderTracking() {
               </motion.div>
             )}
 
-            {/* Confirmed / Preparing Alert */}
-            {isPreparing && (
-              <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white p-8 rounded-3xl border-2 border-emerald-400 shadow-xl shadow-emerald-900/5 text-center">
-                <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <Package className="w-10 h-10" />
+            {/* Detailed Timeline */}
+            {!needsTransfer && !underReview && (
+              <div className="bg-white p-8 rounded-3xl border-2 border-primary-100 shadow-xl shadow-primary-900/5">
+                <h2 className="text-xl font-bold text-primary-900 mb-6">مسار الطلب</h2>
+                
+                <div className="relative pl-4 space-y-8">
+                  {/* Line */}
+                  <div className="absolute top-2 bottom-2 right-[27px] w-0.5 bg-primary-100"></div>
+
+                  {/* Step 1: Preparing */}
+                  <div className={`relative flex items-start gap-4 ${currentStepIndex >= 1 ? 'opacity-100' : 'opacity-40'}`}>
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center z-10 shrink-0 ${currentStepIndex >= 1 ? 'bg-emerald-500 text-white' : 'bg-primary-100 text-primary-400'}`}>
+                      <Package className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-primary-900">قيد التجهيز</h3>
+                      <p className="text-sm text-primary-600">نقوم بتنسيق طلبك بكل عناية.</p>
+                    </div>
+                  </div>
+
+                  {/* Step 2: Ready */}
+                  <div className={`relative flex items-start gap-4 ${currentStepIndex >= 2 ? 'opacity-100' : 'opacity-40'}`}>
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center z-10 shrink-0 ${currentStepIndex >= 2 ? 'bg-emerald-500 text-white' : 'bg-primary-100 text-primary-400'}`}>
+                      <CheckCircle2 className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-primary-900">تم التجهيز</h3>
+                      <p className="text-sm text-primary-600">الطلب جاهز للاستلام.</p>
+                    </div>
+                  </div>
+
+                  {/* Step 3: Delivering (if applicable) */}
+                  {order.delivery_type !== 'pickup' && (
+                    <div className={`relative flex items-start gap-4 ${currentStepIndex >= 3 ? 'opacity-100' : 'opacity-40'}`}>
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center z-10 shrink-0 ${currentStepIndex >= 3 ? 'bg-emerald-500 text-white' : 'bg-primary-100 text-primary-400'}`}>
+                        <Truck className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-primary-900">جاري التوصيل</h3>
+                        <p className="text-sm text-primary-600">
+                          المندوب استلم الطلب وهو في طريقه إليك!
+                          {order.driver && <span className="block mt-1 font-medium text-emerald-600">المندوب: {order.driver.name}</span>}
+                        </p>
+                        {order.delivering_at && <p className="text-xs text-primary-400 mt-1">{new Date(order.delivering_at).toLocaleTimeString('ar-SA')}</p>}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Step 4: Delivered */}
+                  <div className={`relative flex items-start gap-4 ${currentStepIndex >= 4 ? 'opacity-100' : 'opacity-40'}`}>
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center z-10 shrink-0 ${currentStepIndex >= 4 ? 'bg-emerald-500 text-white' : 'bg-primary-100 text-primary-400'}`}>
+                      <CheckCircle2 className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-primary-900">تم التسليم</h3>
+                      <p className="text-sm text-primary-600">نتمنى أن تكون تجربتك رائعة معنا.</p>
+                      {order.delivered_at && <p className="text-xs text-primary-400 mt-1">{new Date(order.delivered_at).toLocaleTimeString('ar-SA')}</p>}
+                    </div>
+                  </div>
+
                 </div>
-                <h2 className="text-2xl font-bold text-emerald-900 mb-2">تم تأكيد الدفع، طلبك قيد التجهيز الآن ⏳</h2>
-                <p className="text-emerald-700">يقوم فريقنا بتجهيز طلبك بكل عناية وحب.</p>
-              </motion.div>
-            )}
-            
-            {/* Success (Delivered) */}
-            {order.status === 'delivered' && (
-              <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white p-8 rounded-3xl border-2 border-green-400 shadow-xl shadow-green-900/5 text-center">
-                <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <CheckCircle2 className="w-10 h-10" />
-                </div>
-                <h2 className="text-2xl font-bold text-green-900 mb-2">تم تسليم الطلب بنجاح ✅</h2>
-                <p className="text-green-700">نتمنى أن تكون تجربتك معنا رائعة.</p>
-              </motion.div>
+              </div>
             )}
 
           </div>

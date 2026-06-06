@@ -13,7 +13,7 @@ class CustomerOrderController extends Controller
     {
         $customer = $request->user();
         
-        $order = Order::with('items.product.primaryImage')
+        $order = Order::with(['items.product.primaryImage', 'driver'])
                       ->where('customer_id', $customer->id)
                       ->where('order_number', $order_number)
                       ->firstOrFail();
