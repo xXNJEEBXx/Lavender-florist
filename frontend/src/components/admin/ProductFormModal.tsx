@@ -119,8 +119,8 @@ export default function ProductFormModal({ isOpen, onClose, onSuccess, product }
   // Recalculate final price when original price or discount changes
   useEffect(() => {
     const orig = parseFloat(originalPrice);
-    if (isNaN(orig) || orig <= 0) {
-      setFinalPrice('');
+    if (isNaN(orig) || orig < 0) {
+      setFinalPrice(originalPrice === '' ? '' : '0');
       return;
     }
     
