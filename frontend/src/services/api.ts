@@ -82,7 +82,7 @@ export const storeApi = {
 };
 
 export const publicProductsApi = {
-  getAll: () => api.get('/products').then(res => res.data),
+  getAll: (category?: string) => api.get('/products' + (category ? `?category=${category}` : '')).then(res => res.data),
   getBySlug: (slug: string) => api.get(`/products/${slug}`).then(res => res.data),
   checkout: (data: any) => api.post('/checkout', data).then(res => res.data),
 };

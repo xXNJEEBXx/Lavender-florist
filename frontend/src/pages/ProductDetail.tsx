@@ -15,6 +15,10 @@ export default function ProductDetail() {
   const { addItem, getAvailableStock } = useCart();
   const [isAdding, setIsAdding] = useState(false);
   const [queueTimeMinutes, setQueueTimeMinutes] = useState<number>(0);
+  
+  const [cards, setCards] = useState<Product[]>([]);
+  const [selectedCard, setSelectedCard] = useState<Product | null>(null);
+  const [giftMessage, setGiftMessage] = useState('');
 
   useEffect(() => {
     if (!slug) return;
@@ -36,6 +40,10 @@ export default function ProductDetail() {
 
     storeApi.getQueueStatus()
       .then(data => setQueueTimeMinutes(data.queue_time_minutes || 0))
+      .catch(err => console.error(err));
+      
+    publicProductsApi.getAll('cards')
+      .then(data => setCards(data))
       .catch(err => console.error(err));
   }, [slug, navigate]);
 
@@ -139,9 +147,74 @@ export default function ProductDetail() {
             )}
           </div>
           
-          <p className="text-primary-700 leading-relaxed mb-8 whitespace-pre-wrap">
+          <p className="text-primary-700 leading-relaxed mb-4 whitespace-pre-wrap">
             {product.description || 'تنسيق فاخر صُمم بعناية ليليق بمناسباتكم السعيدة.'}
           </p>
+
+          {product.preparation_time_minutes && (
+            <div className="flex flex-col gap-1 text-primary-800 bg-primary-50 p-4 rounded-xl mb-8 w-fit">
+              <div className="flex items-center gap-3">
+                <svg className="text-accent-500" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <span>وقت التجهيز الأساسي: <span className="font-bold">{product.preparation_time_minutes} دقيقة</span></span>
+              </div>
+              {queueTimeMinutes > 0 && (
+                <div className="flex items-center gap-3 mt-2 text-amber-600 text-sm bg-amber-50 p-2 rounded-lg border border-amber-100">
+                  <span>⚠️ يوجد طابور طلبات حالي قد يضيف <span className="font-bold">{queueTimeMinutes} دقيقة</span> للوقت المتوقع.</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          <hr className="border-primary-100 mb-8" />
+          
+          {/* Gift Message & Card Selection */}
+          {product.category !== 'cards' && (
+            <div className="mb-8 space-y-4">
+              <h3 className="font-bold text-primary-900">رسالة إهداء (اختياري)</h3>
+              <textarea 
+                placeholder="اكتب رسالتك هنا..." 
+                value={giftMessage}
+                onChange={(e) => setGiftMessage(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border border-primary-200 focus:ring-primary-500 outline-none resize-none h-24"
+              />
+              
+              {cards.length > 0 && (
+                <div className="pt-2">
+                  <h4 className="text-sm font-medium text-primary-700 mb-3">اختر شكل البطاقة</h4>
+                  <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                    {/* No card option */}
+                    <button 
+                      onClick={() => setSelectedCard(null)}
+                      className={`min-w-[80px] h-[100px] rounded-xl border-2 flex flex-col items-center justify-center gap-1 transition-colors ${!selectedCard ? 'border-primary-500 bg-primary-50' : 'border-primary-100 bg-white hover:border-primary-300'}`}
+                    >
+                      <span className="text-primary-400 text-2xl">🚫</span>
+                      <span className="text-xs font-medium text-primary-700">بدون بطاقة</span>
+                    </button>
+                    
+                    {cards.map(card => {
+                      const imgUrl = card.primary_image ? `http://localhost:8000${card.primary_image.image_url}` : null;
+                      return (
+                        <button 
+                          key={card.id}
+                          onClick={() => setSelectedCard(card)}
+                          className={`min-w-[80px] h-[100px] rounded-xl border-2 relative overflow-hidden transition-colors ${selectedCard?.id === card.id ? 'border-primary-500 shadow-md' : 'border-transparent hover:border-primary-300'}`}
+                        >
+                          {imgUrl ? (
+                            <img src={imgUrl} alt={card.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full bg-primary-100 flex items-center justify-center text-primary-400 text-xs text-center p-1">{card.name}</div>
+                          )}
+                          <div className="absolute bottom-0 inset-x-0 bg-black/50 text-white text-[10px] text-center py-1 truncate px-1">
+                            {Number(card.price) > 0 ? `${card.price} ر.س` : 'مجاني'}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           <hr className="border-primary-100 mb-8" />
 
@@ -170,7 +243,10 @@ export default function ProductDetail() {
               disabled={!product.is_in_stock || isAdding || getAvailableStock(product) === 0}
               onClick={() => {
                 setIsAdding(true);
-                addItem(product, quantity);
+                addItem(product, quantity, giftMessage);
+                if (selectedCard) {
+                  addItem(selectedCard, 1); // Add card as a product
+                }
                 setTimeout(() => {
                   navigate('/cart');
                 }, 400);
@@ -182,32 +258,7 @@ export default function ProductDetail() {
             </motion.button>
           </div>
 
-          {/* Product Features */}
-          <div className="bg-primary-50 rounded-2xl p-6 mt-auto">
-            <ul className="space-y-3">
-              <li className="flex items-center gap-3 text-primary-800">
-                <svg className="text-accent-500" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                ورد طبيعي منسق بعناية
-              </li>
-              <li className="flex items-center gap-3 text-primary-800">
-                <svg className="text-accent-500" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                تغليف فاخر مجاني
-              </li>
-              {product.preparation_time_minutes && (
-                <li className="flex flex-col gap-1 text-primary-800">
-                  <div className="flex items-center gap-3">
-                    <svg className="text-accent-500" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                    <span>وقت التجهيز الأساسي: <span className="font-bold">{product.preparation_time_minutes} دقيقة</span></span>
-                  </div>
-                  {queueTimeMinutes > 0 && (
-                    <div className="flex items-center gap-3 mt-1 mr-8 text-amber-600 text-sm bg-amber-50 p-2 rounded-lg border border-amber-100">
-                      <span>⚠️ يوجد طابور طلبات حالي قد يضيف <span className="font-bold">{queueTimeMinutes} دقيقة</span> للوقت المتوقع.</span>
-                    </div>
-                  )}
-                </li>
-              )}
-            </ul>
-          </div>
+
 
         </div>
       </div>

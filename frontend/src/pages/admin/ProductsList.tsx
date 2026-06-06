@@ -55,6 +55,7 @@ export default function ProductsList() {
       gifts: 'هدايا وتغليف',
       vases: 'فازات',
       plants: 'نباتات',
+      cards: 'بطاقات إهداء'
     };
     return categories[cat] || cat;
   };

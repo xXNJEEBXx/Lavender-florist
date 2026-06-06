@@ -19,8 +19,12 @@ Route::post('/telegram/webhook', [\App\Http\Controllers\TelegramWebhookControlle
 
 Route::get('/store/queue-status', [\App\Http\Controllers\QueueController::class, 'status']);
 
-Route::get('/products', function() {
-    return response()->json(App\Models\Product::with(['primaryImage', 'components'])->active()->ordered()->get());
+Route::get('/products', function(Request $request) {
+    $query = App\Models\Product::with(['primaryImage', 'components'])->active()->ordered();
+    if ($request->has('category')) {
+        $query->where('category', $request->category);
+    }
+    return response()->json($query->get());
 });
 Route::get('/products/{product:slug}', function(App\Models\Product $product) {
     return response()->json($product->load(['images', 'components']));

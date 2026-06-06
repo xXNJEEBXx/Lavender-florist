@@ -432,6 +432,7 @@ export default function ProductFormModal({ isOpen, onClose, onSuccess, product }
                   <option value="gifts">هدايا وتغليف</option>
                   <option value="vases">فازات</option>
                   <option value="plants">نباتات</option>
+                  <option value="cards">بطاقات إهداء</option>
                 </select>
               </div>
               
