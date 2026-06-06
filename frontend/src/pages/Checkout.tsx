@@ -53,6 +53,7 @@ export default function Checkout() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [notes, setNotes] = useState('');
+  const [extraMessages, setExtraMessages] = useState<string[]>([]);
   const [paymentMethod, setPaymentMethod] = useState('bank_transfer');
 
   // New Address Form State
@@ -618,6 +619,47 @@ export default function Checkout() {
             </div>
             )}
 
+            {/* Extra Gift Messages */}
+            <div className="bg-white p-6 rounded-3xl border border-primary-100 shadow-sm">
+              <div className="flex items-center justify-between mb-4">
+                <label className="block text-sm font-bold text-primary-900">رسائل إهداء إضافية (اختياري)</label>
+                <button
+                  type="button"
+                  onClick={() => setExtraMessages([...extraMessages, ''])}
+                  className="text-xs text-primary-600 font-bold hover:text-primary-800 bg-primary-50 px-3 py-1.5 rounded-lg flex items-center gap-1 transition-colors"
+                >
+                  <span>+</span> إضافة رسالة
+                </button>
+              </div>
+              <div className="space-y-3">
+                {extraMessages.map((msg, idx) => (
+                  <div key={idx} className="relative">
+                    <textarea
+                      value={msg}
+                      onChange={(e) => {
+                        const newMsgs = [...extraMessages];
+                        newMsgs[idx] = e.target.value;
+                        setExtraMessages(newMsgs);
+                      }}
+                      rows={2}
+                      className="w-full px-4 py-3 rounded-xl border border-primary-200 focus:ring-2 focus:ring-primary-500 transition-all outline-none resize-none"
+                      placeholder={`الرسالة رقم ${idx + 1}`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setExtraMessages(extraMessages.filter((_, i) => i !== idx))}
+                      className="absolute top-2 left-2 text-red-400 hover:text-red-600 p-1 bg-white rounded-full"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+                {extraMessages.length === 0 && (
+                  <p className="text-sm text-primary-400 italic">لا توجد رسائل إضافية. يمكنك الضغط على "إضافة رسالة" لكتابة رسائل أخرى سيتم إرفاقها مع الطلب.</p>
+                )}
+              </div>
+            </div>
+
             {/* Notes */}
             <div className="bg-white p-6 rounded-3xl border border-primary-100 shadow-sm">
               <label className="block text-sm font-bold text-primary-900 mb-2">ملاحظات إضافية للتوصيل (اختياري)</label>
@@ -673,6 +715,12 @@ export default function Checkout() {
                       <div>
                         <h4 className="font-bold text-primary-900 text-sm line-clamp-1">{item.product.name}</h4>
                         <p className="text-xs text-primary-500 mt-1">الكمية: {item.quantity}</p>
+                        {item.gift_message && (
+                          <div className="mt-2 bg-primary-50 p-2 rounded-lg border border-primary-100 relative max-w-[200px]">
+                            <span className="absolute -top-2 -right-2 text-[10px] bg-primary-200 text-primary-800 px-1.5 rounded-full">رسالة إهداء</span>
+                            <p className="text-[11px] text-primary-700 italic leading-relaxed whitespace-pre-wrap">{item.gift_message}</p>
+                          </div>
+                        )}
                       </div>
                     </div>
                     <span className="font-medium text-sm text-primary-900 whitespace-nowrap">{item.product.price * item.quantity} ر.س</span>

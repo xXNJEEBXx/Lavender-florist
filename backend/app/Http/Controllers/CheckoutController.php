@@ -34,7 +34,10 @@ class CheckoutController extends Controller
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.quantity' => 'required|integer|min:1',
-            'items.*.gift_message' => 'nullable|string'
+            'items.*.gift_message' => 'nullable|string',
+            
+            'extra_messages' => 'nullable|array',
+            'extra_messages.*' => 'nullable|string'
         ]);
 
         return DB::transaction(function () use ($validated, $request) {
@@ -156,9 +159,7 @@ class CheckoutController extends Controller
                 $itemData['order_id'] = $order->id;
                 $orderItem = OrderItem::create($itemData);
 
-                // Assuming gift messages are tied to the order in the DB schema, 
-                // wait, gift_messages table has order_id. We'll save the first one found.
-                if ($giftMessage && !DB::table('gift_messages')->where('order_id', $order->id)->exists()) {
+                if ($giftMessage) {
                     DB::table('gift_messages')->insert([
                         'order_id' => $order->id,
                         'sender_name' => $customer->name,
@@ -166,6 +167,20 @@ class CheckoutController extends Controller
                         'created_at' => now(),
                         'updated_at' => now()
                     ]);
+                }
+            }
+
+            if (!empty($validated['extra_messages'])) {
+                foreach ($validated['extra_messages'] as $msg) {
+                    if ($msg) {
+                        DB::table('gift_messages')->insert([
+                            'order_id' => $order->id,
+                            'sender_name' => $customer->name,
+                            'message' => $msg,
+                            'created_at' => now(),
+                            'updated_at' => now()
+                        ]);
+                    }
                 }
             }
 

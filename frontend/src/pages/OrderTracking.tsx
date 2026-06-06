@@ -11,6 +11,7 @@ export default function OrderTracking() {
   const [error, setError] = useState('');
   
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [justification, setJustification] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
   const [uploadSuccess, setUploadSuccess] = useState('');
@@ -44,17 +45,18 @@ export default function OrderTracking() {
 
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!receiptFile || !orderNumber) return;
+    if ((!receiptFile && !justification.trim()) || !orderNumber) return;
     
     setIsUploading(true);
     setUploadError('');
     setUploadSuccess('');
     
     try {
-      const response = await orderApi.uploadReceipt(orderNumber, receiptFile);
+      const response = await orderApi.uploadReceipt(orderNumber, receiptFile, justification);
       setOrder(response.order);
       setUploadSuccess(response.message);
       setReceiptFile(null);
+      setJustification('');
     } catch (err: any) {
       setUploadError(err.response?.data?.message || 'حدث خطأ أثناء رفع الإيصال.');
     } finally {
@@ -141,30 +143,52 @@ export default function OrderTracking() {
                 <form onSubmit={handleUpload} className="space-y-4">
                   {uploadError && <p className="text-rose-500 text-sm font-medium">{uploadError}</p>}
                   
-                  <label className="block w-full border-2 border-dashed border-amber-300 bg-white hover:bg-amber-50 transition-colors p-6 rounded-2xl text-center cursor-pointer">
-                    <input 
-                      type="file" 
-                      accept=".jpg,.jpeg,.png,.pdf" 
-                      className="hidden" 
-                      onChange={e => setReceiptFile(e.target.files ? e.target.files[0] : null)}
-                    />
-                    <Upload className="w-8 h-8 text-amber-500 mx-auto mb-2" />
-                    {receiptFile ? (
-                      <span className="font-bold text-amber-900">{receiptFile.name}</span>
-                    ) : (
-                      <>
-                        <span className="block font-bold text-amber-700">اضغط لرفع الإيصال</span>
-                        <span className="text-xs text-amber-500 mt-1 block">صورة أو PDF (الحد الأقصى 5MB)</span>
-                      </>
-                    )}
-                  </label>
+                  <div className="space-y-4">
+                    <label className="block w-full border-2 border-dashed border-amber-300 bg-white hover:bg-amber-50 transition-colors p-6 rounded-2xl text-center cursor-pointer relative">
+                      <input 
+                        type="file" 
+                        accept=".jpg,.jpeg,.png,.pdf" 
+                        className="hidden" 
+                        onChange={e => setReceiptFile(e.target.files ? e.target.files[0] : null)}
+                      />
+                      <Upload className="w-8 h-8 text-amber-500 mx-auto mb-2" />
+                      {receiptFile ? (
+                        <span className="font-bold text-amber-900">{receiptFile.name}</span>
+                      ) : (
+                        <>
+                          <span className="block font-bold text-amber-700">اضغط لرفع الإيصال</span>
+                          <span className="text-xs text-amber-500 mt-1 block">صورة أو PDF (الحد الأقصى 5MB)</span>
+                        </>
+                      )}
+                    </label>
+
+                    <div className="relative">
+                      <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                        <div className="w-full border-t border-amber-200"></div>
+                      </div>
+                      <div className="relative flex justify-center">
+                        <span className="px-2 bg-white text-xs text-amber-500 font-bold">أو</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-bold text-amber-900 mb-2">اكتب مبررات التحويل بدلاً من رفع إيصال</label>
+                      <textarea
+                        value={justification}
+                        onChange={e => setJustification(e.target.value)}
+                        rows={2}
+                        className="w-full p-4 rounded-xl border border-amber-200 focus:ring-2 focus:ring-amber-500 outline-none text-sm resize-none"
+                        placeholder="اكتب توضيحك هنا..."
+                      />
+                    </div>
+                  </div>
 
                   <button 
                     type="submit" 
-                    disabled={!receiptFile || isUploading}
+                    disabled={(!receiptFile && !justification.trim()) || isUploading}
                     className="w-full bg-amber-500 text-white font-bold py-4 rounded-xl hover:bg-amber-600 transition-all shadow-lg shadow-amber-500/20 disabled:opacity-50"
                   >
-                    {isUploading ? 'جاري الرفع...' : 'تأكيد الحوالة'}
+                    {isUploading ? 'جاري التأكيد...' : 'تأكيد معلومات التحويل'}
                   </button>
                 </form>
               </motion.div>
@@ -173,8 +197,8 @@ export default function OrderTracking() {
             {/* Under Review Alert */}
             {underReview && (
               <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white p-8 rounded-3xl border-2 border-primary-200 shadow-xl shadow-primary-900/5 text-center">
-                <div className="w-20 h-20 bg-primary-50 text-primary-500 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <Clock className="w-10 h-10 animate-pulse" />
+                <div className="w-20 h-20 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <CheckCircle2 className="w-10 h-10" />
                 </div>
                 <h2 className="text-2xl font-bold text-primary-900 mb-2">جاري مراجعة الحوالة وتأكيد الطلب...</h2>
                 <p className="text-primary-600">شكراً لك! استلمنا إيصال الدفع وسنقوم بمراجعته والبدء بتجهيز طلبك في أقرب وقت.</p>
@@ -285,6 +309,41 @@ export default function OrderTracking() {
                 <span>{order.total} ر.س</span>
               </div>
             </div>
+
+            {/* Delivery Info */}
+            <div className="pt-6 border-t border-primary-100">
+              <h4 className="font-bold text-primary-900 mb-3 text-sm">معلومات الموقع والتوصيل</h4>
+              <p className="text-sm text-primary-600 font-medium">{order.delivery_type === 'pickup' ? 'استلام من الفرع' : order.address ? `${order.address.city}، ${order.address.street_address}` : 'غير متوفر'}</p>
+              {order.address?.recipient_phone && (
+                <p className="text-xs text-primary-500 mt-1">رقم المستلم: <span dir="ltr">{order.address.recipient_phone}</span></p>
+              )}
+            </div>
+
+            {/* Bank Transfer Info */}
+            {order.payment_method === 'bank_transfer' && (
+              <div className="pt-6 border-t border-primary-100">
+                <h4 className="font-bold text-primary-900 mb-3 text-sm">معلومات التحويل البنكي</h4>
+                <div className="bg-primary-50 p-4 rounded-xl border border-primary-100 space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-primary-500">البنك:</span>
+                    <strong className="text-primary-900">مصرف الراجحي</strong>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-primary-500">الحساب:</span>
+                    <strong className="text-primary-900">لافندر فلوريست للزهور</strong>
+                  </div>
+                  <div className="flex justify-between items-center mt-2 pt-2 border-t border-primary-200">
+                    <span className="text-primary-500">الآيبان:</span>
+                    <div className="flex items-center gap-2">
+                      <strong className="text-primary-900 font-mono text-[11px]" dir="ltr">SA00 0000 0000 0000 0000 0000</strong>
+                      <button onClick={() => handleCopy('SA0000000000000000000000')} className="text-primary-500 hover:text-primary-800">
+                        <Copy className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="pt-6 border-t border-primary-100 grid grid-cols-2 gap-4 text-sm">
               <div>

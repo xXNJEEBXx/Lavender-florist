@@ -34,8 +34,13 @@ class CustomerOrderController extends Controller
         }
 
         $request->validate([
-            'receipt' => 'required|file|mimes:jpeg,png,jpg,pdf|max:5120' // 5MB Max
+            'receipt' => 'nullable|file|mimes:jpeg,png,jpg,pdf|max:5120',
+            'justification' => 'nullable|string|max:1000'
         ]);
+
+        if (!$request->hasFile('receipt') && empty($request->justification)) {
+            throw ValidationException::withMessages(['receipt' => 'يجب إرفاق الإيصال أو كتابة مبرر التحويل']);
+        }
 
         if ($request->hasFile('receipt')) {
             // Delete old receipt if exists
@@ -45,14 +50,17 @@ class CustomerOrderController extends Controller
 
             $path = $request->file('receipt')->store('receipts', 'public');
             $order->bank_transfer_receipt = '/storage/' . $path;
-            $order->save();
-
-            return response()->json([
-                'message' => 'تم رفع الإيصال بنجاح. جاري مراجعة الطلب.',
-                'order' => $order
-            ]);
         }
 
-        throw ValidationException::withMessages(['receipt' => 'فشل رفع الإيصال']);
+        if ($request->filled('justification')) {
+            $order->notes = $order->notes . "\n\nمبرر التحويل: " . $request->justification;
+        }
+
+        $order->save();
+
+        return response()->json([
+            'message' => 'تم استلام معلومات التحويل بنجاح. جاري مراجعة الطلب.',
+            'order' => $order
+        ]);
     }
 }

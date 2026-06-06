@@ -141,9 +141,10 @@ export const orderApi = {
     const response = await api.get(`/orders/${orderNumber}`);
     return response.data;
   },
-  uploadReceipt: async (orderNumber: string, file: File) => {
+  uploadReceipt: async (orderNumber: string, file: File | null, justification?: string) => {
     const formData = new FormData();
-    formData.append('receipt', file);
+    if (file) formData.append('receipt', file);
+    if (justification) formData.append('justification', justification);
     const response = await api.post(`/orders/${orderNumber}/receipt`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
