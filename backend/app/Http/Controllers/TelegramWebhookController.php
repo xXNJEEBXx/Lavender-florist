@@ -205,8 +205,8 @@ class TelegramWebhookController extends Controller
             $this->telegram->editMessageText($chatId, $messageId, $newText, $replyMarkup);
             
             if ($address->door_image_path) {
-                $doorImageUrl = url($address->door_image_path);
-                $this->telegram->sendPhoto($chatId, $doorImageUrl, "🚪 صورة باب العميل للطلب: {$order->order_number}");
+                $doorImagePath = public_path($address->door_image_path);
+                $this->telegram->sendPhoto($chatId, $doorImagePath, "🚪 صورة باب العميل للطلب: {$order->order_number}");
             }
             return;
         }
@@ -246,8 +246,8 @@ class TelegramWebhookController extends Controller
         $this->telegram->editMessageText($chatId, $messageId, $newText, $replyMarkup);
         
         if ($address->door_image_path) {
-            $doorImageUrl = url($address->door_image_path);
-            $this->telegram->sendPhoto($chatId, $doorImageUrl, "🚪 صورة باب العميل للطلب: {$order->order_number}");
+            $doorImagePath = public_path($address->door_image_path);
+            $this->telegram->sendPhoto($chatId, $doorImagePath, "🚪 صورة باب العميل للطلب: {$order->order_number}");
         }
     }
 
@@ -345,7 +345,7 @@ class TelegramWebhookController extends Controller
             'delivered_at' => now(),
         ]);
 
-        $this->telegram->answerCallbackQuery($callbackQueryId, 'تم تسليم الطلب بنجاح! عمل رائع 🌟', true);
+        $this->telegram->answerCallbackQuery($callbackQueryId, 'تم تسليم الطلب بنجاح! عمل رائع 🌟');
 
         // Calculate driver earnings
         $totalEarnings = Order::where('driver_id', $driver->id)
@@ -363,6 +363,6 @@ class TelegramWebhookController extends Controller
         $newText .= "شكراً لك {$driver->name} على مجهودك. 🌸\n\n";
         $newText .= "💰 <b>إجمالي مبالغك المستحقة:</b> {$totalEarnings} ر.س";
 
-        $this->telegram->editMessageText($chatId, $messageId, $newText, null); // Remove keyboard
+        $this->telegram->editMessageText($chatId, $messageId, $newText, ['inline_keyboard' => []]); // Remove keyboard
     }
 }

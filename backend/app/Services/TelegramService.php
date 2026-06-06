@@ -32,9 +32,9 @@ class TelegramService
 
     public function sendPhoto($chatId, $photo, $caption = null, $replyMarkup = null)
     {
+        $url = "{$this->apiUrl}/sendPhoto";
         $payload = [
             'chat_id' => $chatId,
-            'photo' => $photo,
             'parse_mode' => 'HTML',
         ];
 
@@ -46,7 +46,25 @@ class TelegramService
             $payload['reply_markup'] = json_encode($replyMarkup);
         }
 
-        return Http::post("{$this->apiUrl}/sendPhoto", $payload)->json();
+        if (file_exists($photo)) {
+            $response = Http::attach(
+                'photo', file_get_contents($photo), basename($photo)
+            )->post($url, $payload);
+            return $response->json();
+        }
+
+        $payload['photo'] = $photo;
+        $response = Http::post($url, $payload);
+        
+        if (!$response->successful()) {
+            \Illuminate\Support\Facades\Log::error('Telegram sendPhoto failed', [
+                'status' => $response->status(),
+                'response' => $response->json(),
+                'payload' => $payload,
+            ]);
+        }
+        
+        return $response->json();
     }
 
     public function editMessageText($chatId, $messageId, $text, $replyMarkup = null)
