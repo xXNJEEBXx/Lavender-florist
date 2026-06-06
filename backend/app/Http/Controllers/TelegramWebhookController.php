@@ -77,6 +77,12 @@ class TelegramWebhookController extends Controller
         } elseif (str_starts_with($data, 'picked_up_order_')) {
             $orderId = str_replace('picked_up_order_', '', $data);
             $this->pickedUpOrder($orderId, $driver, $chatId, $messageId, $callbackQueryId);
+        } elseif (str_starts_with($data, 'ask_deliver_order_')) {
+            $orderId = str_replace('ask_deliver_order_', '', $data);
+            $this->askDeliverOrder($orderId, $driver, $chatId, $messageId, $callbackQueryId);
+        } elseif (str_starts_with($data, 'cancel_deliver_order_')) {
+            $orderId = str_replace('cancel_deliver_order_', '', $data);
+            $this->cancelDeliverOrder($orderId, $driver, $chatId, $messageId, $callbackQueryId);
         } elseif (str_starts_with($data, 'delivered_order_')) {
             $orderId = str_replace('delivered_order_', '', $data);
             $this->markAsDelivered($orderId, $driver, $chatId, $messageId, $callbackQueryId);
@@ -183,10 +189,7 @@ class TelegramWebhookController extends Controller
             $newText .= "رقم الطلب: <b>{$order->order_number}</b>\n";
             $newText .= "العميل: {$address->recipient_name} ({$address->recipient_phone})\n";
             $newText .= "العنوان: {$address->city}, {$address->street}\n";
-            if ($address->door_image_path) {
-                $doorImageUrl = url($address->door_image_path);
-                $newText .= "صورة الباب: <a href=\"{$doorImageUrl}\">اضغط هنا للمشاهدة</a>\n";
-            }
+            
             $newText .= "\nالرجاء الضغط على الزر أدناه عند وصولك وتسليم الطلب للعميل.";
 
             $replyMarkup = [
@@ -195,11 +198,16 @@ class TelegramWebhookController extends Controller
                         ['text' => '📍 موقع العميل (خرائط جوجل)', 'url' => $mapsUrl]
                     ],
                     [
-                        ['text' => '✅ تم تسليم الطلب للعميل', 'callback_data' => "delivered_order_{$order->id}"]
+                        ['text' => '✅ تم تسليم الطلب للعميل', 'callback_data' => "ask_deliver_order_{$order->id}"]
                     ]
                 ]
             ];
             $this->telegram->editMessageText($chatId, $messageId, $newText, $replyMarkup);
+            
+            if ($address->door_image_path) {
+                $doorImageUrl = url($address->door_image_path);
+                $this->telegram->sendPhoto($chatId, $doorImageUrl, "🚪 صورة باب العميل للطلب: {$order->order_number}");
+            }
             return;
         }
 
@@ -221,10 +229,7 @@ class TelegramWebhookController extends Controller
         $newText .= "رقم الطلب: <b>{$order->order_number}</b>\n";
         $newText .= "العميل: {$address->recipient_name} ({$address->recipient_phone})\n";
         $newText .= "العنوان: {$address->city}, {$address->street}\n";
-        if ($address->door_image_path) {
-            $doorImageUrl = url($address->door_image_path);
-            $newText .= "صورة الباب: <a href=\"{$doorImageUrl}\">اضغط هنا للمشاهدة</a>\n";
-        }
+        
         $newText .= "\nالرجاء الضغط على الزر أدناه عند وصولك وتسليم الطلب للعميل.";
 
         $replyMarkup = [
@@ -233,7 +238,81 @@ class TelegramWebhookController extends Controller
                     ['text' => '📍 موقع العميل (خرائط جوجل)', 'url' => $mapsUrl]
                 ],
                 [
-                    ['text' => '✅ تم تسليم الطلب للعميل', 'callback_data' => "delivered_order_{$order->id}"]
+                    ['text' => '✅ تم تسليم الطلب للعميل', 'callback_data' => "ask_deliver_order_{$order->id}"]
+                ]
+            ]
+        ];
+
+        $this->telegram->editMessageText($chatId, $messageId, $newText, $replyMarkup);
+        
+        if ($address->door_image_path) {
+            $doorImageUrl = url($address->door_image_path);
+            $this->telegram->sendPhoto($chatId, $doorImageUrl, "🚪 صورة باب العميل للطلب: {$order->order_number}");
+        }
+    }
+
+    protected function askDeliverOrder($orderId, $driver, $chatId, $messageId, $callbackQueryId)
+    {
+        $order = Order::with('address')->find($orderId);
+        
+        if (!$order) {
+            $this->telegram->answerCallbackQuery($callbackQueryId, 'الطلب غير موجود!', true);
+            return;
+        }
+
+        $address = $order->address;
+        $mapsUrl = $address->latitude && $address->longitude 
+            ? "https://maps.google.com/?q={$address->latitude},{$address->longitude}"
+            : "https://maps.google.com/?q=" . urlencode($address->street);
+
+        $newText = "🚗 <b>جاري التوصيل للعميل!</b>\n\n";
+        $newText .= "رقم الطلب: <b>{$order->order_number}</b>\n";
+        $newText .= "العميل: {$address->recipient_name} ({$address->recipient_phone})\n";
+        $newText .= "العنوان: {$address->city}, {$address->street}\n";
+        $newText .= "\n⚠️ <b>هل أنت متأكد أنك قمت بتسليم الطلب للعميل؟</b>";
+
+        $replyMarkup = [
+            'inline_keyboard' => [
+                [
+                    ['text' => '📍 موقع العميل (خرائط جوجل)', 'url' => $mapsUrl]
+                ],
+                [
+                    ['text' => '✅ نعم، متأكد من التسليم', 'callback_data' => "delivered_order_{$order->id}"],
+                    ['text' => '❌ تراجع', 'callback_data' => "cancel_deliver_order_{$order->id}"]
+                ]
+            ]
+        ];
+
+        $this->telegram->editMessageText($chatId, $messageId, $newText, $replyMarkup);
+    }
+
+    protected function cancelDeliverOrder($orderId, $driver, $chatId, $messageId, $callbackQueryId)
+    {
+        $order = Order::with('address')->find($orderId);
+        
+        if (!$order) {
+            $this->telegram->answerCallbackQuery($callbackQueryId, 'الطلب غير موجود!', true);
+            return;
+        }
+
+        $address = $order->address;
+        $mapsUrl = $address->latitude && $address->longitude 
+            ? "https://maps.google.com/?q={$address->latitude},{$address->longitude}"
+            : "https://maps.google.com/?q=" . urlencode($address->street);
+
+        $newText = "🚗 <b>جاري التوصيل للعميل!</b>\n\n";
+        $newText .= "رقم الطلب: <b>{$order->order_number}</b>\n";
+        $newText .= "العميل: {$address->recipient_name} ({$address->recipient_phone})\n";
+        $newText .= "العنوان: {$address->city}, {$address->street}\n";
+        $newText .= "\nالرجاء الضغط على الزر أدناه عند وصولك وتسليم الطلب للعميل.";
+
+        $replyMarkup = [
+            'inline_keyboard' => [
+                [
+                    ['text' => '📍 موقع العميل (خرائط جوجل)', 'url' => $mapsUrl]
+                ],
+                [
+                    ['text' => '✅ تم تسليم الطلب للعميل', 'callback_data' => "ask_deliver_order_{$order->id}"]
                 ]
             ]
         ];
@@ -260,7 +339,7 @@ class TelegramWebhookController extends Controller
             return;
         }
 
-        // Complete the order
+        // Mark as delivered
         $order->update([
             'status' => 'delivered',
             'delivered_at' => now(),
@@ -273,9 +352,14 @@ class TelegramWebhookController extends Controller
             ->where('status', 'delivered')
             ->sum('delivery_fee');
 
+        $address = $order->address;
+        
         // Update the message
-        $newText = "🎉 <b>اكتمل الطلب!</b>\n\n";
-        $newText .= "رقم الطلب: {$order->order_number}\n";
+        $newText = "🎉 <b>اكتمل الطلب بنجاح!</b>\n\n";
+        $newText .= "رقم الطلب: <b>{$order->order_number}</b>\n";
+        if ($address) {
+            $newText .= "العميل: {$address->recipient_name} ({$address->recipient_phone})\n\n";
+        }
         $newText .= "شكراً لك {$driver->name} على مجهودك. 🌸\n\n";
         $newText .= "💰 <b>إجمالي مبالغك المستحقة:</b> {$totalEarnings} ر.س";
 

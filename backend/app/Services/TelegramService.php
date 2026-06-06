@@ -30,6 +30,25 @@ class TelegramService
         return Http::post("{$this->apiUrl}/sendMessage", $payload)->json();
     }
 
+    public function sendPhoto($chatId, $photo, $caption = null, $replyMarkup = null)
+    {
+        $payload = [
+            'chat_id' => $chatId,
+            'photo' => $photo,
+            'parse_mode' => 'HTML',
+        ];
+
+        if ($caption) {
+            $payload['caption'] = $caption;
+        }
+
+        if ($replyMarkup) {
+            $payload['reply_markup'] = json_encode($replyMarkup);
+        }
+
+        return Http::post("{$this->apiUrl}/sendPhoto", $payload)->json();
+    }
+
     public function editMessageText($chatId, $messageId, $text, $replyMarkup = null)
     {
         $payload = [
