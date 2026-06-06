@@ -82,13 +82,14 @@ export default function OrdersList() {
 
   const loadOrders = async (silent = false) => {
     try {
-      if (!silent) setIsLoading(true);
+      if (!silent && orders.length === 0) setIsLoading(true);
       const filterParam = statusFilter === 'incomplete' ? 'incomplete' : 'all';
       const data = await adminOrdersApi.getAll(filterParam, page);
       setOrders(data.data);
       setTotalPages(data.last_page);
-      setTotalCount(data.total);
+      
       if (statusFilter === 'all') {
+        setTotalCount(data.total);
         try {
           const inc = await adminOrdersApi.getAll('incomplete', 1);
           setIncompleteCount(inc.total);
@@ -113,7 +114,7 @@ export default function OrdersList() {
     loadOrdersRef.current = loadOrders;
   });
 
-  useEffect(() => { loadOrders(); }, [statusFilter, page]);
+  useEffect(() => { loadOrders(true); }, [statusFilter, page]);
 
   useEffect(() => {
     const id = setInterval(() => {

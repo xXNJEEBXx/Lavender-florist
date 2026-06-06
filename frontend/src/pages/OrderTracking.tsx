@@ -17,17 +17,17 @@ export default function OrderTracking() {
 
   useEffect(() => {
     if (orderNumber) {
-      loadOrder();
+      loadOrder(true);
       // Auto-refresh every 10 seconds
-      const id = setInterval(loadOrder, 10000);
+      const id = setInterval(() => loadOrder(false), 10000);
       return () => clearInterval(id);
     }
   }, [orderNumber]);
 
-  const loadOrder = async () => {
+  const loadOrder = async (showLoading = false) => {
     try {
       // Don't show loading on subsequent fetches to avoid flicker
-      if (!order) setIsLoading(true);
+      if (showLoading) setIsLoading(true);
       const data = await orderApi.getOrderByNumber(orderNumber!);
       setOrder(data);
     } catch (err: any) {
