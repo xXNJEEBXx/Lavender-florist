@@ -217,4 +217,11 @@ export const customerApi = {
   deleteAddress: (id: number) => api.delete(`/addresses/${id}`).then(res => res.data),
 };
 
+export const adminsApi = {
+  getAdmins: () => api.get('/admin/admins').then(res => res.data),
+  addAdmin: (data: any) => api.post('/admin/admins', data).then(res => res.data),
+  updateAdmin: (id: number, data: any) => api.put(`/admin/admins/${id}`, data).then(res => res.data),
+  deleteAdmin: (id: number) => api.delete(`/admin/admins/${id}`).then(res => res.data),
+};
+
 export default api;

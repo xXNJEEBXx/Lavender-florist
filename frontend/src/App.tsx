@@ -21,6 +21,7 @@ import DriversList from '@/pages/admin/DriversList';
 import AdminBreaks from '@/pages/admin/AdminBreaks';
 import AdminWorkingHours from '@/pages/admin/AdminWorkingHours';
 import AdminSettings from '@/pages/admin/AdminSettings';
+import AdminsList from '@/pages/admin/AdminsList';
 
 import { AuthProvider } from '@/store/AuthContext';
 import { CartProvider } from '@/store/CartContext';
@@ -65,6 +66,7 @@ function App() {
               <Route path="breaks" element={<AdminBreaks />} />
               <Route path="working-hours" element={<AdminWorkingHours />} />
               <Route path="settings" element={<AdminSettings />} />
+              <Route path="admins" element={<AdminsList />} />
             </Route>
           </Routes>
         </Router>

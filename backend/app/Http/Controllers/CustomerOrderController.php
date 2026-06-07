@@ -68,6 +68,13 @@ class CustomerOrderController extends Controller
 
         $order->save();
 
+        // Notify admins via Telegram about the uploaded receipt
+        try {
+            \App\Http\Controllers\TelegramWebhookController::notifyAdminsNewOrder($order);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to notify admins via Telegram (receipt upload)', ['error' => $e->getMessage()]);
+        }
+
         return response()->json([
             'message' => 'تم استلام بيانات التحويل بنجاح. جاري مراجعة الطلب.',
             'order' => $order

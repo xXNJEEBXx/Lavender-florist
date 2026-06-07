@@ -11,7 +11,8 @@ import {
   Truck,
   Clock,
   CalendarOff,
-  Plus
+  Plus,
+  ShieldCheck
 } from 'lucide-react';
 
 interface AdminSidebarProps {
@@ -28,6 +29,7 @@ export default function AdminSidebar({ isOpen = true }: AdminSidebarProps) {
     { name: 'إنشاء طلب يدوي', path: '/admin/orders/manual', icon: <Plus size={20} /> },
     { name: 'المناديب', path: '/admin/drivers', icon: <Truck size={20} /> },
     { name: 'العملاء', path: '/admin/customers', icon: <Users size={20} /> },
+    { name: 'المشرفين', path: '/admin/admins', icon: <ShieldCheck size={20} /> },
     { name: 'الإعدادات', path: '/admin/settings', icon: <Settings size={20} /> },
   ];
 

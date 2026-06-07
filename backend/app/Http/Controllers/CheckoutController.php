@@ -202,10 +202,12 @@ class CheckoutController extends Controller
             ]);
 
             // Notify admins via Telegram
-            try {
-                TelegramWebhookController::notifyAdminsNewOrder($order);
-            } catch (\Exception $e) {
-                \Illuminate\Support\Facades\Log::error('Failed to notify admins via Telegram', ['error' => $e->getMessage()]);
+            if ($order->payment_method !== 'bank_transfer') {
+                try {
+                    TelegramWebhookController::notifyAdminsNewOrder($order);
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error('Failed to notify admins via Telegram', ['error' => $e->getMessage()]);
+                }
             }
 
             return response()->json([

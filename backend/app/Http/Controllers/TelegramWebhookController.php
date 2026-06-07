@@ -459,6 +459,9 @@ class TelegramWebhookController extends Controller
         $deliveryType = $deliveryTypes[$order->delivery_type] ?? $order->delivery_type;
 
         $text = "🔔 <b>طلب جديد!</b>\n\n";
+        if ($order->payment_method === 'bank_transfer' && ($order->bank_transfer_receipt || $order->payment_justification)) {
+            $text = "💳 <b>تم إرفاق إيصال تحويل لطلب!</b>\n\n";
+        }
         $text .= "📦 رقم الطلب: <b>{$order->order_number}</b>\n";
         $text .= "👤 العميل: {$customerName}\n";
         $text .= "📱 الجوال: {$customerPhone}\n\n";

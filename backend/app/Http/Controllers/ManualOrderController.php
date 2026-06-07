@@ -395,10 +395,12 @@ class ManualOrderController extends Controller
             ]);
 
             // Notify admins via Telegram
-            try {
-                TelegramWebhookController::notifyAdminsNewOrder($order);
-            } catch (\Exception $e) {
-                \Illuminate\Support\Facades\Log::error('Failed to notify admins via Telegram (manual order)', ['error' => $e->getMessage()]);
+            if ($order->payment_method !== 'bank_transfer' || $order->payment_status === 'paid') {
+                try {
+                    \App\Http\Controllers\TelegramWebhookController::notifyAdminsNewOrder($order);
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error('Failed to notify admins via Telegram (manual order)', ['error' => $e->getMessage()]);
+                }
             }
 
             return response()->json([

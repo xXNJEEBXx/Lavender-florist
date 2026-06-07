@@ -158,10 +158,12 @@ class SharedOrderController extends Controller
         $order->save();
 
         // Notify admins via Telegram
-        try {
-            TelegramWebhookController::notifyAdminsNewOrder($order);
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Failed to notify admins via Telegram (shared order)', ['error' => $e->getMessage()]);
+        if ($order->payment_method !== 'bank_transfer') {
+            try {
+                TelegramWebhookController::notifyAdminsNewOrder($order);
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('Failed to notify admins via Telegram (shared order)', ['error' => $e->getMessage()]);
+            }
         }
 
         $tokenStr = null;
