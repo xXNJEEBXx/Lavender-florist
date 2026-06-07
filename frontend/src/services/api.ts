@@ -148,6 +148,14 @@ export const adminSettingsApi = {
   deleteBreak: async (id: number) => {
     const { data } = await api.delete(`/admin/breaks/${id}`);
     return data;
+  },
+  getTelegram: async () => {
+    const { data } = await api.get('/admin/settings/telegram');
+    return data;
+  },
+  updateTelegram: async (payload: any) => {
+    const { data } = await api.put('/admin/settings/telegram', payload);
+    return data;
   }
 };
 
@@ -207,11 +215,6 @@ export const customerApi = {
     return api.put(`/addresses/${id}`, data).then(res => res.data);
   },
   deleteAddress: (id: number) => api.delete(`/addresses/${id}`).then(res => res.data),
-};
-
-export const adminSettingsApi = {
-  getTelegram: () => api.get('/admin/settings/telegram').then(res => res.data),
-  updateTelegram: (data: any) => api.put('/admin/settings/telegram', data).then(res => res.data),
 };
 
 export default api;
