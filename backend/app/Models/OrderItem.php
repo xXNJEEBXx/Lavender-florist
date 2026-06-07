@@ -15,5 +15,13 @@ class OrderItem extends Model
 
     public function order()      { return $this->belongsTo(Order::class); }
     public function product()    { return $this->belongsTo(Product::class); }
-    public function components() { return $this->hasMany(OrderItemComponent::class); }
+    public function components()
+    {
+        return $this->hasMany(OrderItemComponent::class);
+    }
+
+    public function giftMessage()
+    {
+        return $this->hasOne(GiftMessage::class);
+    }
 }

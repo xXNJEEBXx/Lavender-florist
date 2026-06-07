@@ -185,15 +185,15 @@ export default function DriversList() {
                     <td className="px-6 py-4 font-bold text-amber-600">
                       {driver.balance} ر.س
                     </td>
-                    <td className="px-6 py-4 text-center">
+                    <td className="px-6 py-4">
                       <div className="flex items-center justify-center gap-2">
+                        <button onClick={() => handleOpenModal(driver)} title="تعديل المندوب" className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                          <Edit2 className="w-4 h-4" />
+                        </button>
                         <button onClick={() => handlePayOpen(driver)} title="تسديد المستحقات" className="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors">
                           <Wallet className="w-4 h-4" />
                         </button>
-                        <button onClick={() => handleOpenModal(driver)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button onClick={() => handleDelete(driver.id)} className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors">
+                        <button onClick={() => handleDelete(driver.id)} title="حذف المندوب" className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors">
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>

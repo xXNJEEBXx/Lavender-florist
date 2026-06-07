@@ -69,8 +69,10 @@ export const adminComponentsApi = {
 };
 
 export const storeApi = {
-  getQueueStatus: async () => {
-    const { data } = await api.get('/store/queue-status');
+  getQueueStatus: async (prepMinutes: number = 0, deliveryType: string = 'pickup', deliverySpeed: string = 'standard') => {
+    const { data } = await api.get('/store/queue-status', {
+      params: { prep_minutes: prepMinutes, delivery_type: deliveryType, delivery_speed: deliverySpeed }
+    });
     return data;
   },
   getAvailableSlots: async (prepMinutes: number, deliveryType: string, deliverySpeed: string) => {
@@ -92,6 +94,10 @@ export const adminOrdersApi = {
   getById: (id: number) => api.get(`/admin/orders/${id}`).then(res => res.data),
   verifyPayment: async (id: number) => {
     const { data } = await api.post(`/admin/orders/${id}/verify-payment`);
+    return data;
+  },
+  updateFull: async (id: number, orderData: any) => {
+    const { data } = await api.put(`/admin/orders/${id}/full`, orderData);
     return data;
   },
   updateStatus: async (id: number, status: string) => {
@@ -141,10 +147,11 @@ export const orderApi = {
     const response = await api.get(`/orders/${orderNumber}`);
     return response.data;
   },
-  uploadReceipt: async (orderNumber: string, file: File | null, justification?: string) => {
+  uploadReceipt: async (orderNumber: string, file: File | null, paymentJustification?: string) => {
     const formData = new FormData();
     if (file) formData.append('receipt', file);
-    if (justification) formData.append('justification', justification);
+    if (paymentJustification) formData.append('payment_justification', paymentJustification);
+    
     const response = await api.post(`/orders/${orderNumber}/receipt`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data'

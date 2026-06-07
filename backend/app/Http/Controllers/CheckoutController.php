@@ -34,10 +34,7 @@ class CheckoutController extends Controller
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.quantity' => 'required|integer|min:1',
-            'items.*.gift_message' => 'nullable|string',
-            
-            'extra_messages' => 'nullable|array',
-            'extra_messages.*' => 'nullable|string'
+            'items.*.gift_message' => 'nullable|string'
         ]);
 
         return DB::transaction(function () use ($validated, $request) {
@@ -162,25 +159,12 @@ class CheckoutController extends Controller
                 if ($giftMessage) {
                     DB::table('gift_messages')->insert([
                         'order_id' => $order->id,
+                        'order_item_id' => $orderItem->id,
                         'sender_name' => $customer->name,
                         'message' => $giftMessage,
                         'created_at' => now(),
                         'updated_at' => now()
                     ]);
-                }
-            }
-
-            if (!empty($validated['extra_messages'])) {
-                foreach ($validated['extra_messages'] as $msg) {
-                    if ($msg) {
-                        DB::table('gift_messages')->insert([
-                            'order_id' => $order->id,
-                            'sender_name' => $customer->name,
-                            'message' => $msg,
-                            'created_at' => now(),
-                            'updated_at' => now()
-                        ]);
-                    }
                 }
             }
 

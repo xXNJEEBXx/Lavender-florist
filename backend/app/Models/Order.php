@@ -54,5 +54,5 @@ class Order extends Model
     public function coupon()         { return $this->belongsTo(Coupon::class); }
     public function items()          { return $this->hasMany(OrderItem::class); }
     public function statusHistory()  { return $this->hasMany(OrderStatusHistory::class); }
-    public function giftMessage()    { return $this->hasOne(GiftMessage::class); }
+    public function giftMessages()   { return $this->hasMany(GiftMessage::class); }
 }

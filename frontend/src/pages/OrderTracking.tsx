@@ -1,8 +1,63 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { CheckCircle2, Copy, FileText, Upload, Clock, Package, Truck } from 'lucide-react';
+import { CheckCircle2, Copy, FileText, Upload, Clock, Package, Truck, MapPin } from 'lucide-react';
 import { orderApi } from '../services/api';
+
+function DeliveryTimeDisplay({ order }: { order: any }) {
+  if (order.status === 'delivered' || order.status === 'cancelled') return null;
+  if (order.delivery_type === 'pickup') return null;
+
+  let targetTime: Date | null = null;
+  
+  if (order.scheduled_at) {
+    targetTime = new Date(order.scheduled_at);
+  } else if (order.delivery_minutes) {
+    // Local delivery ASAP
+    const baseTime = order.confirmed_at ? new Date(order.confirmed_at) : new Date(order.created_at);
+    targetTime = new Date(baseTime.getTime() + order.delivery_minutes * 60000);
+  } else if (order.estimated_delivery_at) {
+     targetTime = new Date(order.estimated_delivery_at);
+  }
+
+  if (!targetTime) return null;
+
+  const dateStr = targetTime.toLocaleDateString('ar-SA', { 
+    weekday: 'long', 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  });
+  
+  const timeStr = targetTime.toLocaleTimeString('ar-SA', { 
+    hour: '2-digit', 
+    minute: '2-digit' 
+  });
+
+  return (
+    <div className="bg-gradient-to-br from-primary-900 to-primary-800 text-white p-6 rounded-3xl shadow-xl shadow-primary-900/10 flex flex-col sm:flex-row items-center justify-between gap-6 overflow-hidden relative border border-primary-700">
+      <div className="absolute -right-10 -top-10 w-40 h-40 bg-primary-600/30 rounded-full blur-3xl pointer-events-none"></div>
+      
+      <div className="relative z-10 flex items-center gap-5 w-full sm:w-auto">
+        <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center shrink-0 border border-white/20 shadow-inner">
+          <Clock className="w-7 h-7 text-primary-200" />
+        </div>
+        <div>
+          <h2 className="text-primary-200 text-sm mb-1">
+            {order.scheduled_at ? 'موعد التسليم المجدول' : 'الوقت المتوقع للتسليم'}
+          </h2>
+          <p className="text-xl font-bold" dir="ltr">
+            {timeStr}
+          </p>
+        </div>
+      </div>
+
+      <div className="relative z-10 bg-white/10 backdrop-blur-sm px-5 py-3 rounded-xl border border-white/10 shadow-sm w-full sm:w-auto text-center">
+        <span className="text-sm font-medium text-white">{dateStr}</span>
+      </div>
+    </div>
+  );
+}
 
 export default function OrderTracking() {
   const { orderNumber } = useParams<{ orderNumber: string }>();
@@ -11,7 +66,7 @@ export default function OrderTracking() {
   const [error, setError] = useState('');
   
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
-  const [justification, setJustification] = useState('');
+  const [paymentJustification, setPaymentJustification] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
   const [uploadSuccess, setUploadSuccess] = useState('');
@@ -45,20 +100,20 @@ export default function OrderTracking() {
 
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
-    if ((!receiptFile && !justification.trim()) || !orderNumber) return;
+    if ((!receiptFile && !paymentJustification) || !orderNumber) return;
     
     setIsUploading(true);
     setUploadError('');
     setUploadSuccess('');
     
     try {
-      const response = await orderApi.uploadReceipt(orderNumber, receiptFile, justification);
+      const response = await orderApi.uploadReceipt(orderNumber, receiptFile, paymentJustification);
       setOrder(response.order);
       setUploadSuccess(response.message);
       setReceiptFile(null);
-      setJustification('');
+      setPaymentJustification('');
     } catch (err: any) {
-      setUploadError(err.response?.data?.message || 'حدث خطأ أثناء رفع الإيصال.');
+      setUploadError(err.response?.data?.message || 'حدث خطأ أثناء إرسال البيانات.');
     } finally {
       setIsUploading(false);
     }
@@ -84,8 +139,8 @@ export default function OrderTracking() {
     );
   }
 
-  const needsTransfer = order.payment_method === 'bank_transfer' && !order.bank_transfer_receipt;
-  const underReview = order.payment_method === 'bank_transfer' && order.bank_transfer_receipt && order.status === 'pending';
+  const needsTransfer = order.payment_method === 'bank_transfer' && !order.bank_transfer_receipt && !order.payment_justification;
+  const underReview = order.payment_method === 'bank_transfer' && (order.bank_transfer_receipt || order.payment_justification) && order.status === 'pending';
   
   const statusOrder = ['pending', 'preparing', 'ready', 'delivering', 'delivered'];
   const currentStepIndex = statusOrder.indexOf(order.status);
@@ -102,6 +157,8 @@ export default function OrderTracking() {
           
           {/* Status Column */}
           <div className="space-y-6">
+
+            <DeliveryTimeDisplay order={order} />
             
             {/* Needs Transfer Alert */}
             {needsTransfer && (
@@ -143,52 +200,47 @@ export default function OrderTracking() {
                 <form onSubmit={handleUpload} className="space-y-4">
                   {uploadError && <p className="text-rose-500 text-sm font-medium">{uploadError}</p>}
                   
-                  <div className="space-y-4">
-                    <label className="block w-full border-2 border-dashed border-amber-300 bg-white hover:bg-amber-50 transition-colors p-6 rounded-2xl text-center cursor-pointer relative">
-                      <input 
-                        type="file" 
-                        accept=".jpg,.jpeg,.png,.pdf" 
-                        className="hidden" 
-                        onChange={e => setReceiptFile(e.target.files ? e.target.files[0] : null)}
-                      />
-                      <Upload className="w-8 h-8 text-amber-500 mx-auto mb-2" />
-                      {receiptFile ? (
-                        <span className="font-bold text-amber-900">{receiptFile.name}</span>
-                      ) : (
-                        <>
-                          <span className="block font-bold text-amber-700">اضغط لرفع الإيصال</span>
-                          <span className="text-xs text-amber-500 mt-1 block">صورة أو PDF (الحد الأقصى 5MB)</span>
-                        </>
-                      )}
-                    </label>
+                  <label className="block w-full border-2 border-dashed border-amber-300 bg-white hover:bg-amber-50 transition-colors p-6 rounded-2xl text-center cursor-pointer">
+                    <input 
+                      type="file" 
+                      accept=".jpg,.jpeg,.png,.pdf" 
+                      className="hidden" 
+                      onChange={e => setReceiptFile(e.target.files ? e.target.files[0] : null)}
+                    />
+                    <Upload className="w-8 h-8 text-amber-500 mx-auto mb-2" />
+                    {receiptFile ? (
+                      <span className="font-bold text-amber-900">{receiptFile.name}</span>
+                    ) : (
+                      <>
+                        <span className="block font-bold text-amber-700">اضغط لرفع الإيصال</span>
+                        <span className="text-xs text-amber-500 mt-1 block">صورة أو PDF (الحد الأقصى 5MB)</span>
+                      </>
+                    )}
+                  </label>
 
-                    <div className="relative">
-                      <div className="absolute inset-0 flex items-center" aria-hidden="true">
-                        <div className="w-full border-t border-amber-200"></div>
-                      </div>
-                      <div className="relative flex justify-center">
-                        <span className="px-2 bg-white text-xs text-amber-500 font-bold">أو</span>
-                      </div>
-                    </div>
+                  <div className="relative flex items-center py-2">
+                    <div className="flex-grow border-t border-amber-200"></div>
+                    <span className="shrink-0 px-4 text-amber-500 text-sm font-bold">أو</span>
+                    <div className="flex-grow border-t border-amber-200"></div>
+                  </div>
 
-                    <div>
-                      <label className="block text-sm font-bold text-amber-900 mb-2">اكتب مبررات التحويل بدلاً من رفع إيصال</label>
-                      <textarea
-                        value={justification}
-                        onChange={e => setJustification(e.target.value)}
-                        rows={2}
-                        className="w-full p-4 rounded-xl border border-amber-200 focus:ring-2 focus:ring-amber-500 outline-none text-sm resize-none"
-                        placeholder="اكتب توضيحك هنا..."
-                      />
-                    </div>
+                  <div>
+                    <label className="block text-sm font-bold text-amber-900 mb-2">اكتب مبرر التحويل (إن تعذر رفع الإيصال)</label>
+                    <textarea 
+                      value={paymentJustification}
+                      onChange={e => setPaymentJustification(e.target.value)}
+                      placeholder="مثال: حولت من حساب باسم فلان الفلاني..."
+                      className="w-full bg-white border border-amber-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 resize-none"
+                      rows={3}
+                    />
                   </div>
 
                   <button 
                     type="submit" 
-                    disabled={(!receiptFile && !justification.trim()) || isUploading}
+                    disabled={(!receiptFile && !paymentJustification) || isUploading}
                     className="w-full bg-amber-500 text-white font-bold py-4 rounded-xl hover:bg-amber-600 transition-all shadow-lg shadow-amber-500/20 disabled:opacity-50"
                   >
-                    {isUploading ? 'جاري التأكيد...' : 'تأكيد معلومات التحويل'}
+                    {isUploading ? 'جاري الإرسال...' : 'تأكيد الحوالة'}
                   </button>
                 </form>
               </motion.div>
@@ -196,19 +248,20 @@ export default function OrderTracking() {
 
             {/* Under Review Alert */}
             {underReview && (
-              <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white p-8 rounded-3xl border-2 border-primary-200 shadow-xl shadow-primary-900/5 text-center">
-                <div className="w-20 h-20 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <CheckCircle2 className="w-10 h-10" />
+              <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white p-8 rounded-3xl border-2 border-emerald-400 shadow-xl shadow-emerald-900/5 text-center">
+                <div className="w-24 h-24 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6 relative">
+                  <CheckCircle2 className="w-12 h-12 relative z-10" />
+                  <div className="absolute inset-0 border-4 border-emerald-200 rounded-full animate-ping opacity-20"></div>
                 </div>
-                <h2 className="text-2xl font-bold text-primary-900 mb-2">جاري مراجعة الحوالة وتأكيد الطلب...</h2>
-                <p className="text-primary-600">شكراً لك! استلمنا إيصال الدفع وسنقوم بمراجعته والبدء بتجهيز طلبك في أقرب وقت.</p>
-                {uploadSuccess && <p className="mt-4 text-emerald-600 font-bold bg-emerald-50 py-2 rounded-lg">{uploadSuccess}</p>}
+                <h2 className="text-2xl font-bold text-emerald-900 mb-2">تم تسجيل طلبك بنجاح!</h2>
+                <p className="text-emerald-700 font-medium mb-1">التحويل البنكي قيد المراجعة حالياً.</p>
+                <p className="text-emerald-600 text-sm">شكراً لك! سيتم تأكيد طلبك والبدء بتجهيزه فور مطابقة الحوالة.</p>
+                {uploadSuccess && <p className="mt-6 text-emerald-700 font-bold bg-emerald-50 py-3 px-4 rounded-xl border border-emerald-100">{uploadSuccess}</p>}
               </motion.div>
             )}
 
             {/* Detailed Timeline */}
-            {!needsTransfer && !underReview && (
-              <div className="bg-white p-8 rounded-3xl border-2 border-primary-100 shadow-xl shadow-primary-900/5">
+            <div className="bg-white p-8 rounded-3xl border-2 border-primary-100 shadow-xl shadow-primary-900/5 mt-6">
                 <h2 className="text-xl font-bold text-primary-900 mb-6">مسار الطلب</h2>
                 
                 <div className="relative pl-4 space-y-8">
@@ -268,8 +321,6 @@ export default function OrderTracking() {
 
                 </div>
               </div>
-            )}
-
           </div>
 
           {/* Details Column */}
@@ -285,10 +336,18 @@ export default function OrderTracking() {
                         <img src={`http://localhost:8000${item.product.primary_image.image_url}`} alt={item.product_name} className="w-full h-full object-cover" />
                       ) : null}
                     </div>
-                    <div>
+                    <div className="flex-1">
                       <h4 className="font-bold text-primary-900">{item.product_name}</h4>
-                      <p className="text-sm text-primary-500">الكمية: {item.quantity}</p>
+                      <p className="text-sm text-primary-500 mb-1">الكمية: {item.quantity}</p>
                       <p className="font-bold text-primary-700">{item.total_price} ر.س</p>
+                      {item.gift_message && (
+                        <div className="mt-2 bg-primary-50/50 p-3 rounded-lg border border-primary-100 text-sm">
+                          <div className="flex items-center gap-1.5 text-primary-700 font-bold mb-1">
+                            <FileText className="w-4 h-4" /> رسالة الإهداء:
+                          </div>
+                          <p className="text-primary-800 whitespace-pre-wrap">{item.gift_message.message}</p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -310,41 +369,6 @@ export default function OrderTracking() {
               </div>
             </div>
 
-            {/* Delivery Info */}
-            <div className="pt-6 border-t border-primary-100">
-              <h4 className="font-bold text-primary-900 mb-3 text-sm">معلومات الموقع والتوصيل</h4>
-              <p className="text-sm text-primary-600 font-medium">{order.delivery_type === 'pickup' ? 'استلام من الفرع' : order.address ? `${order.address.city}، ${order.address.street_address}` : 'غير متوفر'}</p>
-              {order.address?.recipient_phone && (
-                <p className="text-xs text-primary-500 mt-1">رقم المستلم: <span dir="ltr">{order.address.recipient_phone}</span></p>
-              )}
-            </div>
-
-            {/* Bank Transfer Info */}
-            {order.payment_method === 'bank_transfer' && (
-              <div className="pt-6 border-t border-primary-100">
-                <h4 className="font-bold text-primary-900 mb-3 text-sm">معلومات التحويل البنكي</h4>
-                <div className="bg-primary-50 p-4 rounded-xl border border-primary-100 space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-primary-500">البنك:</span>
-                    <strong className="text-primary-900">مصرف الراجحي</strong>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-primary-500">الحساب:</span>
-                    <strong className="text-primary-900">لافندر فلوريست للزهور</strong>
-                  </div>
-                  <div className="flex justify-between items-center mt-2 pt-2 border-t border-primary-200">
-                    <span className="text-primary-500">الآيبان:</span>
-                    <div className="flex items-center gap-2">
-                      <strong className="text-primary-900 font-mono text-[11px]" dir="ltr">SA00 0000 0000 0000 0000 0000</strong>
-                      <button onClick={() => handleCopy('SA0000000000000000000000')} className="text-primary-500 hover:text-primary-800">
-                        <Copy className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
             <div className="pt-6 border-t border-primary-100 grid grid-cols-2 gap-4 text-sm">
               <div>
                 <span className="block text-primary-500 mb-1">تاريخ الطلب</span>
@@ -354,6 +378,57 @@ export default function OrderTracking() {
                 <span className="block text-primary-500 mb-1">طريقة الاستلام</span>
                 <span className="font-bold text-primary-900">{order.delivery_type === 'pickup' ? 'استلام من الفرع' : 'توصيل'}</span>
               </div>
+            </div>
+
+            {/* Extra Details */}
+            <div className="pt-6 border-t border-primary-100 space-y-4 text-sm">
+              {order.address && (
+                <div>
+                  <h4 className="font-bold text-primary-900 mb-2">عنوان التوصيل</h4>
+                  <div className="bg-primary-50 p-4 rounded-xl text-primary-700">
+                    <p><span className="font-semibold text-primary-900">المستلم:</span> {order.address.recipient_name} <span dir="ltr">({order.address.recipient_phone})</span></p>
+                    <div className="flex items-start justify-between">
+                      <p><span className="font-semibold text-primary-900">العنوان:</span> {order.address.city}، {order.address.street}</p>
+                      <a 
+                        href={order.address.latitude && order.address.longitude ? `https://maps.google.com/?q=${order.address.latitude},${order.address.longitude}` : `https://maps.google.com/?q=${encodeURIComponent(order.address.city + ' ' + order.address.street)}`}
+                        target="_blank" 
+                        rel="noreferrer"
+                        className="flex items-center gap-1 text-xs bg-primary-100 hover:bg-primary-200 text-primary-700 px-3 py-1.5 rounded-lg transition-colors font-bold shrink-0"
+                      >
+                        <MapPin className="w-3.5 h-3.5" /> الخريطة
+                      </a>
+                    </div>
+                    {order.address.delivery_notes && (
+                      <p className="mt-2"><span className="font-semibold text-primary-900">ملاحظات التوصيل:</span> {order.address.delivery_notes}</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {order.notes && (
+                <div>
+                  <h4 className="font-bold text-primary-900 mb-2">ملاحظات الطلب</h4>
+                  <div className="bg-primary-50 p-4 rounded-xl text-primary-700 whitespace-pre-wrap">
+                    {order.notes}
+                  </div>
+                </div>
+              )}
+
+              {order.payment_method === 'bank_transfer' && (order.bank_transfer_receipt || order.payment_justification) && (
+                <div>
+                  <h4 className="font-bold text-primary-900 mb-2">معلومات التحويل البنكي</h4>
+                  <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-xl text-emerald-800 space-y-2">
+                    {order.bank_transfer_receipt && (
+                      <a href={`http://localhost:8000${order.bank_transfer_receipt}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-emerald-700 hover:text-emerald-900 font-bold underline">
+                        <FileText className="w-4 h-4" /> عرض إيصال التحويل المرفق
+                      </a>
+                    )}
+                    {order.payment_justification && (
+                      <p><span className="font-semibold">مبرر التحويل:</span> {order.payment_justification}</p>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
           </div>

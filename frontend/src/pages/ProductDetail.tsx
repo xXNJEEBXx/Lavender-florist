@@ -17,8 +17,9 @@ export default function ProductDetail() {
   const [queueTimeMinutes, setQueueTimeMinutes] = useState<number>(0);
   
   const [cards, setCards] = useState<Product[]>([]);
-  const [selectedCard, setSelectedCard] = useState<Product | null>(null);
-  const [giftMessage, setGiftMessage] = useState('');
+  const [gifts, setGifts] = useState<{ id: string, card: Product | null, message: string }>([
+    { id: '1', card: null, message: '' }
+  ]);
 
   useEffect(() => {
     if (!slug) return;
@@ -169,50 +170,89 @@ export default function ProductDetail() {
           
           {/* Gift Message & Card Selection */}
           {product.category !== 'cards' && (
-            <div className="mb-8 space-y-4">
-              <h3 className="font-bold text-primary-900">رسالة إهداء (اختياري)</h3>
-              <textarea 
-                placeholder="اكتب رسالتك هنا..." 
-                value={giftMessage}
-                onChange={(e) => setGiftMessage(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-primary-200 focus:ring-primary-500 outline-none resize-none h-24"
-              />
-              
-              {cards.length > 0 && (
-                <div className="pt-2">
-                  <h4 className="text-sm font-medium text-primary-700 mb-3">اختر شكل البطاقة</h4>
-                  <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-                    {/* No card option */}
+            <div className="mb-8 space-y-6">
+              <div className="flex items-center justify-between">
+                <h3 className="font-bold text-primary-900">رسائل وإهداءات (اختياري)</h3>
+                <button 
+                  onClick={() => setGifts([...gifts, { id: Date.now().toString(), card: null, message: '' }])}
+                  className="text-xs font-bold text-primary-600 bg-primary-50 hover:bg-primary-100 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                  إضافة بطاقة أخرى
+                </button>
+              </div>
+
+              {gifts.map((gift, index) => (
+                <div key={gift.id} className="bg-primary-50/50 p-4 rounded-2xl border border-primary-100 relative">
+                  {gifts.length > 1 && (
                     <button 
-                      onClick={() => setSelectedCard(null)}
-                      className={`min-w-[80px] h-[100px] rounded-xl border-2 flex flex-col items-center justify-center gap-1 transition-colors ${!selectedCard ? 'border-primary-500 bg-primary-50' : 'border-primary-100 bg-white hover:border-primary-300'}`}
+                      onClick={() => setGifts(gifts.filter(g => g.id !== gift.id))}
+                      className="absolute top-4 left-4 text-red-400 hover:text-red-600 p-1 bg-white rounded-full shadow-sm border border-red-100 transition-colors"
+                      title="إزالة"
                     >
-                      <span className="text-primary-400 text-2xl">🚫</span>
-                      <span className="text-xs font-medium text-primary-700">بدون بطاقة</span>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                     </button>
-                    
-                    {cards.map(card => {
-                      const imgUrl = card.primary_image ? `http://localhost:8000${card.primary_image.image_url}` : null;
-                      return (
+                  )}
+                  
+                  <h4 className="font-bold text-primary-800 mb-3 text-sm flex items-center gap-2">
+                    <span className="w-5 h-5 rounded-full bg-primary-200 text-primary-800 flex items-center justify-center text-xs">{index + 1}</span>
+                    نص الرسالة
+                  </h4>
+                  <textarea 
+                    placeholder="اكتب رسالتك هنا..." 
+                    value={gift.message}
+                    onChange={(e) => {
+                      const newGifts = [...gifts];
+                      newGifts[index].message = e.target.value;
+                      setGifts(newGifts);
+                    }}
+                    className="w-full px-4 py-3 rounded-xl border border-primary-200 focus:ring-primary-500 outline-none resize-none h-20 mb-4 text-sm"
+                  />
+                  
+                  {cards.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-medium text-primary-700 mb-3">اختر شكل البطاقة</h4>
+                      <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
                         <button 
-                          key={card.id}
-                          onClick={() => setSelectedCard(card)}
-                          className={`min-w-[80px] h-[100px] rounded-xl border-2 relative overflow-hidden transition-colors ${selectedCard?.id === card.id ? 'border-primary-500 shadow-md' : 'border-transparent hover:border-primary-300'}`}
+                          onClick={() => {
+                            const newGifts = [...gifts];
+                            newGifts[index].card = null;
+                            setGifts(newGifts);
+                          }}
+                          className={`shrink-0 min-w-[80px] h-[100px] rounded-xl border-2 flex flex-col items-center justify-center gap-1 transition-colors ${!gift.card ? 'border-primary-500 bg-primary-50' : 'border-primary-100 bg-white hover:border-primary-300'}`}
                         >
-                          {imgUrl ? (
-                            <img src={imgUrl} alt={card.name} className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full bg-primary-100 flex items-center justify-center text-primary-400 text-xs text-center p-1">{card.name}</div>
-                          )}
-                          <div className="absolute bottom-0 inset-x-0 bg-black/50 text-white text-[10px] text-center py-1 truncate px-1">
-                            {Number(card.price) > 0 ? `${card.price} ر.س` : 'مجاني'}
-                          </div>
+                          <span className="text-primary-400 text-2xl">🚫</span>
+                          <span className="text-xs font-medium text-primary-700">بدون بطاقة</span>
                         </button>
-                      );
-                    })}
-                  </div>
+                        
+                        {cards.map(card => {
+                          const imgUrl = card.primary_image ? `http://localhost:8000${card.primary_image.image_url}` : null;
+                          return (
+                            <button 
+                              key={card.id}
+                              onClick={() => {
+                                const newGifts = [...gifts];
+                                newGifts[index].card = card;
+                                setGifts(newGifts);
+                              }}
+                              className={`shrink-0 min-w-[80px] h-[100px] rounded-xl border-2 relative overflow-hidden transition-colors ${gift.card?.id === card.id ? 'border-primary-500 shadow-md' : 'border-transparent hover:border-primary-300'}`}
+                            >
+                              {imgUrl ? (
+                                <img src={imgUrl} alt={card.name} className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full bg-primary-100 flex items-center justify-center text-primary-400 text-xs text-center p-1">{card.name}</div>
+                              )}
+                              <div className="absolute bottom-0 inset-x-0 bg-black/50 text-white text-[10px] text-center py-1 truncate px-1">
+                                {Number(card.price) > 0 ? `${card.price} ر.س` : 'مجاني'}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
+              ))}
             </div>
           )}
 
@@ -243,10 +283,18 @@ export default function ProductDetail() {
               disabled={!product.is_in_stock || isAdding || getAvailableStock(product) === 0}
               onClick={() => {
                 setIsAdding(true);
-                addItem(product, quantity, giftMessage);
-                if (selectedCard) {
-                  addItem(selectedCard, 1); // Add card as a product
-                }
+                let mainProductMessage = gifts
+                  .filter(g => !g.card && g.message.trim() !== '')
+                  .map((g, i) => gifts.length > 1 ? `الرسالة ${i+1}:\n${g.message}` : g.message)
+                  .join('\n\n---\n\n');
+
+                addItem(product, quantity, mainProductMessage);
+
+                gifts.forEach((gift) => {
+                  if (gift.card) {
+                    addItem(gift.card, 1, gift.message);
+                  }
+                });
                 setTimeout(() => {
                   navigate('/cart');
                 }, 400);

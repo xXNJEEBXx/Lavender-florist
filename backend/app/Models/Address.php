@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class Address extends Model
 {
     use HasFactory;
-    protected $fillable = ['user_id', 'label', 'recipient_name', 'recipient_phone', 'city', 'district', 'street', 'building', 'notes', 'is_default', 'door_image_path', 'latitude', 'longitude'];
+    protected $fillable = ['user_id', 'label', 'recipient_name', 'recipient_phone', 'city', 'district', 'street', 'building', 'notes', 'delivery_notes', 'is_default', 'door_image_path', 'latitude', 'longitude'];
 
     protected function casts(): array
     {

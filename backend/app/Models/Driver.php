@@ -11,6 +11,8 @@ class Driver extends Model
 
     protected $fillable = [
         'name',
+        'phone',
+        'balance',
         'telegram_username',
         'telegram_chat_id',
         'is_primary',

@@ -11,7 +11,8 @@ export default function Home() {
   useEffect(() => {
     publicProductsApi.getAll()
       .then(data => {
-        setProducts(data.slice(0, 8)); // Show max 8 products on home
+        const filtered = data.filter((p: Product) => p.category !== 'cards');
+        setProducts(filtered.slice(0, 8)); // Show max 8 products on home
       })
       .catch(console.error)
       .finally(() => setIsLoading(false));

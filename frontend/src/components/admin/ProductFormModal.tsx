@@ -120,7 +120,7 @@ export default function ProductFormModal({ isOpen, onClose, onSuccess, product }
   useEffect(() => {
     const orig = parseFloat(originalPrice);
     if (isNaN(orig) || orig < 0) {
-      setFinalPrice(originalPrice === '' ? '' : '0');
+      setFinalPrice('');
       return;
     }
     
@@ -217,7 +217,7 @@ export default function ProductFormModal({ isOpen, onClose, onSuccess, product }
       if (nameEn) formData.append('name_en', nameEn);
       if (description) formData.append('description', description);
       
-      formData.append('price', finalPrice);
+      formData.append('price', finalPrice || originalPrice || '0');
       if (hasDiscount) {
         formData.append('compare_at_price', originalPrice);
       }

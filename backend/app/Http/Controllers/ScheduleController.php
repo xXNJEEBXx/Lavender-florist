@@ -56,7 +56,36 @@ class ScheduleController extends Controller
             ->where('start_at', '<=', $endDate->copy()->endOfDay())
             ->get();
 
-        // 5. Generate slots for each day
+        // 5. Calculate scheduled orders capacity
+        $scheduledOrders = Order::with('items.product')
+            ->whereIn('status', ['pending', 'preparing'])
+            ->whereNotNull('ready_by')
+            ->whereBetween('ready_by', [$startDate, $endDate->copy()->endOfDay()])
+            ->get();
+
+        $ordersByDate = [];
+        foreach ($scheduledOrders as $order) {
+            $prep = 0;
+            if ($order->estimated_preparation_time) {
+                $prep = $order->estimated_preparation_time;
+            } else {
+                foreach ($order->items as $item) {
+                    if ($item->product) {
+                        $prep += ($item->product->preparation_time_minutes * $item->quantity);
+                    }
+                }
+            }
+            $dStr = Carbon::parse($order->ready_by)->format('Y-m-d');
+            if (!isset($ordersByDate[$dStr])) {
+                $ordersByDate[$dStr] = [];
+            }
+            $ordersByDate[$dStr][] = [
+                'ready_by' => Carbon::parse($order->ready_by),
+                'prep_minutes' => $prep
+            ];
+        }
+
+        // 6. Generate slots for each day
         $dayNames = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
 
         $availableDays = [];
@@ -89,10 +118,32 @@ class ScheduleController extends Controller
             while ($slotTime->lt($closeTime)) {
                 $slotEnd = $slotTime->copy()->addMinutes(30);
 
-                // Skip if slot is before minimum ready time
+                // Skip if slot is before absolute minimum ready time from now
                 if ($slotTime->lt($minReadyAt)) {
                     $slotTime = $slotEnd;
                     continue;
+                }
+
+                // Skip if slot is too early in the day (before store opens + prep + delivery)
+                $slotMinTimeForDay = $openTime->copy()->addMinutes($prepMinutes + $deliveryTimeAdded);
+                if ($slotTime->lt($slotMinTimeForDay)) {
+                    $slotTime = $slotEnd;
+                    continue;
+                }
+
+                // Check Florist Capacity for this slot (30 mins max prep time per slot)
+                $slotOrdersPrepTime = 0;
+                if (isset($ordersByDate[$dateStr])) {
+                    foreach ($ordersByDate[$dateStr] as $o) {
+                        if ($o['ready_by']->gt($slotTime) && $o['ready_by']->lte($slotEnd)) {
+                            $slotOrdersPrepTime += $o['prep_minutes'];
+                        }
+                    }
+                }
+
+                if ($slotOrdersPrepTime >= 30) {
+                    $slotTime = $slotEnd;
+                    continue; // Florist is already fully booked for this slot
                 }
 
                 // Skip if slot overlaps with any admin break

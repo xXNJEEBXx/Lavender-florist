@@ -76,6 +76,7 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\AdminMiddleware::class])
     Route::apiResource('products', \App\Http\Controllers\ProductController::class);
     
     // Orders Management
+    Route::put('orders/{order}/full', [\App\Http\Controllers\OrderController::class, 'fullUpdate']);
     Route::post('orders/{order}/verify-payment', [\App\Http\Controllers\OrderController::class, 'verifyPayment']);
     Route::post('orders/{order}/send-to-delivery', [\App\Http\Controllers\OrderController::class, 'sendToDelivery']);
     Route::apiResource('orders', \App\Http\Controllers\OrderController::class);

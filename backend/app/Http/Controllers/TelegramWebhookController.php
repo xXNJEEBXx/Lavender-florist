@@ -190,6 +190,10 @@ class TelegramWebhookController extends Controller
             $newText .= "العميل: {$address->recipient_name} ({$address->recipient_phone})\n";
             $newText .= "العنوان: {$address->city}, {$address->street}\n";
             
+            if ($address && $address->delivery_notes) {
+                $newText .= "\n📝 <b>ملاحظات إضافية للتوصيل:</b>\n" . e($address->delivery_notes) . "\n";
+            }
+            
             $newText .= "\nالرجاء الضغط على الزر أدناه عند وصولك وتسليم الطلب للعميل.";
 
             $replyMarkup = [
@@ -229,6 +233,10 @@ class TelegramWebhookController extends Controller
         $newText .= "رقم الطلب: <b>{$order->order_number}</b>\n";
         $newText .= "العميل: {$address->recipient_name} ({$address->recipient_phone})\n";
         $newText .= "العنوان: {$address->city}, {$address->street}\n";
+        
+        if ($address && $address->delivery_notes) {
+            $newText .= "\n📝 <b>ملاحظات إضافية للتوصيل:</b>\n" . e($address->delivery_notes) . "\n";
+        }
         
         $newText .= "\nالرجاء الضغط على الزر أدناه عند وصولك وتسليم الطلب للعميل.";
 

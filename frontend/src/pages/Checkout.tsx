@@ -47,13 +47,13 @@ export default function Checkout() {
 
   // Queue State
   const [queueTimeMinutes, setQueueTimeMinutes] = useState<number>(0);
+  const [isAsapAvailable, setIsAsapAvailable] = useState<boolean>(true);
   const [isQueueLoading, setIsQueueLoading] = useState(true);
 
   // Order State
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [notes, setNotes] = useState('');
-  const [extraMessages, setExtraMessages] = useState<string[]>([]);
   const [paymentMethod, setPaymentMethod] = useState('bank_transfer');
 
   // New Address Form State
@@ -67,22 +67,33 @@ export default function Checkout() {
     street_address: '',
     is_default: true,
     door_image: null as File | null,
+    delivery_notes: '',
   });
 
   const [editingAddressId, setEditingAddressId] = useState<number | null>(null);
+
+  const cartPrepTime = items.reduce((sum, item) => sum + (item.quantity * (item.product.preparation_time_minutes || 0)), 0);
 
   useEffect(() => {
     if (isAuthenticated) {
       loadAddresses();
     }
-    loadQueueStatus();
   }, [isAuthenticated]);
+
+  useEffect(() => {
+    loadQueueStatus();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cartPrepTime, deliveryType, deliverySpeed]);
 
   const loadQueueStatus = async () => {
     try {
       setIsQueueLoading(true);
-      const data = await storeApi.getQueueStatus();
+      const data = await storeApi.getQueueStatus(cartPrepTime, deliveryType, deliverySpeed);
       setQueueTimeMinutes(data.queue_time_minutes || 0);
+      setIsAsapAvailable(data.is_asap_available !== false);
+      if (data.is_asap_available === false && !isScheduled) {
+        setIsScheduled(true);
+      }
     } catch (err) {
       console.error("Failed to load queue status", err);
     } finally {
@@ -135,6 +146,9 @@ export default function Checkout() {
         formData.append('latitude', selectedLocation.lat.toString());
         formData.append('longitude', selectedLocation.lng.toString());
       }
+      if (newAddress.delivery_notes) {
+        formData.append('delivery_notes', newAddress.delivery_notes);
+      }
       if (newAddress.door_image) {
         formData.append('door_image', newAddress.door_image);
       }
@@ -158,6 +172,7 @@ export default function Checkout() {
         street_address: '',
         is_default: true,
         door_image: null,
+        delivery_notes: '',
       });
     } catch (err: any) {
       console.error(err);
@@ -191,7 +206,6 @@ export default function Checkout() {
   const deliveryFee = Math.max(0, deliveryFeeSpeed - hasDoorImageDiscount);
   const total = subtotal + deliveryFee;
 
-  const cartPrepTime = items.reduce((sum, item) => sum + (item.quantity * (item.product.preparation_time_minutes || 0)), 0);
   const deliveryTimeAdded = deliveryType === 'pickup' ? 0 : (deliverySpeed === 'express' ? 60 : 240);
   const totalWaitTimeMinutes = queueTimeMinutes + cartPrepTime + deliveryTimeAdded;
 
@@ -346,7 +360,7 @@ export default function Checkout() {
         delivery_speed: deliveryType === 'pickup' ? 'standard' : deliverySpeed,
         delivery_fee: deliveryFee,
         delivery_minutes: deliveryType === 'local' ? deliveryMinutes : 0,
-        notes: notes,
+        notes: notes || '',
         items: items.map(item => ({
           product_id: item.product.id,
           quantity: item.quantity,
@@ -431,14 +445,21 @@ export default function Checkout() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <button
                       type="button"
-                      onClick={() => setIsScheduled(false)}
-                      className={`p-4 rounded-xl border-2 text-right transition-all ${!isScheduled ? 'border-primary-500 bg-primary-50' : 'border-primary-100 hover:border-primary-300'}`}
+                      onClick={() => {
+                        if (isAsapAvailable) setIsScheduled(false);
+                      }}
+                      disabled={!isAsapAvailable}
+                      className={`p-4 rounded-xl border-2 text-right transition-all ${!isScheduled ? 'border-primary-500 bg-primary-50' : 'border-primary-100 hover:border-primary-300'} ${!isAsapAvailable ? 'opacity-50 cursor-not-allowed bg-gray-50 border-gray-200 hover:border-gray-200' : ''}`}
                     >
                       <div className="flex justify-between items-start mb-1">
                         <span className="font-bold text-primary-900">في أقرب وقت</span>
                         {!isScheduled && <CheckCircle2 className="w-5 h-5 text-primary-600" />}
                       </div>
-                      <p className="text-sm text-primary-600">سيتم تجهيز طلبك فوراً حسب الطابور الحالي</p>
+                      <p className="text-sm text-primary-600">
+                        {isAsapAvailable 
+                          ? 'سيتم تجهيز طلبك فوراً حسب الطابور الحالي' 
+                          : 'غير متاح حالياً (خارج أوقات العمل أو إجازة)'}
+                      </p>
                     </button>
                     <button
                       type="button"
@@ -599,7 +620,9 @@ export default function Checkout() {
                                 recipient_phone: address.recipient_phone || '',
                                 city: address.city || 'الأحساء',
                                 street_address: address.street_address || '',
-                                is_default: address.is_default || false
+                                is_default: address.is_default || false,
+                                door_image: null,
+                                delivery_notes: address.delivery_notes || ''
                               });
                               setIsAddressModalOpen(true);
                             }}
@@ -619,51 +642,10 @@ export default function Checkout() {
             </div>
             )}
 
-            {/* Extra Gift Messages */}
-            <div className="bg-white p-6 rounded-3xl border border-primary-100 shadow-sm">
-              <div className="flex items-center justify-between mb-4">
-                <label className="block text-sm font-bold text-primary-900">رسائل إهداء إضافية (اختياري)</label>
-                <button
-                  type="button"
-                  onClick={() => setExtraMessages([...extraMessages, ''])}
-                  className="text-xs text-primary-600 font-bold hover:text-primary-800 bg-primary-50 px-3 py-1.5 rounded-lg flex items-center gap-1 transition-colors"
-                >
-                  <span>+</span> إضافة رسالة
-                </button>
-              </div>
-              <div className="space-y-3">
-                {extraMessages.map((msg, idx) => (
-                  <div key={idx} className="relative">
-                    <textarea
-                      value={msg}
-                      onChange={(e) => {
-                        const newMsgs = [...extraMessages];
-                        newMsgs[idx] = e.target.value;
-                        setExtraMessages(newMsgs);
-                      }}
-                      rows={2}
-                      className="w-full px-4 py-3 rounded-xl border border-primary-200 focus:ring-2 focus:ring-primary-500 transition-all outline-none resize-none"
-                      placeholder={`الرسالة رقم ${idx + 1}`}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setExtraMessages(extraMessages.filter((_, i) => i !== idx))}
-                      className="absolute top-2 left-2 text-red-400 hover:text-red-600 p-1 bg-white rounded-full"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
-                {extraMessages.length === 0 && (
-                  <p className="text-sm text-primary-400 italic">لا توجد رسائل إضافية. يمكنك الضغط على "إضافة رسالة" لكتابة رسائل أخرى سيتم إرفاقها مع الطلب.</p>
-                )}
-              </div>
-            </div>
-
             {/* Notes */}
             <div className="bg-white p-6 rounded-3xl border border-primary-100 shadow-sm">
-              <label className="block text-sm font-bold text-primary-900 mb-2">ملاحظات إضافية للتوصيل (اختياري)</label>
-              <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} className="w-full px-4 py-3 rounded-xl border border-primary-200 focus:ring-2 focus:ring-primary-500 transition-all outline-none resize-none" placeholder="مثال: يرجى الاتصال قبل الوصول بنصف ساعة" />
+              <label className="block text-sm font-bold text-primary-900 mb-2">ملاحظات أخرى للطلب (اختياري)</label>
+              <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} className="w-full px-4 py-3 rounded-xl border border-primary-200 focus:ring-2 focus:ring-primary-500 transition-all outline-none resize-none" placeholder="مثال: ملاحظات عامة للطلب..." />
             </div>
 
 
@@ -716,9 +698,9 @@ export default function Checkout() {
                         <h4 className="font-bold text-primary-900 text-sm line-clamp-1">{item.product.name}</h4>
                         <p className="text-xs text-primary-500 mt-1">الكمية: {item.quantity}</p>
                         {item.gift_message && (
-                          <div className="mt-2 bg-primary-50 p-2 rounded-lg border border-primary-100 relative max-w-[200px]">
-                            <span className="absolute -top-2 -right-2 text-[10px] bg-primary-200 text-primary-800 px-1.5 rounded-full">رسالة إهداء</span>
-                            <p className="text-[11px] text-primary-700 italic leading-relaxed whitespace-pre-wrap">{item.gift_message}</p>
+                          <div className="mt-2 bg-primary-50 border border-primary-100 rounded-lg p-2 text-xs">
+                            <span className="font-bold text-primary-800 block mb-0.5">رسالة الإهداء:</span>
+                            <p className="text-primary-600 line-clamp-2">"{item.gift_message}"</p>
                           </div>
                         )}
                       </div>
@@ -905,6 +887,10 @@ export default function Checkout() {
                     <div className="col-span-2">
                       <label className="block text-sm font-medium text-primary-900 mb-2">صورة لباب المنزل (احصل على خصم 2 ريال! 🎁)</label>
                       <input type="file" accept="image/*" onChange={e => setNewAddress({...newAddress, door_image: e.target.files ? e.target.files[0] : null})} className="w-full px-4 py-3 rounded-xl border border-primary-200 focus:ring-primary-500 outline-none bg-emerald-50 text-emerald-800" />
+                    </div>
+                    <div className="col-span-2">
+                      <label className="block text-sm font-medium text-primary-900 mb-2">ملاحظات إضافية للتوصيل (اختياري)</label>
+                      <textarea value={newAddress.delivery_notes} onChange={e => setNewAddress({...newAddress, delivery_notes: e.target.value})} rows={2} className="w-full px-4 py-3 rounded-xl border border-primary-200 focus:ring-primary-500 outline-none resize-none" placeholder="مثال: يرجى الاتصال قبل الوصول بنصف ساعة" />
                     </div>
                   </div>
                 </div>
