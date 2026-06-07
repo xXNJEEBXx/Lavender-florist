@@ -410,8 +410,8 @@ class TelegramWebhookController extends Controller
         ];
 
         $status = $statusLabels[$order->status] ?? $order->status;
-        $customerName = $order->owner_name ?? $order->customer->name ?? 'غير محدد';
-        $customerPhone = $order->owner_phone ?? $order->customer->phone ?? 'غير محدد';
+        $customerName = $order->owner_name ?: ($order->customer->name ?? ($order->address->recipient_name ?? 'غير محدد'));
+        $customerPhone = $order->owner_phone ?: ($order->customer->phone ?? ($order->address->recipient_phone ?? 'غير محدد'));
         $total = number_format($order->total, 2);
         $itemsCount = $order->items->sum('quantity');
 
@@ -449,8 +449,8 @@ class TelegramWebhookController extends Controller
 
         $order->load(['items.product', 'address', 'customer']);
 
-        $customerName = $order->owner_name ?? $order->customer->name ?? 'غير محدد';
-        $customerPhone = $order->owner_phone ?? $order->customer->phone ?? 'غير محدد';
+        $customerName = $order->owner_name ?: ($order->customer->name ?? ($order->address->recipient_name ?? 'غير محدد'));
+        $customerPhone = $order->owner_phone ?: ($order->customer->phone ?? ($order->address->recipient_phone ?? 'غير محدد'));
         $total = number_format($order->total, 2);
 
         $deliveryTypes = [
