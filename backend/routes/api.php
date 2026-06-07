@@ -111,4 +111,8 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\AdminMiddleware::class])
     
     // Coupons
     // Route::apiResource('coupons', \App\Http\Controllers\CouponController::class);
+    
+    // Admin Settings (Telegram)
+    Route::get('settings/telegram', [\App\Http\Controllers\AdminSettingsController::class, 'getTelegram']);
+    Route::put('settings/telegram', [\App\Http\Controllers\AdminSettingsController::class, 'updateTelegram']);
 });

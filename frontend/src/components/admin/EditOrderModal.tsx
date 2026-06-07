@@ -1,12 +1,38 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Save, Plus, Trash2, Package, MapPin, DollarSign, Settings } from 'lucide-react';
-import { adminProductsApi } from '../../services/api';
+import { X, Save, Plus, Trash2, Package, MapPin, DollarSign, Settings, Loader2 } from 'lucide-react';
+import { adminProductsApi, storeApi } from '../../services/api';
 
 export default function EditOrderModal({ order, onClose, onSave }: { order: any, onClose: () => void, onSave: (updatedData: any) => void }) {
   const [activeTab, setActiveTab] = useState('general');
   const [isLoading, setIsLoading] = useState(false);
   const [products, setProducts] = useState<any[]>([]);
+  const [isExtractingLink, setIsExtractingLink] = useState(false);
+
+  const extractFromLink = async (link: string) => {
+    if (!link || !link.includes('http')) return;
+    setIsExtractingLink(true);
+    try {
+      const res = await storeApi.expandUrl(link);
+      if (res.latitude && res.longitude) {
+        const lat = parseFloat(res.latitude);
+        const lng = parseFloat(res.longitude);
+        setFormData(prev => ({
+          ...prev,
+          address: {
+            ...prev.address,
+            latitude: lat,
+            longitude: lng,
+            street: prev.address.street || `إحداثيات: ${lat.toFixed(4)}, ${lng.toFixed(4)}`
+          }
+        }));
+      }
+    } catch (e) {
+      console.error("Failed to extract map URL", e);
+    } finally {
+      setIsExtractingLink(false);
+    }
+  };
 
   const getLocalDateString = (dateStr: string) => {
     const d = new Date(dateStr);
@@ -39,8 +65,11 @@ export default function EditOrderModal({ order, onClose, onSave }: { order: any,
       street: order.address.street || '',
       recipient_name: order.address.recipient_name || '',
       recipient_phone: order.address.recipient_phone || '',
+      google_maps_link: order.address.google_maps_link || '',
+      latitude: order.address.latitude || null,
+      longitude: order.address.longitude || null,
     } : {
-      city: '', district: '', street: '', recipient_name: '', recipient_phone: ''
+      city: '', district: '', street: '', recipient_name: '', recipient_phone: '', google_maps_link: '', latitude: null, longitude: null
     },
     items: order.items ? order.items.map((item: any) => ({
       product_id: item.product_id,
@@ -243,6 +272,24 @@ export default function EditOrderModal({ order, onClose, onSave }: { order: any,
                   <div className="bg-white border border-primary-200 rounded-xl p-5 space-y-4">
                     <h3 className="font-bold text-primary-900 mb-2 border-b border-primary-100 pb-2">معلومات العنوان</h3>
                     
+                    <div>
+                      <label className="block text-xs font-bold text-primary-500 mb-1">رابط قوقل ماب (اختياري)</label>
+                      <input 
+                        type="url" 
+                        value={formData.address.google_maps_link || ''} 
+                        onChange={e => setFormData({...formData, address: {...formData.address, google_maps_link: e.target.value}})} 
+                        onBlur={e => extractFromLink(e.target.value)}
+                        className="w-full bg-primary-50/50 border border-primary-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500" 
+                        placeholder="https://maps.google.com/..." 
+                        dir="ltr"
+                      />
+                      {isExtractingLink && (
+                        <p className="text-xs text-primary-500 mt-2 flex items-center gap-1 animate-pulse">
+                          <Loader2 className="w-3 h-3 animate-spin"/> جاري استخراج الإحداثيات من الرابط...
+                        </p>
+                      )}
+                    </div>
+
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="block text-xs font-bold text-primary-500 mb-1">اسم المستلم (اختياري)</label>

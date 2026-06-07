@@ -24,6 +24,11 @@ class User extends Authenticatable
         'google_id',
         'phone_otp',
         'phone_otp_expires_at',
+        'telegram_username',
+        'telegram_chat_id',
+        'telegram_notify_new_orders',
+        'telegram_notify_driver',
+        'telegram_notify_website',
     ];
 
     protected $hidden = [
@@ -32,6 +37,7 @@ class User extends Authenticatable
         'phone_otp',
         'phone_otp_expires_at',
         'google_id',
+        'telegram_chat_id',
     ];
 
     protected function casts(): array
@@ -42,6 +48,9 @@ class User extends Authenticatable
             'phone_otp_expires_at' => 'datetime',
             'password'          => 'hashed',
             'is_active'         => 'boolean',
+            'telegram_notify_new_orders' => 'boolean',
+            'telegram_notify_driver'     => 'boolean',
+            'telegram_notify_website'    => 'boolean',
         ];
     }
 

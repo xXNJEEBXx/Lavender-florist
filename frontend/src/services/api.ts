@@ -209,4 +209,9 @@ export const customerApi = {
   deleteAddress: (id: number) => api.delete(`/addresses/${id}`).then(res => res.data),
 };
 
+export const adminSettingsApi = {
+  getTelegram: () => api.get('/admin/settings/telegram').then(res => res.data),
+  updateTelegram: (data: any) => api.put('/admin/settings/telegram', data).then(res => res.data),
+};
+
 export default api;

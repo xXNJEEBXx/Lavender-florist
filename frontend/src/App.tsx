@@ -20,6 +20,7 @@ import ManualOrder from '@/pages/admin/ManualOrder';
 import DriversList from '@/pages/admin/DriversList';
 import AdminBreaks from '@/pages/admin/AdminBreaks';
 import AdminWorkingHours from '@/pages/admin/AdminWorkingHours';
+import AdminSettings from '@/pages/admin/AdminSettings';
 
 import { AuthProvider } from '@/store/AuthContext';
 import { CartProvider } from '@/store/CartContext';
@@ -63,6 +64,7 @@ function App() {
               <Route path="drivers" element={<DriversList />} />
               <Route path="breaks" element={<AdminBreaks />} />
               <Route path="working-hours" element={<AdminWorkingHours />} />
+              <Route path="settings" element={<AdminSettings />} />
             </Route>
           </Routes>
         </Router>

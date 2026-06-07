@@ -394,6 +394,13 @@ class ManualOrderController extends Controller
                 'ip_address' => $request->ip()
             ]);
 
+            // Notify admins via Telegram
+            try {
+                TelegramWebhookController::notifyAdminsNewOrder($order);
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('Failed to notify admins via Telegram (manual order)', ['error' => $e->getMessage()]);
+            }
+
             return response()->json([
                 'message' => 'تم إنشاء الطلب بنجاح',
                 'order' => $order

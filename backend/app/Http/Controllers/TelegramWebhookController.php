@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Order;
 use App\Models\Driver;
+use App\Models\User;
 use Illuminate\Http\Request;
 use App\Services\TelegramService;
 use Carbon\Carbon;
@@ -38,23 +39,162 @@ class TelegramWebhookController extends Controller
         $username = $message['from']['username'] ?? null;
 
         if ($text === '/start') {
-            if ($username) {
-                // Find driver by username without @
-                $driver = Driver::where('telegram_username', $username)
-                    ->orWhere('telegram_username', '@' . $username)
-                    ->first();
-
-                if ($driver) {
-                    $driver->update(['telegram_chat_id' => $chatId]);
-                    $this->telegram->sendMessage($chatId, "مرحباً بك {$driver->name}! تم ربط حسابك في نظام توصيل لافندر بنجاح. 🌸 ستصلك طلبات التوصيل هنا.");
-                } else {
-                    $this->telegram->sendMessage($chatId, "مرحباً بك! لم يتم العثور على حساب مندوب مرتبط بهذا المعرف (@{$username}). يرجى الطلب من الإدارة إضافتك.");
-                }
-            } else {
-                $this->telegram->sendMessage($chatId, "مرحباً بك! لربط حسابك، يرجى تعيين (معرف مستخدم - Username) في إعدادات تيليجرام الخاص بك، ثم أرسل /start مجدداً.");
-            }
+            $this->handleStart($chatId, $username);
+        } elseif ($text === '/orders') {
+            $this->handleOrdersCommand($chatId);
+        } elseif ($text === '/status') {
+            $this->handleStatusCommand($chatId);
+        } elseif ($text === '/help') {
+            $this->handleHelpCommand($chatId);
         }
     }
+
+    protected function handleStart($chatId, $username)
+    {
+        if (!$username) {
+            $this->telegram->sendMessage($chatId, "مرحباً بك! لربط حسابك، يرجى تعيين (معرف مستخدم - Username) في إعدادات تيليجرام الخاص بك، ثم أرسل /start مجدداً.");
+            return;
+        }
+
+        // 1. Check if it's a driver
+        $driver = Driver::where('telegram_username', $username)
+            ->orWhere('telegram_username', '@' . $username)
+            ->first();
+
+        if ($driver) {
+            $driver->update(['telegram_chat_id' => $chatId]);
+            $this->telegram->sendMessage($chatId, "مرحباً بك {$driver->name}! تم ربط حسابك في نظام توصيل لافندر بنجاح. 🌸 ستصلك طلبات التوصيل هنا.");
+            
+            // Also check if this username belongs to an admin
+            $admin = User::where('role', 'admin')
+                ->where(function ($q) use ($username) {
+                    $q->where('telegram_username', $username)
+                      ->orWhere('telegram_username', '@' . $username);
+                })->first();
+            
+            if ($admin) {
+                $admin->update(['telegram_chat_id' => $chatId]);
+                $this->telegram->sendMessage($chatId, "✅ تم ربط حساب المشرف أيضاً! ستصلك إشعارات الطلبات الجديدة والتحديثات.\n\nالأوامر المتاحة:\n/orders — عرض الطلبات النشطة\n/status — إحصائيات سريعة\n/help — المساعدة");
+            }
+            return;
+        }
+
+        // 2. Check if it's an admin
+        $admin = User::where('role', 'admin')
+            ->where(function ($q) use ($username) {
+                $q->where('telegram_username', $username)
+                  ->orWhere('telegram_username', '@' . $username);
+            })->first();
+
+        if ($admin) {
+            $admin->update(['telegram_chat_id' => $chatId]);
+            $this->telegram->sendMessage($chatId, "مرحباً بك {$admin->name}! 🌸\nتم ربط حسابك كمشرف في نظام لافندر فلوريست بنجاح.\n\nستصلك إشعارات الطلبات الجديدة هنا.\n\nالأوامر المتاحة:\n/orders — عرض الطلبات النشطة\n/status — إحصائيات سريعة\n/help — المساعدة");
+            return;
+        }
+
+        // 3. No match found
+        $this->telegram->sendMessage($chatId, "مرحباً بك! لم يتم العثور على حساب مندوب أو مشرف مرتبط بهذا المعرف (@{$username}).\n\nيرجى الطلب من الإدارة إضافة معرفك في الإعدادات.");
+    }
+
+    // ==========================================
+    // Admin Commands
+    // ==========================================
+
+    protected function handleOrdersCommand($chatId)
+    {
+        $admin = User::where('telegram_chat_id', $chatId)->where('role', 'admin')->first();
+        if (!$admin) {
+            // Maybe it's a driver, ignore
+            return;
+        }
+
+        $orders = Order::with(['customer', 'address', 'items'])
+            ->whereNotIn('status', ['delivered', 'cancelled'])
+            ->latest()
+            ->take(10)
+            ->get();
+
+        if ($orders->isEmpty()) {
+            $this->telegram->sendMessage($chatId, "✅ لا توجد طلبات نشطة حالياً.");
+            return;
+        }
+
+        $statusLabels = [
+            'pending' => '🟡 بانتظار الدفع',
+            'confirmed' => '🔵 مؤكد',
+            'preparing' => '🟠 قيد التجهيز',
+            'ready' => '🟢 جاهز',
+            'delivering' => '🚗 جاري التوصيل',
+        ];
+
+        foreach ($orders as $order) {
+            $status = $statusLabels[$order->status] ?? $order->status;
+            $customerName = $order->owner_name ?? $order->customer->name ?? 'غير محدد';
+            $total = number_format($order->total, 2);
+            $itemsCount = $order->items->sum('quantity');
+
+            $text = "{$status}\n\n";
+            $text .= "📦 <b>{$order->order_number}</b>\n";
+            $text .= "👤 {$customerName}\n";
+            $text .= "🛒 {$itemsCount} منتج | 💰 {$total} ر.س\n";
+            
+            if ($order->address) {
+                $text .= "📍 {$order->address->city}";
+                if ($order->address->street) {
+                    $text .= " - {$order->address->street}";
+                }
+                $text .= "\n";
+            }
+
+            $buttons = $this->getAdminButtons($order);
+
+            $this->telegram->sendMessage($chatId, $text, ['inline_keyboard' => $buttons]);
+        }
+    }
+
+    protected function handleStatusCommand($chatId)
+    {
+        $admin = User::where('telegram_chat_id', $chatId)->where('role', 'admin')->first();
+        if (!$admin) return;
+
+        $pending = Order::where('status', 'pending')->count();
+        $confirmed = Order::where('status', 'confirmed')->count();
+        $preparing = Order::where('status', 'preparing')->count();
+        $ready = Order::where('status', 'ready')->count();
+        $delivering = Order::where('status', 'delivering')->count();
+        $todayDelivered = Order::where('status', 'delivered')
+            ->whereDate('delivered_at', today())
+            ->count();
+        $todayRevenue = Order::where('status', 'delivered')
+            ->whereDate('delivered_at', today())
+            ->sum('total');
+
+        $text = "📊 <b>إحصائيات اليوم</b>\n\n";
+        $text .= "🟡 بانتظار الدفع: <b>{$pending}</b>\n";
+        $text .= "🔵 مؤكد: <b>{$confirmed}</b>\n";
+        $text .= "🟠 قيد التجهيز: <b>{$preparing}</b>\n";
+        $text .= "🟢 جاهز: <b>{$ready}</b>\n";
+        $text .= "🚗 جاري التوصيل: <b>{$delivering}</b>\n\n";
+        $text .= "✅ مكتمل اليوم: <b>{$todayDelivered}</b>\n";
+        $text .= "💰 إيرادات اليوم: <b>" . number_format($todayRevenue, 2) . " ر.س</b>";
+
+        $this->telegram->sendMessage($chatId, $text);
+    }
+
+    protected function handleHelpCommand($chatId)
+    {
+        $text = "🌸 <b>أوامر بوت لافندر فلوريست</b>\n\n";
+        $text .= "/orders — عرض الطلبات النشطة مع أزرار التحكم\n";
+        $text .= "/status — إحصائيات وأرقام اليوم\n";
+        $text .= "/help — عرض هذه الرسالة\n\n";
+        $text .= "يمكنك أيضاً إدارة الطلبات مباشرة من الأزرار التي تظهر مع كل إشعار طلب جديد. 🚀";
+
+        $this->telegram->sendMessage($chatId, $text);
+    }
+
+    // ==========================================
+    // Callback Query Handler
+    // ==========================================
 
     protected function handleCallbackQuery($callbackQuery)
     {
@@ -63,7 +203,34 @@ class TelegramWebhookController extends Controller
         $messageId = $callbackQuery['message']['message_id'];
         $callbackQueryId = $callbackQuery['id'];
 
-        // Find driver by chat id
+        // Admin callbacks
+        if (str_starts_with($data, 'admin_')) {
+            $admin = User::where('telegram_chat_id', $chatId)->where('role', 'admin')->first();
+            if (!$admin) {
+                $this->telegram->answerCallbackQuery($callbackQueryId, 'ليس لديك صلاحية!', true);
+                return;
+            }
+
+            if (str_starts_with($data, 'admin_confirm_')) {
+                $orderId = str_replace('admin_confirm_', '', $data);
+                $this->adminUpdateStatus($orderId, 'confirmed', $chatId, $messageId, $callbackQueryId);
+            } elseif (str_starts_with($data, 'admin_preparing_')) {
+                $orderId = str_replace('admin_preparing_', '', $data);
+                $this->adminUpdateStatus($orderId, 'preparing', $chatId, $messageId, $callbackQueryId);
+            } elseif (str_starts_with($data, 'admin_ready_')) {
+                $orderId = str_replace('admin_ready_', '', $data);
+                $this->adminUpdateStatus($orderId, 'ready', $chatId, $messageId, $callbackQueryId);
+            } elseif (str_starts_with($data, 'admin_cancel_')) {
+                $orderId = str_replace('admin_cancel_', '', $data);
+                $this->adminUpdateStatus($orderId, 'cancelled', $chatId, $messageId, $callbackQueryId);
+            } elseif (str_starts_with($data, 'admin_detail_')) {
+                $orderId = str_replace('admin_detail_', '', $data);
+                $this->adminShowDetail($orderId, $chatId, $messageId, $callbackQueryId);
+            }
+            return;
+        }
+
+        // Driver callbacks (existing logic)
         $driver = Driver::where('telegram_chat_id', $chatId)->first();
 
         if (!$driver) {
@@ -91,10 +258,308 @@ class TelegramWebhookController extends Controller
         }
     }
 
+    // ==========================================
+    // Admin Callback Actions
+    // ==========================================
+
+    protected function adminUpdateStatus($orderId, $newStatus, $chatId, $messageId, $callbackQueryId)
+    {
+        $order = Order::with(['items.product', 'address', 'customer'])->find($orderId);
+        if (!$order) {
+            $this->telegram->answerCallbackQuery($callbackQueryId, 'الطلب غير موجود!', true);
+            return;
+        }
+
+        $statusLabels = [
+            'confirmed' => 'مؤكد',
+            'preparing' => 'قيد التجهيز',
+            'ready' => 'جاهز',
+            'cancelled' => 'ملغي',
+        ];
+
+        $order->update(['status' => $newStatus]);
+
+        $statusLabel = $statusLabels[$newStatus] ?? $newStatus;
+        $this->telegram->answerCallbackQuery($callbackQueryId, "تم تحديث حالة الطلب إلى: {$statusLabel}");
+
+        // Update the message
+        $text = $this->buildAdminOrderMessage($order->fresh(['items.product', 'address', 'customer']));
+        $buttons = $this->getAdminButtons($order->fresh());
+
+        $this->telegram->editMessageText($chatId, $messageId, $text, ['inline_keyboard' => $buttons]);
+    }
+
+    protected function adminShowDetail($orderId, $chatId, $messageId, $callbackQueryId)
+    {
+        $order = Order::with(['items.product', 'address', 'customer'])->find($orderId);
+        if (!$order) {
+            $this->telegram->answerCallbackQuery($callbackQueryId, 'الطلب غير موجود!', true);
+            return;
+        }
+
+        $this->telegram->answerCallbackQuery($callbackQueryId);
+
+        $statusLabels = [
+            'pending' => '🟡 بانتظار الدفع',
+            'confirmed' => '🔵 مؤكد',
+            'preparing' => '🟠 قيد التجهيز',
+            'ready' => '🟢 جاهز',
+            'delivering' => '🚗 جاري التوصيل',
+            'delivered' => '✅ مكتمل',
+            'cancelled' => '❌ ملغي',
+        ];
+
+        $status = $statusLabels[$order->status] ?? $order->status;
+        $customerName = $order->owner_name ?? $order->customer->name ?? 'غير محدد';
+        $customerPhone = $order->customer->phone ?? 'غير محدد';
+
+        $text = "📋 <b>تفاصيل الطلب</b>\n\n";
+        $text .= "📦 رقم الطلب: <b>{$order->order_number}</b>\n";
+        $text .= "الحالة: {$status}\n";
+        $text .= "👤 صاحب الطلب: {$customerName}\n";
+        $text .= "📱 الجوال: {$customerPhone}\n\n";
+
+        // Items
+        $text .= "<b>🛒 المنتجات:</b>\n";
+        foreach ($order->items as $item) {
+            $productName = $item->product->name ?? $item->product_name ?? 'منتج';
+            $text .= "  • {$productName} × {$item->quantity} = " . number_format($item->quantity * $item->unit_price, 2) . " ر.س\n";
+        }
+
+        $text .= "\n💰 المجموع: <b>" . number_format($order->subtotal, 2) . " ر.س</b>\n";
+        if ($order->delivery_fee > 0) {
+            $text .= "🚚 التوصيل: " . number_format($order->delivery_fee, 2) . " ر.س\n";
+        }
+        if ($order->discount > 0) {
+            $text .= "🏷️ خصم: -" . number_format($order->discount, 2) . " ر.س\n";
+        }
+        $text .= "💵 الإجمالي: <b>" . number_format($order->total, 2) . " ر.س</b>\n";
+
+        // Address
+        if ($order->address) {
+            $text .= "\n📍 <b>العنوان:</b>\n";
+            $text .= "  المدينة: {$order->address->city}\n";
+            if ($order->address->street) {
+                $text .= "  الشارع: {$order->address->street}\n";
+            }
+            if ($order->address->recipient_name) {
+                $text .= "  المستلم: {$order->address->recipient_name}\n";
+            }
+            if ($order->address->recipient_phone) {
+                $text .= "  جوال المستلم: {$order->address->recipient_phone}\n";
+            }
+        }
+
+        if ($order->notes) {
+            $text .= "\n📝 ملاحظات: {$order->notes}\n";
+        }
+
+        $text .= "\n🕐 تاريخ الطلب: " . $order->created_at->format('Y-m-d H:i');
+
+        $buttons = $this->getAdminButtons($order);
+        $this->telegram->sendMessage($chatId, $text, ['inline_keyboard' => $buttons]);
+    }
+
+    protected function getAdminButtons($order)
+    {
+        $buttons = [];
+        
+        switch ($order->status) {
+            case 'pending':
+                $buttons[] = [
+                    ['text' => '✅ تأكيد الطلب', 'callback_data' => "admin_confirm_{$order->id}"],
+                    ['text' => '❌ إلغاء', 'callback_data' => "admin_cancel_{$order->id}"],
+                ];
+                break;
+            case 'confirmed':
+                $buttons[] = [
+                    ['text' => '🔧 بدء التجهيز', 'callback_data' => "admin_preparing_{$order->id}"],
+                    ['text' => '❌ إلغاء', 'callback_data' => "admin_cancel_{$order->id}"],
+                ];
+                break;
+            case 'preparing':
+                $buttons[] = [
+                    ['text' => '✅ جاهز للتوصيل', 'callback_data' => "admin_ready_{$order->id}"],
+                ];
+                break;
+            case 'ready':
+                // Order is ready, no more admin actions needed (driver takes over)
+                break;
+        }
+
+        // Always show detail button for active orders
+        if (!in_array($order->status, ['delivered', 'cancelled'])) {
+            $buttons[] = [
+                ['text' => '📋 تفاصيل الطلب', 'callback_data' => "admin_detail_{$order->id}"],
+            ];
+        }
+
+        return $buttons;
+    }
+
+    protected function buildAdminOrderMessage($order)
+    {
+        $statusLabels = [
+            'pending' => '🟡 بانتظار الدفع',
+            'confirmed' => '🔵 مؤكد',
+            'preparing' => '🟠 قيد التجهيز',
+            'ready' => '🟢 جاهز',
+            'delivering' => '🚗 جاري التوصيل',
+            'delivered' => '✅ مكتمل',
+            'cancelled' => '❌ ملغي',
+        ];
+
+        $status = $statusLabels[$order->status] ?? $order->status;
+        $customerName = $order->owner_name ?? $order->customer->name ?? 'غير محدد';
+        $total = number_format($order->total, 2);
+        $itemsCount = $order->items->sum('quantity');
+
+        $text = "{$status}\n\n";
+        $text .= "📦 <b>{$order->order_number}</b>\n";
+        $text .= "👤 {$customerName}\n";
+        $text .= "🛒 {$itemsCount} منتج | 💰 {$total} ر.س\n";
+
+        if ($order->address) {
+            $text .= "📍 {$order->address->city}";
+            if ($order->address->street) {
+                $text .= " - {$order->address->street}";
+            }
+            $text .= "\n";
+        }
+
+        return $text;
+    }
+
+    // ==========================================
+    // Static method: Notify admins about new order
+    // ==========================================
+
+    public static function notifyAdminsNewOrder(Order $order)
+    {
+        $telegram = app(TelegramService::class);
+
+        $admins = User::where('role', 'admin')
+            ->whereNotNull('telegram_chat_id')
+            ->where('telegram_notify_new_orders', true)
+            ->get();
+
+        if ($admins->isEmpty()) return;
+
+        $order->load(['items.product', 'address', 'customer']);
+
+        $customerName = $order->owner_name ?? $order->customer->name ?? 'غير محدد';
+        $customerPhone = $order->customer->phone ?? 'غير محدد';
+        $total = number_format($order->total, 2);
+
+        $deliveryTypes = [
+            'local' => '🚚 توصيل محلي',
+            'pickup' => '🏪 استلام من الفرع',
+            'shipping' => '📦 شحن',
+        ];
+        $deliveryType = $deliveryTypes[$order->delivery_type] ?? $order->delivery_type;
+
+        $text = "🔔 <b>طلب جديد!</b>\n\n";
+        $text .= "📦 رقم الطلب: <b>{$order->order_number}</b>\n";
+        $text .= "👤 العميل: {$customerName}\n";
+        $text .= "📱 الجوال: {$customerPhone}\n\n";
+
+        // Items summary
+        $text .= "<b>🛒 المنتجات:</b>\n";
+        foreach ($order->items as $item) {
+            $productName = $item->product->name ?? $item->product_name ?? 'منتج';
+            $text .= "  • {$productName} × {$item->quantity}\n";
+        }
+
+        $text .= "\n💵 الإجمالي: <b>{$total} ر.س</b>\n";
+        $text .= "📍 {$deliveryType}\n";
+
+        if ($order->address) {
+            $text .= "🏠 {$order->address->city}";
+            if ($order->address->street) {
+                $text .= " - {$order->address->street}";
+            }
+            $text .= "\n";
+        }
+
+        if ($order->notes) {
+            $text .= "\n📝 ملاحظات: {$order->notes}\n";
+        }
+
+        $buttons = [
+            [
+                ['text' => '✅ تأكيد الطلب', 'callback_data' => "admin_confirm_{$order->id}"],
+                ['text' => '❌ إلغاء', 'callback_data' => "admin_cancel_{$order->id}"],
+            ],
+            [
+                ['text' => '📋 تفاصيل الطلب', 'callback_data' => "admin_detail_{$order->id}"],
+            ],
+        ];
+
+        foreach ($admins as $admin) {
+            try {
+                $telegram->sendMessage($admin->telegram_chat_id, $text, ['inline_keyboard' => $buttons]);
+            } catch (\Exception $e) {
+                Log::error("Failed to notify admin {$admin->id} via Telegram", ['error' => $e->getMessage()]);
+            }
+        }
+    }
+
+    // ==========================================
+    // Static method: Notify admins about driver updates
+    // ==========================================
+
+    public static function notifyAdminsDriverUpdate(Order $order, string $event)
+    {
+        $telegram = app(TelegramService::class);
+
+        $admins = User::where('role', 'admin')
+            ->whereNotNull('telegram_chat_id')
+            ->where('telegram_notify_driver', true)
+            ->get();
+
+        if ($admins->isEmpty()) return;
+
+        $order->load(['driver', 'address']);
+
+        $events = [
+            'accepted' => '✅ قبل المندوب الطلب',
+            'picked_up' => '📦 استلم المندوب الطلب من المتجر',
+            'delivered' => '🎉 تم تسليم الطلب للعميل',
+        ];
+
+        $eventText = $events[$event] ?? $event;
+        $driverName = $order->driver->name ?? 'غير محدد';
+
+        $text = "🚗 <b>تحديث المندوب</b>\n\n";
+        $text .= "{$eventText}\n\n";
+        $text .= "📦 رقم الطلب: <b>{$order->order_number}</b>\n";
+        $text .= "🧑‍✈️ المندوب: {$driverName}\n";
+
+        if ($order->address) {
+            $text .= "📍 {$order->address->city}";
+            if ($order->address->street) {
+                $text .= " - {$order->address->street}";
+            }
+            $text .= "\n";
+        }
+
+        foreach ($admins as $admin) {
+            try {
+                $telegram->sendMessage($admin->telegram_chat_id, $text);
+            } catch (\Exception $e) {
+                Log::error("Failed to notify admin {$admin->id} about driver update", ['error' => $e->getMessage()]);
+            }
+        }
+    }
+
+    // ==========================================
+    // Driver Actions (Existing, Preserved)
+    // ==========================================
+
     protected function acceptOrder($orderId, $driver, $chatId, $messageId, $callbackQueryId)
     {
         $order = Order::find($orderId);
-        \Illuminate\Support\Facades\Log::info("Telegram acceptOrder started", ['order_id' => $orderId, 'driver_id' => $driver->id]);
+        Log::info("Telegram acceptOrder started", ['order_id' => $orderId, 'driver_id' => $driver->id]);
 
         if (!$order) {
             $this->telegram->answerCallbackQuery($callbackQueryId, 'الطلب غير موجود!', true);
@@ -102,11 +567,10 @@ class TelegramWebhookController extends Controller
         }
 
         if ($order->driver_id) {
-            \Illuminate\Support\Facades\Log::info("Order already assigned", ['driver_id' => $order->driver_id]);
+            Log::info("Order already assigned", ['driver_id' => $order->driver_id]);
             if ($order->driver_id == $driver->id) {
                 $this->telegram->answerCallbackQuery($callbackQueryId, 'لقد قمت بقبول هذا الطلب مسبقاً.');
                 
-                // Force update the message
                 $newText = "✅ <b>تم قبول الطلب!</b>\n\n";
                 $newText .= "رقم الطلب: <b>{$order->order_number}</b>\n\n";
                 $newText .= "يرجى التوجه للمتجر لاستلام الطلب.\n";
@@ -122,8 +586,7 @@ class TelegramWebhookController extends Controller
                         ]
                     ]
                 ];
-                $res = $this->telegram->editMessageText($chatId, $messageId, $newText, $replyMarkup);
-                \Illuminate\Support\Facades\Log::info("Force editMessageText response", ['response' => $res]);
+                $this->telegram->editMessageText($chatId, $messageId, $newText, $replyMarkup);
 
             } else {
                 $this->telegram->answerCallbackQuery($callbackQueryId, 'نعتذر، تم استلام الطلب من مندوب آخر.', true);
@@ -132,16 +595,13 @@ class TelegramWebhookController extends Controller
             return;
         }
 
-        // Accept the order
         $order->update([
             'driver_id' => $driver->id,
-            // Keep status as ready or preparing, driver is just assigned
         ]);
-        \Illuminate\Support\Facades\Log::info("Order DB updated successfully (driver assigned)");
+        Log::info("Order DB updated successfully (driver assigned)");
 
         $this->telegram->answerCallbackQuery($callbackQueryId, 'تم تسجيل الطلب باسمك بنجاح! توجه للمتجر.');
 
-        // Update the message to show "Picked up from store" button
         $newText = "✅ <b>تم قبول الطلب!</b>\n\n";
         $newText .= "رقم الطلب: <b>{$order->order_number}</b>\n\n";
         $newText .= "يرجى التوجه للمتجر لاستلام الطلب.\n";
@@ -158,8 +618,10 @@ class TelegramWebhookController extends Controller
             ]
         ];
 
-        $res = $this->telegram->editMessageText($chatId, $messageId, $newText, $replyMarkup);
-        \Illuminate\Support\Facades\Log::info("Normal editMessageText response (accept)", ['response' => $res]);
+        $this->telegram->editMessageText($chatId, $messageId, $newText, $replyMarkup);
+
+        // Notify admins
+        self::notifyAdminsDriverUpdate($order, 'accepted');
     }
 
     protected function pickedUpOrder($orderId, $driver, $chatId, $messageId, $callbackQueryId)
@@ -179,7 +641,6 @@ class TelegramWebhookController extends Controller
         if ($order->status == 'delivering' || $order->status == 'delivered') {
             $this->telegram->answerCallbackQuery($callbackQueryId, 'لقد قمت بتأكيد الاستلام مسبقاً.');
             
-            // Force update message
             $address = $order->address;
             $mapsUrl = $address->latitude && $address->longitude 
                 ? "https://maps.google.com/?q={$address->latitude},{$address->longitude}"
@@ -216,7 +677,6 @@ class TelegramWebhookController extends Controller
             return;
         }
 
-        // Pick up the order
         $order->update([
             'status' => 'delivering',
             'delivering_at' => now(),
@@ -224,7 +684,6 @@ class TelegramWebhookController extends Controller
 
         $this->telegram->answerCallbackQuery($callbackQueryId, 'تم تأكيد استلام الطلب من المتجر! توجه للعميل.');
 
-        // Update the message to show Customer info and "Delivered" button
         $address = $order->address;
         $mapsUrl = $address->latitude && $address->longitude 
             ? "https://maps.google.com/?q={$address->latitude},{$address->longitude}"
@@ -259,6 +718,9 @@ class TelegramWebhookController extends Controller
             $doorImagePath = public_path($address->door_image_path);
             $this->telegram->sendPhoto($chatId, $doorImagePath, "🚪 صورة باب العميل للطلب: {$order->order_number}");
         }
+
+        // Notify admins
+        self::notifyAdminsDriverUpdate($order, 'picked_up');
     }
 
     protected function askDeliverOrder($orderId, $driver, $chatId, $messageId, $callbackQueryId)
@@ -351,7 +813,6 @@ class TelegramWebhookController extends Controller
             return;
         }
 
-        // Mark as delivered
         $order->update([
             'status' => 'delivered',
             'delivered_at' => now(),
@@ -359,14 +820,12 @@ class TelegramWebhookController extends Controller
 
         $this->telegram->answerCallbackQuery($callbackQueryId, 'تم تسليم الطلب بنجاح! عمل رائع 🌟');
 
-        // Calculate driver earnings
         $totalEarnings = Order::where('driver_id', $driver->id)
             ->where('status', 'delivered')
             ->sum('delivery_fee');
 
         $address = $order->address;
         
-        // Update the message
         $newText = "🎉 <b>اكتمل الطلب بنجاح!</b>\n\n";
         $newText .= "رقم الطلب: <b>{$order->order_number}</b>\n";
         if ($address) {
@@ -376,6 +835,9 @@ class TelegramWebhookController extends Controller
         $newText .= "شكراً لك {$driver->name} على مجهودك. 🌸\n\n";
         $newText .= "💰 <b>إجمالي مبالغك المستحقة:</b> {$totalEarnings} ر.س";
 
-        $this->telegram->editMessageText($chatId, $messageId, $newText, ['inline_keyboard' => []]); // Remove keyboard
+        $this->telegram->editMessageText($chatId, $messageId, $newText, ['inline_keyboard' => []]);
+
+        // Notify admins
+        self::notifyAdminsDriverUpdate($order, 'delivered');
     }
 }
