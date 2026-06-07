@@ -10,6 +10,7 @@ interface Admin {
   name: string;
   email: string | null;
   phone: string | null;
+  telegram_username: string | null;
   is_active: boolean;
   created_at: string;
 }

@@ -28,7 +28,9 @@ class AdminController extends Controller
             'phone' => 'nullable|string|unique:users,phone',
             'email' => 'nullable|email|unique:users,email',
             'password' => 'required|string|min:6',
-            'is_active' => 'boolean'
+            'is_active' => 'boolean',
+            'telegram_username' => 'nullable|string|max:100',
+            'telegram_notify_new_orders' => 'boolean'
         ]);
 
         if (empty($validated['phone']) && empty($validated['email'])) {
@@ -38,6 +40,13 @@ class AdminController extends Controller
         $validated['role'] = 'admin';
         $validated['password'] = Hash::make($validated['password']);
         $validated['is_active'] = $validated['is_active'] ?? true;
+        $validated['telegram_notify_new_orders'] = $validated['telegram_notify_new_orders'] ?? true;
+
+        if (isset($validated['telegram_username'])) {
+            $username = trim($validated['telegram_username']);
+            $username = ltrim($username, '@');
+            $validated['telegram_username'] = $username ?: null;
+        }
 
         $admin = User::create($validated);
 
@@ -77,7 +86,9 @@ class AdminController extends Controller
                 Rule::unique('users')->ignore($admin->id),
             ],
             'password' => 'nullable|string|min:6',
-            'is_active' => 'boolean'
+            'is_active' => 'boolean',
+            'telegram_username' => 'nullable|string|max:100',
+            'telegram_notify_new_orders' => 'boolean'
         ]);
 
         if (array_key_exists('phone', $validated) && array_key_exists('email', $validated)) {
@@ -88,6 +99,12 @@ class AdminController extends Controller
             return response()->json(['message' => 'لا يمكن ترك الهاتف والبريد فارغين معاً'], 422);
         } elseif (array_key_exists('email', $validated) && empty($validated['email']) && empty($admin->phone)) {
             return response()->json(['message' => 'لا يمكن ترك الهاتف والبريد فارغين معاً'], 422);
+        }
+
+        if (array_key_exists('telegram_username', $validated)) {
+            $username = trim($validated['telegram_username']);
+            $username = ltrim($username, '@');
+            $validated['telegram_username'] = $username ?: null;
         }
 
         if (!empty($validated['password'])) {

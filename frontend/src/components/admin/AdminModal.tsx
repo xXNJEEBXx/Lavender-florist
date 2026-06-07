@@ -8,6 +8,7 @@ interface Admin {
   name: string;
   email: string | null;
   phone: string | null;
+  telegram_username?: string | null;
   is_active: boolean;
 }
 
@@ -24,6 +25,7 @@ export default function AdminModal({ isOpen, onClose, onSave, admin }: AdminModa
     email: '',
     phone: '',
     password: '',
+    telegram_username: '',
     is_active: true
   });
   const [isSaving, setIsSaving] = useState(false);
@@ -35,6 +37,7 @@ export default function AdminModal({ isOpen, onClose, onSave, admin }: AdminModa
         email: admin.email || '',
         phone: admin.phone || '',
         password: '',
+        telegram_username: admin.telegram_username || '',
         is_active: admin.is_active !== undefined ? admin.is_active : true
       });
     } else {
@@ -43,6 +46,7 @@ export default function AdminModal({ isOpen, onClose, onSave, admin }: AdminModa
         email: '',
         phone: '',
         password: '',
+        telegram_username: '',
         is_active: true
       });
     }
@@ -143,6 +147,18 @@ export default function AdminModal({ isOpen, onClose, onSave, admin }: AdminModa
               onChange={e => setFormData({ ...formData, password: e.target.value })}
               className="w-full bg-white border border-primary-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary-500 outline-none transition-all"
               placeholder={admin ? "••••••••" : "كلمة المرور القوية"}
+              dir="ltr"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-bold text-primary-900 mb-2">معرف التيلجرام (اختياري للإشعارات)</label>
+            <input
+              type="text"
+              value={formData.telegram_username}
+              onChange={e => setFormData({ ...formData, telegram_username: e.target.value })}
+              className="w-full bg-white border border-primary-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary-500 outline-none transition-all"
+              placeholder="@username"
               dir="ltr"
             />
           </div>
