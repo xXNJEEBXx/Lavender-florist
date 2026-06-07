@@ -88,6 +88,11 @@ export default function MyOrders() {
                         <CalendarDays className="w-3.5 h-3.5" />
                         {new Date(order.created_at).toLocaleDateString('ar-SA')}
                       </div>
+                      {order.owner_name && (
+                        <div className="text-xs font-bold text-primary-700 mt-1">
+                          صاحب الطلب: {order.owner_name}
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-3">

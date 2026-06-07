@@ -160,7 +160,7 @@ export default function ProductDetail() {
               </div>
               {queueTimeMinutes > 0 && (
                 <div className="flex items-center gap-3 mt-2 text-amber-600 text-sm bg-amber-50 p-2 rounded-lg border border-amber-100">
-                  <span>⚠️ يوجد طابور طلبات حالي قد يضيف <span className="font-bold">{queueTimeMinutes} دقيقة</span> للوقت المتوقع.</span>
+                  <span>⚠️ يوجد طابور طلبات حالي قد يضيف <span className="font-bold">{Math.round(queueTimeMinutes)} دقيقة</span> للوقت المتوقع.</span>
                 </div>
               )}
             </div>

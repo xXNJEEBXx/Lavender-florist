@@ -8,12 +8,23 @@ export default function EditOrderModal({ order, onClose, onSave }: { order: any,
   const [isLoading, setIsLoading] = useState(false);
   const [products, setProducts] = useState<any[]>([]);
 
+  const getLocalDateString = (dateStr: string) => {
+    const d = new Date(dateStr);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+
+  const getLocalTimeString = (dateStr: string) => {
+    return new Date(dateStr).toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
+  };
+
   const [formData, setFormData] = useState({
     status: order.status || 'pending',
+    owner_name: order.owner_name || '',
     delivery_type: order.delivery_type || 'local',
     delivery_fee: parseFloat(order.delivery_fee) || 0,
     delivery_date: order.delivery_date ? order.delivery_date.split('T')[0] : '',
-    delivery_time_slot: order.delivery_time_slot || '',
+    scheduled_date: order.scheduled_at ? getLocalDateString(order.scheduled_at) : (order.delivery_date ? order.delivery_date.split('T')[0] : ''),
+    scheduled_time: order.scheduled_at ? getLocalTimeString(order.scheduled_at) : '',
     estimated_preparation_time: parseInt(order.estimated_preparation_time) || 45,
     driver_notes: order.driver_notes || '',
     subtotal: parseFloat(order.subtotal) || 0,
@@ -150,6 +161,11 @@ export default function EditOrderModal({ order, onClose, onSave }: { order: any,
                 </div>
 
                 <div>
+                  <label className="block text-sm font-bold text-primary-900 mb-2">إسم صاحب الطلب</label>
+                  <input type="text" value={formData.owner_name} onChange={e => setFormData({...formData, owner_name: e.target.value})} className="w-full bg-white border border-primary-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary-500" />
+                </div>
+
+                <div>
                   <label className="block text-sm font-bold text-primary-900 mb-2">ملاحظات الطلب</label>
                   <textarea value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})} rows={4} className="w-full bg-white border border-primary-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary-500 resize-none"></textarea>
                 </div>
@@ -215,16 +231,11 @@ export default function EditOrderModal({ order, onClose, onSave }: { order: any,
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-bold text-primary-900 mb-2">تاريخ التوصيل المجدول</label>
-                    <input type="date" value={formData.delivery_date} onChange={e => setFormData({...formData, delivery_date: e.target.value})} className="w-full bg-white border border-primary-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary-500" />
+                    <input type="date" value={formData.scheduled_date} onChange={e => setFormData({...formData, scheduled_date: e.target.value})} className="w-full bg-white border border-primary-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary-500" />
                   </div>
                   <div>
-                    <label className="block text-sm font-bold text-primary-900 mb-2">فترة التوصيل</label>
-                    <select value={formData.delivery_time_slot} onChange={e => setFormData({...formData, delivery_time_slot: e.target.value})} className="w-full bg-white border border-primary-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary-500">
-                      <option value="">غير محدد</option>
-                      <option value="morning">صباحي</option>
-                      <option value="afternoon">مسائي</option>
-                      <option value="evening">ليلي</option>
-                    </select>
+                    <label className="block text-sm font-bold text-primary-900 mb-2">وقت التوصيل</label>
+                    <input type="time" value={formData.scheduled_time} onChange={e => setFormData({...formData, scheduled_time: e.target.value})} className="w-full bg-white border border-primary-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary-500" />
                   </div>
                 </div>
 
@@ -234,7 +245,7 @@ export default function EditOrderModal({ order, onClose, onSave }: { order: any,
                     
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-xs font-bold text-primary-500 mb-1">اسم المستلم</label>
+                        <label className="block text-xs font-bold text-primary-500 mb-1">اسم المستلم (اختياري)</label>
                         <input type="text" value={formData.address.recipient_name} onChange={e => setFormData({...formData, address: {...formData.address, recipient_name: e.target.value}})} className="w-full bg-primary-50/50 border border-primary-200 rounded-lg px-3 py-2 text-sm" />
                       </div>
                       <div>

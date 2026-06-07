@@ -3,16 +3,17 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
 import { useCart } from '../store/CartContext';
 import { useAuth } from '../store/AuthContext';
-import { publicProductsApi, customerApi, storeApi } from '../services/api';
-import { CheckCircle2, ChevronRight, MapPin, CreditCard, ShoppingBag, Truck, Plus, X, Map as MapIcon, Zap, Clock, Info } from 'lucide-react';
+import { adminSettingsApi, customerApi, publicProductsApi, storeApi, sharedOrderApi } from "../services/api";
+import { normalizeSaudiPhone } from "../utils/phone";
+import { CheckCircle2, ChevronRight, MapPin, CreditCard, ShoppingBag, Truck, Plus, X, Map as MapIcon, Zap, Clock, Info, Loader2 } from 'lucide-react';
 import { useJsApiLoader, GoogleMap, Marker } from '@react-google-maps/api';
 
 const STORE_LOCATION = { lat: 25.4535688, lng: 49.5847893 }; // Actual Store Location
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 
 export default function Checkout() {
-  const { items, subtotal, clearCart } = useCart();
-  const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
+  const { items, subtotal, clearCart, isSharedSession, sharedToken, exitSharedSession, isLoading: isCartLoading } = useCart();
+  const { isAuthenticated, isLoading: isAuthLoading, setUser, user } = useAuth();
   const navigate = useNavigate();
 
   const { isLoaded } = useJsApiLoader({
@@ -54,6 +55,8 @@ export default function Checkout() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [notes, setNotes] = useState('');
+  const [ownerName, setOwnerName] = useState('');
+  const [ownerPhone, setOwnerPhone] = useState(user?.phone || '');
   const [paymentMethod, setPaymentMethod] = useState('bank_transfer');
 
   // New Address Form State
@@ -68,17 +71,52 @@ export default function Checkout() {
     is_default: true,
     door_image: null as File | null,
     delivery_notes: '',
+    google_maps_link: '',
   });
 
   const [editingAddressId, setEditingAddressId] = useState<number | null>(null);
+  const [isExtractingLink, setIsExtractingLink] = useState(false);
+
+  const extractFromLink = async (link: string) => {
+    if (!link || !link.includes('http')) return;
+    setIsExtractingLink(true);
+    try {
+      const res = await storeApi.expandUrl(link);
+      if (res.latitude && res.longitude) {
+        const lat = parseFloat(res.latitude);
+        const lng = parseFloat(res.longitude);
+        setSelectedLocation({ lat, lng });
+        setMapCenter({ lat, lng });
+        
+        // Reverse Geocode to get street name and neighborhood
+        if (window.google) {
+          const geocoder = new google.maps.Geocoder();
+          geocoder.geocode({ location: { lat, lng } }, (results, status) => {
+            if (status === 'OK' && results && results[0]) {
+              setNewAddress(prev => ({...prev, street_address: results[0].formatted_address}));
+            }
+          });
+        } else {
+          setNewAddress(prev => ({...prev, street_address: `إحداثيات: ${lat.toFixed(4)}, ${lng.toFixed(4)}`}));
+        }
+      }
+    } catch (e) {
+      console.error("Failed to extract map URL", e);
+    } finally {
+      setIsExtractingLink(false);
+    }
+  };
 
   const cartPrepTime = items.reduce((sum, item) => sum + (item.quantity * (item.product.preparation_time_minutes || 0)), 0);
 
   useEffect(() => {
+    if (isAuthLoading) return;
     if (isAuthenticated) {
       loadAddresses();
+    } else {
+      setIsAddressesLoading(false);
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, isAuthLoading]);
 
   useEffect(() => {
     loadQueueStatus();
@@ -122,8 +160,9 @@ export default function Checkout() {
     setAddressError('');
 
     // Phone Validation (Saudi format: 05XXXXXXXX)
+    const normalizedPhone = normalizeSaudiPhone(newAddress.recipient_phone);
     const phoneRegex = /^(05)[0-9]{8}$/;
-    if (!phoneRegex.test(newAddress.recipient_phone)) {
+    if (!phoneRegex.test(normalizedPhone)) {
       setAddressError('رقم الجوال غير صحيح. يجب أن يبدأ بـ 05 ويتكون من 10 أرقام.');
       return;
     }
@@ -135,16 +174,39 @@ export default function Checkout() {
 
     setIsSavingAddress(true);
     try {
+      let finalLat = selectedLocation?.lat;
+      let finalLng = selectedLocation?.lng;
+      let finalStreetAddress = newAddress.street_address;
+
+      if (!finalLat && newAddress.google_maps_link) {
+        try {
+          const res = await storeApi.expandUrl(newAddress.google_maps_link);
+          if (res.latitude && res.longitude) {
+            finalLat = parseFloat(res.latitude);
+            finalLng = parseFloat(res.longitude);
+            if (!finalStreetAddress || finalStreetAddress.trim() === '') {
+              finalStreetAddress = `إحداثيات: ${finalLat.toFixed(4)}, ${finalLng.toFixed(4)}`;
+            }
+          }
+        } catch (e) {
+          console.error("Failed to expand map URL", e);
+        }
+      }
+
       const formData = new FormData();
       formData.append('name', newAddress.name);
       formData.append('recipient_name', newAddress.recipient_name);
-      formData.append('recipient_phone', newAddress.recipient_phone);
+      formData.append('recipient_phone', normalizedPhone);
       formData.append('city', newAddress.city);
-      formData.append('street_address', newAddress.street_address);
+      formData.append('street_address', finalStreetAddress);
       formData.append('is_default', newAddress.is_default ? '1' : '0');
-      if (selectedLocation) {
-        formData.append('latitude', selectedLocation.lat.toString());
-        formData.append('longitude', selectedLocation.lng.toString());
+      
+      if (finalLat && finalLng) {
+        formData.append('latitude', finalLat.toString());
+        formData.append('longitude', finalLng.toString());
+      }
+      if (newAddress.google_maps_link) {
+        formData.append('google_maps_link', newAddress.google_maps_link);
       }
       if (newAddress.delivery_notes) {
         formData.append('delivery_notes', newAddress.delivery_notes);
@@ -153,14 +215,32 @@ export default function Checkout() {
         formData.append('door_image', newAddress.door_image);
       }
 
-      if (editingAddressId) {
-        const data = await customerApi.updateAddress(editingAddressId, formData);
-        setAddresses(addresses.map(a => a.id === editingAddressId ? data : a));
-        setSelectedAddressId(data.id);
+      if (!isAuthenticated) {
+        const mockAddress = {
+          id: Date.now(), // fake id for UI
+          name: newAddress.name,
+          recipient_name: newAddress.recipient_name,
+          recipient_phone: normalizedPhone,
+          city: newAddress.city,
+          street_address: finalStreetAddress,
+          latitude: finalLat,
+          longitude: finalLng,
+          google_maps_link: newAddress.google_maps_link,
+          delivery_notes: newAddress.delivery_notes,
+          is_mock: true
+        };
+        setAddresses([...addresses, mockAddress]);
+        setSelectedAddressId(mockAddress.id);
       } else {
-        const data = await customerApi.addAddress(formData);
-        setAddresses([...addresses, data]);
-        setSelectedAddressId(data.id);
+        if (editingAddressId) {
+          const data = await customerApi.updateAddress(editingAddressId, formData);
+          setAddresses(addresses.map(a => a.id === editingAddressId ? data : a));
+          setSelectedAddressId(data.id);
+        } else {
+          const data = await customerApi.addAddress(formData);
+          setAddresses([...addresses, data]);
+          setSelectedAddressId(data.id);
+        }
       }
       setIsAddressModalOpen(false);
       setEditingAddressId(null);
@@ -173,6 +253,7 @@ export default function Checkout() {
         is_default: true,
         door_image: null,
         delivery_notes: '',
+        google_maps_link: '',
       });
     } catch (err: any) {
       console.error(err);
@@ -267,22 +348,28 @@ export default function Checkout() {
     if (isLoaded && window.google) {
       const service = new google.maps.DistanceMatrixService();
       
-      let destination: string | google.maps.LatLngLiteral = selectedAddress.street_address || '';
+      let destination: string | google.maps.LatLngLiteral = '';
       
-      if (!destination || (typeof destination === 'string' && destination.trim() === '')) {
-        setIsCalculating(false);
-        setDeliveryMinutes(15); // Fallback
-        return;
-      }
-      
-      // If the address was saved as coordinates
-      if (typeof destination === 'string' && destination.startsWith('إحداثيات:')) {
-        const coords = destination.replace('إحداثيات:', '').split(',');
-        if (coords.length === 2) {
-          destination = { lat: parseFloat(coords[0].trim()), lng: parseFloat(coords[1].trim()) };
+      if (selectedAddress.latitude && selectedAddress.longitude) {
+        destination = { lat: Number(selectedAddress.latitude), lng: Number(selectedAddress.longitude) };
+      } else {
+        destination = selectedAddress.street_address || '';
+        
+        if (!destination || (typeof destination === 'string' && destination.trim() === '')) {
+          setIsCalculating(false);
+          setDeliveryMinutes(15); // Fallback
+          return;
         }
-      } else if (typeof destination === 'string' && !destination.includes('السعودية') && !destination.includes('Saudi Arabia')) {
-        destination = `${destination}, الأحساء, السعودية`;
+        
+        // If the address was saved as coordinates
+        if (typeof destination === 'string' && destination.startsWith('إحداثيات:')) {
+          const coords = destination.replace('إحداثيات:', '').split(',');
+          if (coords.length === 2) {
+            destination = { lat: parseFloat(coords[0].trim()), lng: parseFloat(coords[1].trim()) };
+          }
+        } else if (typeof destination === 'string' && !destination.includes('السعودية') && !destination.includes('Saudi Arabia')) {
+          destination = `${destination}, الأحساء, السعودية`;
+        }
       }
 
       try {
@@ -346,12 +433,22 @@ export default function Checkout() {
       }
     }
     
+    const saudiPhoneRegex = /^(05)[0-9]{8}$/;
+    if (!ownerPhone || !saudiPhoneRegex.test(ownerPhone)) {
+      setError('يرجى إدخال رقم جوال صاحب الطلب بشكل صحيح (يجب أن يبدأ بـ 05 ويتكون من 10 أرقام)');
+      return;
+    }
+    
     setIsLoading(true);
     setError('');
     
     try {
+      const selectedAddress = addresses.find(a => a.id === selectedAddressId);
+      const isMockAddress = selectedAddress?.is_mock;
+
       const payload = {
-        address_id: deliveryType === 'pickup' ? null : selectedAddressId,
+        address_id: (deliveryType === 'pickup' || isMockAddress) ? null : selectedAddressId,
+        address: isMockAddress ? selectedAddress : null,
         payment_method: paymentMethod,
         delivery_date: isScheduled ? scheduledDate : null,
         scheduled_date: isScheduled ? scheduledDate : null,
@@ -361,6 +458,8 @@ export default function Checkout() {
         delivery_fee: deliveryFee,
         delivery_minutes: deliveryType === 'local' ? deliveryMinutes : 0,
         notes: notes || '',
+        owner_name: ownerName || null,
+        customer_phone: ownerPhone,
         items: items.map(item => ({
           product_id: item.product.id,
           quantity: item.quantity,
@@ -368,7 +467,17 @@ export default function Checkout() {
         }))
       };
       
-      const response = await publicProductsApi.checkout(payload);
+      let response;
+      if (isSharedSession && sharedToken) {
+        response = await sharedOrderApi.checkout(sharedToken, payload);
+        if (response.token) {
+          localStorage.setItem('auth_token', response.token);
+          if (response.user) setUser(response.user);
+        }
+        exitSharedSession();
+      } else {
+        response = await publicProductsApi.checkout(payload);
+      }
       
       clearCart();
       navigate(`/orders/${response.order.order_number}`);
@@ -379,6 +488,15 @@ export default function Checkout() {
       setIsLoading(false);
     }
   };
+
+  if (isCartLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-40 min-h-screen bg-primary-50/30">
+        <Loader2 className="w-12 h-12 animate-spin text-primary-600 mb-4" />
+        <p className="text-primary-800 font-medium">جاري تجهيز صفحة الدفع...</p>
+      </div>
+    );
+  }
 
   if (items.length === 0) {
     return (
@@ -484,7 +602,7 @@ export default function Checkout() {
                         <>
                           <div className="mb-6">
                             <label className="block text-sm font-bold text-primary-900 mb-3">تاريخ {deliveryType === 'local' ? 'التوصيل' : 'الاستلام'}</label>
-                            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                            <div className="flex flex-wrap gap-2">
                               {availableDays.map((day: any) => (
                                 <button
                                   key={day.date}
@@ -641,6 +759,20 @@ export default function Checkout() {
               )}
             </div>
             )}
+
+            {/* Owner Details */}
+            <div className="bg-white p-6 rounded-3xl border border-primary-100 shadow-sm">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-bold text-primary-900 mb-2">إسم صاحب الطلب (اختياري)</label>
+                  <input type="text" value={ownerName} onChange={e => setOwnerName(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-primary-200 focus:ring-2 focus:ring-primary-500 transition-all outline-none" placeholder="الاسم الذي سيظهر على الطلب..." />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-primary-900 mb-2">رقم جوال صاحب الطلب (إجباري)</label>
+                  <input type="tel" value={ownerPhone} onChange={e => setOwnerPhone(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-primary-200 focus:ring-2 focus:ring-primary-500 transition-all outline-none text-left" dir="ltr" placeholder="05XXXXXXXX" required />
+                </div>
+              </div>
+            </div>
 
             {/* Notes */}
             <div className="bg-white p-6 rounded-3xl border border-primary-100 shadow-sm">
@@ -844,21 +976,45 @@ export default function Checkout() {
                 )}
                 
                 <div className="space-y-4">
-                  {/* Google Maps Placeholder Button */}
-                  <div className="mb-6">
-                    <button 
-                      type="button" 
-                      onClick={() => setIsMapModalOpen(true)}
-                      className="w-full flex items-center justify-center gap-3 bg-emerald-50 text-emerald-700 border-2 border-emerald-200 hover:bg-emerald-100 p-4 rounded-xl font-bold transition-colors"
-                    >
-                      <MapIcon className="w-5 h-5" />
-                      تحديد الموقع عبر خرائط جوجل
-                    </button>
-                    {(newAddress.street_address || '').includes('تم تحديد الموقع') && (
-                      <p className="text-sm text-emerald-600 mt-2 flex items-center gap-1">
-                        <CheckCircle2 className="w-4 h-4"/> تم تحديد الموقع بنجاح
-                      </p>
-                    )}
+                  {/* Google Maps Link or Button */}
+                  <div className="mb-6 space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-primary-900 mb-2">رابط قوقل ماب (اختياري)</label>
+                      <input 
+                        type="url" 
+                        value={newAddress.google_maps_link || ''} 
+                        onChange={e => setNewAddress({...newAddress, google_maps_link: e.target.value})} 
+                        onBlur={e => extractFromLink(e.target.value)}
+                        className="w-full px-4 py-3 rounded-xl border border-primary-200 focus:ring-primary-500 outline-none" 
+                        placeholder="https://maps.google.com/..." 
+                        dir="ltr"
+                      />
+                      {isExtractingLink && (
+                        <p className="text-sm text-primary-500 mt-2 flex items-center gap-1 animate-pulse">
+                          <Loader2 className="w-4 h-4 animate-spin"/> جاري استخراج العنوان من الرابط...
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="flex-1 h-px bg-primary-100"></div>
+                      <span className="text-xs text-primary-400 font-bold">أو</span>
+                      <div className="flex-1 h-px bg-primary-100"></div>
+                    </div>
+                    <div>
+                      <button 
+                        type="button" 
+                        onClick={() => setIsMapModalOpen(true)}
+                        className="w-full flex items-center justify-center gap-3 bg-emerald-50 text-emerald-700 border-2 border-emerald-200 hover:bg-emerald-100 p-4 rounded-xl font-bold transition-colors"
+                      >
+                        <MapIcon className="w-5 h-5" />
+                        تحديد الموقع عبر الخريطة
+                      </button>
+                      {(newAddress.street_address || '').includes('تم تحديد الموقع') && (
+                        <p className="text-sm text-emerald-600 mt-2 flex items-center gap-1">
+                          <CheckCircle2 className="w-4 h-4"/> تم تحديد الموقع بنجاح
+                        </p>
+                      )}
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
@@ -867,8 +1023,8 @@ export default function Checkout() {
                       <input required value={newAddress.name} onChange={e => setNewAddress({...newAddress, name: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-primary-200 focus:ring-primary-500 outline-none" />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-primary-900 mb-2">اسم المستلم</label>
-                      <input required value={newAddress.recipient_name} onChange={e => setNewAddress({...newAddress, recipient_name: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-primary-200 focus:ring-primary-500 outline-none" />
+                      <label className="block text-sm font-medium text-primary-900 mb-2">اسم المستلم (اختياري)</label>
+                      <input value={newAddress.recipient_name} onChange={e => setNewAddress({...newAddress, recipient_name: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-primary-200 focus:ring-primary-500 outline-none" />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-primary-900 mb-2">رقم جوال المستلم</label>
@@ -890,7 +1046,7 @@ export default function Checkout() {
                     </div>
                     <div className="col-span-2">
                       <label className="block text-sm font-medium text-primary-900 mb-2">ملاحظات إضافية للتوصيل (اختياري)</label>
-                      <textarea value={newAddress.delivery_notes} onChange={e => setNewAddress({...newAddress, delivery_notes: e.target.value})} rows={2} className="w-full px-4 py-3 rounded-xl border border-primary-200 focus:ring-primary-500 outline-none resize-none" placeholder="مثال: يرجى الاتصال قبل الوصول بنصف ساعة" />
+                      <textarea value={newAddress.delivery_notes} onChange={e => setNewAddress({...newAddress, delivery_notes: e.target.value})} rows={2} className="w-full px-4 py-3 rounded-xl border border-primary-200 focus:ring-primary-500 outline-none resize-none" />
                     </div>
                   </div>
                 </div>

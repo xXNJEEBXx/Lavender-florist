@@ -187,7 +187,8 @@ class TelegramWebhookController extends Controller
             
             $newText = "🚗 <b>جاري التوصيل للعميل!</b>\n\n";
             $newText .= "رقم الطلب: <b>{$order->order_number}</b>\n";
-            $newText .= "العميل: {$address->recipient_name} ({$address->recipient_phone})\n";
+            $recipientName = $address->recipient_name ?: 'غير محدد';
+            $newText .= "العميل: {$recipientName} ({$address->recipient_phone})\n";
             $newText .= "العنوان: {$address->city}, {$address->street}\n";
             
             if ($address && $address->delivery_notes) {
@@ -231,7 +232,8 @@ class TelegramWebhookController extends Controller
         
         $newText = "🚗 <b>جاري التوصيل للعميل!</b>\n\n";
         $newText .= "رقم الطلب: <b>{$order->order_number}</b>\n";
-        $newText .= "العميل: {$address->recipient_name} ({$address->recipient_phone})\n";
+        $recipientName = $address->recipient_name ?: 'غير محدد';
+        $newText .= "العميل: {$recipientName} ({$address->recipient_phone})\n";
         $newText .= "العنوان: {$address->city}, {$address->street}\n";
         
         if ($address && $address->delivery_notes) {
@@ -275,7 +277,8 @@ class TelegramWebhookController extends Controller
 
         $newText = "🚗 <b>جاري التوصيل للعميل!</b>\n\n";
         $newText .= "رقم الطلب: <b>{$order->order_number}</b>\n";
-        $newText .= "العميل: {$address->recipient_name} ({$address->recipient_phone})\n";
+        $recipientName = $address->recipient_name ?: 'غير محدد';
+        $newText .= "العميل: {$recipientName} ({$address->recipient_phone})\n";
         $newText .= "العنوان: {$address->city}, {$address->street}\n";
         $newText .= "\n⚠️ <b>هل أنت متأكد أنك قمت بتسليم الطلب للعميل؟</b>";
 
@@ -310,7 +313,8 @@ class TelegramWebhookController extends Controller
 
         $newText = "🚗 <b>جاري التوصيل للعميل!</b>\n\n";
         $newText .= "رقم الطلب: <b>{$order->order_number}</b>\n";
-        $newText .= "العميل: {$address->recipient_name} ({$address->recipient_phone})\n";
+        $recipientName = $address->recipient_name ?: 'غير محدد';
+        $newText .= "العميل: {$recipientName} ({$address->recipient_phone})\n";
         $newText .= "العنوان: {$address->city}, {$address->street}\n";
         $newText .= "\nالرجاء الضغط على الزر أدناه عند وصولك وتسليم الطلب للعميل.";
 
@@ -366,7 +370,8 @@ class TelegramWebhookController extends Controller
         $newText = "🎉 <b>اكتمل الطلب بنجاح!</b>\n\n";
         $newText .= "رقم الطلب: <b>{$order->order_number}</b>\n";
         if ($address) {
-            $newText .= "العميل: {$address->recipient_name} ({$address->recipient_phone})\n\n";
+            $recipientName = $address->recipient_name ?: 'غير محدد';
+            $newText .= "العميل: {$recipientName} ({$address->recipient_phone})\n\n";
         }
         $newText .= "شكراً لك {$driver->name} على مجهودك. 🌸\n\n";
         $newText .= "💰 <b>إجمالي مبالغك المستحقة:</b> {$totalEarnings} ر.س";

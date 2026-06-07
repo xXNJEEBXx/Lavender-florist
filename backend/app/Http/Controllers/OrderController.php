@@ -163,8 +163,10 @@ class OrderController extends Controller
 
             $minutes = $order->delivery_minutes ? $order->delivery_minutes . ' دقيقة' : 'غير محدد';
             
+            $ownerName = $order->owner_name ?? $order->customer->name ?? 'غير محدد';
             $messageText = "🚨 <b>طلب توصيل جديد!</b> 🚨\n\n";
             $messageText .= "📦 <b>رقم الطلب:</b> {$order->order_number}\n";
+            $messageText .= "👤 <b>صاحب الطلب:</b> {$ownerName}\n";
             $messageText .= "📍 <b>المدينة/الحي:</b> {$address->city} - {$address->street}\n";
             $messageText .= "💸 <b>مبلغ التوصيل:</b> {$order->delivery_fee} ريال\n";
             $messageText .= "⏱️ <b>المسافة تقريباً:</b> {$minutes}\n\n";
@@ -211,6 +213,7 @@ class OrderController extends Controller
             'payment_method' => 'required|in:cash_on_delivery,bank_transfer',
             'payment_status' => 'required|in:pending,paid,refunded',
             'notes' => 'nullable|string',
+            'owner_name' => 'nullable|string|max:255',
             'address' => 'nullable|array',
             'address.city' => 'nullable|string',
             'address.district' => 'nullable|string',
@@ -256,6 +259,7 @@ class OrderController extends Controller
                 'payment_method' => $validated['payment_method'],
                 'payment_status' => $validated['payment_status'],
                 'notes' => $validated['notes'] ?? null,
+                'owner_name' => $validated['owner_name'] ?? null,
             ]);
 
             // Sync items

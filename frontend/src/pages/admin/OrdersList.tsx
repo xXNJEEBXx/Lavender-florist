@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, FileText, CheckCircle2, Clock, Package, Truck, X, MapPin, Download, AlertTriangle, Timer, ChevronDown, ChevronUp, Edit } from 'lucide-react';
 import { adminOrdersApi } from '../../services/api';
@@ -6,8 +6,20 @@ import { GoogleMap, Marker, useJsApiLoader } from '@react-google-maps/api';
 import EditOrderModal from '../../components/admin/EditOrderModal';
 
 // ?? Time Helpers ???????????????????????????????????????????????
-function getElapsedMinutes(dateStr: string): number {
-  return Math.max(0, Math.floor((Date.now() - new Date(dateStr).getTime()) / 60000));
+function getBaseTime(order: any): number {
+  if (order.ready_by || order.scheduled_at) {
+    // Start timer 45 minutes before the ready/scheduled time
+    const target = new Date(order.ready_by || order.scheduled_at).getTime();
+    return target - (45 * 60000);
+  }
+  return new Date(order.created_at).getTime();
+}
+
+function getElapsedMinutes(order: any): number {
+  const baseTime = getBaseTime(order);
+  const now = Date.now();
+  if (now < baseTime) return 0;
+  return Math.floor((now - baseTime) / 60000);
 }
 
 function formatElapsed(mins: number): string {
@@ -26,9 +38,13 @@ function formatDuration(ms: number) {
   return m > 0 ? `${h} س و ${m} دقيقة` : `${h} س`;
 }
 
-function getUrgency(status: string, createdAt: string): 'ok' | 'warn' | 'danger' {
-  if (['delivered', 'cancelled'].includes(status)) return 'ok';
-  const elapsed = getElapsedMinutes(createdAt);
+function getUrgency(order: any): 'ok' | 'warn' | 'danger' {
+  if (['delivered', 'cancelled'].includes(order.status)) return 'ok';
+  const baseTime = getBaseTime(order);
+  const now = Date.now();
+  if (now < baseTime) return 'ok';
+  
+  const elapsed = Math.floor((now - baseTime) / 60000);
   if (elapsed >= 45) return 'danger';
   if (elapsed >= 20) return 'warn';
   return 'ok';
@@ -95,19 +111,20 @@ export default function OrdersList() {
     try {
       if (!silent && cachedOrders[statusFilter].length === 0) setIsLoading(true);
       
-      const [incRes, allRes] = await Promise.all([
-        adminOrdersApi.getAll('incomplete', statusFilter === 'incomplete' ? page : 1),
-        adminOrdersApi.getAll('all', statusFilter === 'all' ? page : 1)
-      ]);
+      const allRes = await adminOrdersApi.getAll('all', page);
+
+      const allOrders = allRes.data || [];
+      const incompleteOrders = allOrders.filter((o: any) => !['delivered', 'cancelled'].includes(o.status));
 
       setCachedOrders({
-        incomplete: incRes.data,
-        all: allRes.data
+        incomplete: incompleteOrders,
+        all: allOrders
       });
       
-      setIncompleteCount(incRes.total);
+      // Since we only fetched one page of 'all', the incomplete count will reflect the current page's incomplete items.
+      setIncompleteCount(incompleteOrders.length);
       setTotalCount(allRes.total);
-      setTotalPages(statusFilter === 'incomplete' ? incRes.last_page : allRes.last_page);
+      setTotalPages(allRes.last_page);
       
     } catch (error) {
       console.error('Failed to load orders', error);
@@ -372,7 +389,7 @@ export default function OrdersList() {
     );
   };
 
-  const urgentCount = orders.filter(o => getUrgency(o.status, o.created_at) === 'danger').length;
+  const urgentCount = orders.filter(o => getUrgency(o) === 'danger').length;
 
   return (
     <div>
@@ -427,13 +444,14 @@ export default function OrdersList() {
         <div className="overflow-x-auto">
           <table className="w-full text-right">
             <thead>
-              <tr className="bg-primary-50/50 border-b border-primary-100">
+              <tr className="bg-primary-50/50 border-b border-primary-100 whitespace-nowrap">
                 <th className="w-10 px-3 py-3.5"></th>
                 <th className="px-4 py-3.5 text-primary-900 font-bold text-sm">رقم الطلب</th>
                 <th className="px-4 py-3.5 text-primary-900 font-bold text-sm">العميل</th>
                 <th className="px-4 py-3.5 text-primary-900 font-bold text-sm">المبلغ</th>
-                <th className="px-4 py-3.5 text-primary-900 font-bold text-sm">الوقت</th>
-                <th className="px-4 py-3.5 text-primary-900 font-bold text-sm">المندوب</th>
+                <th className="px-4 py-3.5 text-primary-900 font-bold text-sm whitespace-nowrap">الوقت</th>
+                <th className="px-4 py-3.5 text-primary-900 font-bold text-sm whitespace-nowrap">نوع الطلب</th>
+                <th className="px-4 py-3.5 text-primary-900 font-bold text-sm whitespace-nowrap">المندوب</th>
                 <th className="px-4 py-3.5 text-primary-900 font-bold text-sm">الدفع</th>
                 <th className="px-4 py-3.5 text-primary-900 font-bold text-sm">الحالة</th>
                 <th className="px-4 py-3.5 text-primary-900 font-bold text-sm text-center">إجراءات</th>
@@ -442,7 +460,7 @@ export default function OrdersList() {
             <tbody className="divide-y divide-primary-50">
               {isLoading ? (
                 <tr>
-                  <td colSpan={9} className="px-6 py-16 text-center">
+                  <td colSpan={10} className="px-6 py-16 text-center">
                     <div className="flex flex-col items-center gap-3">
                       <div className="w-8 h-8 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin" />
                       <span className="text-primary-500 font-bold">جاري التحميل...</span>
@@ -451,15 +469,15 @@ export default function OrdersList() {
                 </tr>
               ) : orders.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-6 py-16 text-center">
+                  <td colSpan={10} className="px-6 py-16 text-center">
                     <Package className="w-12 h-12 text-primary-200 mx-auto mb-3" />
                     <p className="text-primary-500 font-bold">لا توجد طلبات</p>
                   </td>
                 </tr>
               ) : (
                 orders.map((order) => {
-                  const urgency = isActive(order.status) ? getUrgency(order.status, order.created_at) : 'ok';
-                  const elapsed = getElapsedMinutes(order.created_at);
+                  const urgency = isActive(order.status) ? getUrgency(order) : 'ok';
+                  const elapsed = getElapsedMinutes(order);
                   const isExpanded = expandedRows.has(order.id);
                   const rowBorder = urgency === 'danger' ? 'border-r-4 border-r-rose-500 bg-rose-50/30' : urgency === 'warn' ? 'border-r-4 border-r-amber-400 bg-amber-50/20' : '';
 
@@ -472,24 +490,28 @@ export default function OrdersList() {
                             {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                           </button>
                         </td>
-                        <td className="px-4 py-3 font-mono font-bold text-primary-900 text-sm">{order.order_number}</td>
-                        <td className="px-4 py-3">
-                          <div className="font-bold text-primary-900 text-sm">{order.customer?.name}</div>
-                          <div className="text-xs text-primary-500" dir="ltr">{order.customer?.phone}</div>
+                        <td className="px-4 py-3 font-mono font-bold text-primary-900 text-sm whitespace-nowrap">{order.order_number}</td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <div className="font-bold text-primary-900 text-sm">{order.customer?.name || order.owner_name || 'ضيف (بدون اسم)'}</div>
+                          <div className="text-xs text-primary-500" dir="ltr">{order.customer?.phone || order.owner_phone || 'بدون رقم'}</div>
                         </td>
-                        <td className="px-4 py-3 font-bold text-primary-900 text-sm">{order.total} ر.س</td>
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3 font-bold text-primary-900 text-sm whitespace-nowrap">{order.total} ر.س</td>
+                        <td className="px-4 py-3 whitespace-nowrap">
                           {isActive(order.status) ? (
                             <div className="flex flex-col gap-1">
-                              <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold w-fit ${
-                                urgency === 'danger' ? 'bg-rose-100 text-rose-700' :
-                                urgency === 'warn' ? 'bg-amber-100 text-amber-700' :
-                                'bg-emerald-50 text-emerald-700'
-                              }`}>
-                                <Timer className="w-3 h-3" />
-                                {formatElapsed(elapsed)}
-                                {urgency === 'danger' && <span className="text-rose-600 mr-1">!</span>}
-                              </div>
+                              {elapsed > 0 ? (
+                                <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold w-fit ${
+                                  urgency === 'danger' ? 'bg-rose-100 text-rose-700' :
+                                  urgency === 'warn' ? 'bg-amber-100 text-amber-700' :
+                                  'bg-emerald-50 text-emerald-700'
+                                }`}>
+                                  <Timer className="w-3 h-3" />
+                                  {formatElapsed(elapsed)}
+                                  {urgency === 'danger' && <span className="text-rose-600 mr-1">!</span>}
+                                </div>
+                              ) : (
+                                <span className="text-xs font-bold text-gray-500 bg-gray-100 px-2 py-1 rounded-lg w-fit">بانتظار الموعد</span>
+                              )}
                               {(() => {
                                 let targetTime: Date | null = null;
                                 if (order.scheduled_at) targetTime = new Date(order.scheduled_at);
@@ -507,7 +529,19 @@ export default function OrdersList() {
                             <span className="text-xs text-primary-400">{new Date(order.created_at).toLocaleDateString('ar-SA')}</span>
                           )}
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          {order.scheduled_at ? (
+                            <div className="flex flex-col gap-1">
+                              <span className="text-xs font-bold text-purple-700 bg-purple-50 px-2 py-1 rounded w-fit border border-purple-100">مجدول</span>
+                              <span className="text-[10px] text-primary-600 font-medium">
+                                {new Date(order.scheduled_at).toLocaleDateString('ar-SA', { month: 'short', day: 'numeric' })} | {new Date(order.scheduled_at).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-1 rounded w-fit border border-emerald-100">في أقرب وقت</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
                           {order.delivery_type === 'local' ? (
                             order.driver ? (
                               <span className="inline-flex items-center gap-1 text-xs font-bold text-purple-700">
@@ -526,7 +560,7 @@ export default function OrdersList() {
                             <span className="text-xs text-primary-400">-</span>
                           )}
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3 whitespace-nowrap">
                           {order.payment_status === 'paid' ? (
                             <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600"><CheckCircle2 className="w-3.5 h-3.5" /> مدفوع</span>
                           ) : (order.bank_transfer_receipt || order.payment_justification) ? (
@@ -535,8 +569,8 @@ export default function OrdersList() {
                             <span className="text-xs text-gray-400">غير مدفوع</span>
                           )}
                         </td>
-                        <td className="px-4 py-3">{getStatusBadge(order)}</td>
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3 whitespace-nowrap">{getStatusBadge(order)}</td>
+                        <td className="px-4 py-3 whitespace-nowrap">
                           <div className="flex items-center justify-center gap-2" onClick={e => e.stopPropagation()}>
                             {getNextActionButton(order)}
                             <button 
@@ -565,7 +599,7 @@ export default function OrdersList() {
                       {/* Expanded Row - Products */}
                       {isExpanded && (
                         <tr key={`${order.id}-expanded`} className="bg-primary-50/20">
-                          <td colSpan={9} className="px-6 py-4">
+                          <td colSpan={10} className="px-6 py-4">
                             <div className="flex flex-wrap gap-3">
                               {order.items?.map((item: any) => (
                                 <div key={item.id} className="flex items-center gap-3 bg-white px-3 py-2 rounded-xl border border-primary-100 shadow-sm max-w-sm">
@@ -639,8 +673,9 @@ export default function OrdersList() {
                     <h2 className="text-xl font-bold text-primary-900">طلب #{selectedOrder.order_number}</h2>
                     {getStatusBadge(selectedOrder)}
                     {isActive(selectedOrder.status) && (() => {
-                      const urg = getUrgency(selectedOrder.status, selectedOrder.created_at);
-                      const el = getElapsedMinutes(selectedOrder.created_at);
+                      const urg = getUrgency(selectedOrder);
+                      const el = getElapsedMinutes(selectedOrder);
+                      if (el === 0) return null;
                       return (
                         <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
                           urg === 'danger' ? 'bg-rose-100 text-rose-700' :
@@ -673,13 +708,19 @@ export default function OrdersList() {
                     <div className="bg-white p-5 rounded-2xl border border-primary-100 shadow-sm">
                       <h3 className="font-bold text-primary-900 mb-4 flex items-center gap-2"><UserIcon /> بيانات العميل</h3>
                       <div className="space-y-3 text-sm">
+                        {selectedOrder.owner_name && (
+                          <div>
+                            <span className="text-primary-500 block mb-1">صاحب الطلب</span>
+                            <strong className="text-primary-900">{selectedOrder.owner_name}</strong>
+                          </div>
+                        )}
                         <div>
-                          <span className="text-primary-500 block mb-1">الاسم</span>
-                          <strong className="text-primary-900">{selectedOrder.address?.recipient_name || selectedOrder.customer?.name}</strong>
+                          <span className="text-primary-500 block mb-1">المستلم</span>
+                          <strong className="text-primary-900">{selectedOrder.address?.recipient_name || selectedOrder.customer?.name || 'بدون اسم'}</strong>
                         </div>
                         <div>
                           <span className="text-primary-500 block mb-1">رقم الجوال</span>
-                          <strong className="text-primary-900" dir="ltr">{selectedOrder.address?.recipient_phone || selectedOrder.customer?.phone || 'لا يوجد'}</strong>
+                          <strong className="text-primary-900" dir="ltr">{selectedOrder.owner_phone || selectedOrder.address?.recipient_phone || selectedOrder.customer?.phone || 'لا يوجد'}</strong>
                         </div>
                         <div>
                           <span className="text-primary-500 block mb-1">طريقة الاستلام</span>

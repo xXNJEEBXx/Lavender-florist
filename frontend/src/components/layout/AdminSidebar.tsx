@@ -10,23 +10,29 @@ import {
   Store,
   Truck,
   Clock,
-  CalendarOff
+  CalendarOff,
+  Plus
 } from 'lucide-react';
 
-export default function AdminSidebar() {
+interface AdminSidebarProps {
+  isOpen?: boolean;
+}
+
+export default function AdminSidebar({ isOpen = true }: AdminSidebarProps) {
   const menuItems = [
     { name: 'الصفحة الرئيسية', path: '/', icon: <Store size={20} /> },
     { name: 'لوحة التحكم', path: '/admin', icon: <LayoutDashboard size={20} /> },
     { name: 'المنتجات', path: '/admin/products', icon: <Flower2 size={20} /> },
     { name: 'المواد الخام', path: '/admin/components', icon: <Package size={20} /> },
     { name: 'الطلبات', path: '/admin/orders', icon: <ShoppingCart size={20} /> },
+    { name: 'إنشاء طلب يدوي', path: '/admin/orders/manual', icon: <Plus size={20} /> },
     { name: 'المناديب', path: '/admin/drivers', icon: <Truck size={20} /> },
     { name: 'العملاء', path: '/admin/customers', icon: <Users size={20} /> },
     { name: 'الإعدادات', path: '/admin/settings', icon: <Settings size={20} /> },
   ];
 
   return (
-    <div className="w-64 h-screen bg-white border-l border-primary-100 flex flex-col fixed right-0 top-0 z-40">
+    <div className={`w-64 h-screen bg-white border-l border-primary-100 flex flex-col fixed right-0 top-0 z-40 transition-transform duration-300 ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
       <div className="p-6 flex items-center gap-3 border-b border-primary-50">
         <Link to="/">
           <img src="/logo.png" alt="Lavender Florist" className="h-10 w-10 object-contain hover:scale-105 transition-transform" />

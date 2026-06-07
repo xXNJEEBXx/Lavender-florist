@@ -3,7 +3,7 @@ import { useAuth } from '../../store/AuthContext';
 import { useCart } from '../../store/CartContext';
 
 export default function MainLayout() {
-  const { openLoginModal, isAuthenticated, user, logout } = useAuth();
+  const { openLoginModal, isAuthenticated, user, logout, isLoading } = useAuth();
   const { itemCount } = useCart();
   
   return (
@@ -22,7 +22,7 @@ export default function MainLayout() {
         <nav className="hidden md:flex items-center gap-8 text-primary-900/80 font-medium">
           <Link to="/" className="hover:text-primary-600 transition-colors">الرئيسية</Link>
           <Link to="/products" className="hover:text-primary-600 transition-colors">المنتجات</Link>
-          {isAuthenticated && (
+          {!isLoading && isAuthenticated && (
             <Link to="/my-orders" className="hover:text-primary-600 transition-colors text-primary-950 font-bold">طلباتي</Link>
           )}
           <Link to="/about" className="hover:text-primary-600 transition-colors">من نحن</Link>
@@ -40,7 +40,10 @@ export default function MainLayout() {
               </span>
             )}
           </Link>
-          {isAuthenticated ? (
+          
+          {isLoading ? (
+            <div className="h-10 w-10 rounded-full bg-primary-50 animate-pulse border border-primary-100"></div>
+          ) : isAuthenticated ? (
             <div className="relative group">
               <Link 
                 to={user?.role === 'admin' ? '/admin' : '/profile'}

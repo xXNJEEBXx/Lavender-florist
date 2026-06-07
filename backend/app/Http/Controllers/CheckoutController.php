@@ -30,6 +30,7 @@ class CheckoutController extends Controller
             'scheduled_time' => 'nullable|string',
             'payment_method' => 'required|in:cash_on_delivery,bank_transfer',
             'notes' => 'nullable|string',
+            'owner_name' => 'nullable|string|max:255',
             
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
@@ -146,7 +147,8 @@ class CheckoutController extends Controller
                 'total' => $total,
                 'payment_method' => $validated['payment_method'],
                 'payment_status' => 'pending',
-                'notes' => $validated['notes'] ?? null
+                'notes' => $validated['notes'] ?? null,
+                'owner_name' => $validated['owner_name'] ?? null
             ]);
 
             // 5. Save Order Items and Gift Messages

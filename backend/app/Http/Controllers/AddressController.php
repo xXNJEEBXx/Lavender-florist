@@ -22,7 +22,7 @@ class AddressController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'recipient_name' => 'required|string|max:255',
+            'recipient_name' => 'nullable|string|max:255',
             'recipient_phone' => 'required|string|max:20',
             'city' => 'required|string|max:100',
             'street_address' => 'required|string|max:255',
@@ -31,6 +31,7 @@ class AddressController extends Controller
             'door_image' => 'nullable|image|max:5120',
             'latitude' => 'nullable|numeric',
             'longitude' => 'nullable|numeric',
+            'google_maps_link' => 'nullable|string|max:1000',
         ]);
 
         $doorImagePath = null;
@@ -51,6 +52,7 @@ class AddressController extends Controller
             'is_default' => $validated['is_default'] ?? false,
             'latitude' => $validated['latitude'] ?? null,
             'longitude' => $validated['longitude'] ?? null,
+            'google_maps_link' => $validated['google_maps_link'] ?? null,
         ];
 
         // If this is set as default, unset others
@@ -74,7 +76,7 @@ class AddressController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'recipient_name' => 'required|string|max:255',
+            'recipient_name' => 'nullable|string|max:255',
             'recipient_phone' => 'required|string|max:20',
             'city' => 'required|string|max:100',
             'street_address' => 'required|string|max:255',
@@ -83,6 +85,7 @@ class AddressController extends Controller
             'door_image' => 'nullable|image|max:5120',
             'latitude' => 'nullable|numeric',
             'longitude' => 'nullable|numeric',
+            'google_maps_link' => 'nullable|string|max:1000',
         ]);
 
         $doorImagePath = $address->door_image_path;
@@ -102,6 +105,7 @@ class AddressController extends Controller
             'is_default' => $validated['is_default'] ?? false,
             'latitude' => $validated['latitude'] ?? null,
             'longitude' => $validated['longitude'] ?? null,
+            'google_maps_link' => $validated['google_maps_link'] ?? null,
         ];
 
         if (!empty($validated['is_default'])) {
@@ -124,5 +128,44 @@ class AddressController extends Controller
         }
         $address->delete();
         return response()->json(['message' => 'Deleted']);
+    }
+
+    public function expandUrl(Request $request)
+    {
+        $url = $request->input('url');
+        if (!$url) {
+            return response()->json(['error' => 'No URL'], 400);
+        }
+
+        // Use cURL to get the final redirected URL
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_HEADER, false);
+        curl_setopt($ch, CURLOPT_NOBODY, true); // we only need headers/redirects
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+        curl_exec($ch);
+        $finalUrl = curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
+        curl_close($ch);
+
+        // The final URL usually looks like https://www.google.com/maps/place/.../@25.123,49.123,15z
+        if (preg_match('/@(-?\d+\.\d+),(-?\d+\.\d+)/', $finalUrl, $matches)) {
+            return response()->json([
+                'latitude' => $matches[1],
+                'longitude' => $matches[2],
+                'final_url' => $finalUrl
+            ]);
+        }
+        
+        // try another format: =25.123,49.123
+        if (preg_match('/=(-?\d+\.\d+),(-?\d+\.\d+)/', $finalUrl, $matches)) {
+            return response()->json([
+                'latitude' => $matches[1],
+                'longitude' => $matches[2],
+                'final_url' => $finalUrl
+            ]);
+        }
+
+        return response()->json(['error' => 'Coordinates not found in URL', 'final_url' => $finalUrl], 404);
     }
 }

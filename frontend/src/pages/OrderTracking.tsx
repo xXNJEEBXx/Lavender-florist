@@ -382,6 +382,15 @@ export default function OrderTracking() {
 
             {/* Extra Details */}
             <div className="pt-6 border-t border-primary-100 space-y-4 text-sm">
+              {order.owner_name && (
+                <div>
+                  <h4 className="font-bold text-primary-900 mb-2">صاحب الطلب</h4>
+                  <div className="bg-primary-50 p-4 rounded-xl text-primary-900 font-bold">
+                    {order.owner_name}
+                  </div>
+                </div>
+              )}
+
               {order.address && (
                 <div>
                   <h4 className="font-bold text-primary-900 mb-2">عنوان التوصيل</h4>

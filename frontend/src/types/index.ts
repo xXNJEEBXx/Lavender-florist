@@ -25,6 +25,8 @@ export interface Address {
   latitude: number | null;
   longitude: number | null;
   is_default: boolean;
+  google_maps_link?: string | null;
+  door_image_path?: string | null;
 }
 
 // ===== Products =====

@@ -11,9 +11,9 @@ class Order extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'order_number', 'customer_id', 'status', 'delivery_type', 'delivery_speed',
-        'address_id', 'delivery_date', 'delivery_time_slot', 'delivery_fee',
-        'delivery_minutes', 'driver_id', 'delivery_offered_at', 'scheduled_at', 'ready_by',
+        'order_number', 'owner_name', 'owner_phone', 'customer_id', 'status', 'is_draft', 'token',
+        'delivery_type', 'delivery_speed', 'address_id', 'delivery_date', 'delivery_time_slot', 
+        'delivery_fee', 'delivery_minutes', 'driver_id', 'delivery_offered_at', 'scheduled_at', 'ready_by',
         'estimated_delivery_at', 'driver_notes', 'subtotal', 'discount',
         'coupon_id', 'total', 'payment_method', 'payment_status',
         'bank_transfer_receipt', 'notes', 'estimated_preparation_time',

@@ -111,6 +111,10 @@ class ScheduleController extends Controller
             $openTime = Carbon::parse($dateStr . ' ' . $wh->open_time);
             $closeTime = Carbon::parse($dateStr . ' ' . $wh->close_time);
 
+            if ($closeTime->lte($openTime)) {
+                $closeTime->addDay();
+            }
+
             // Generate 30-minute slots
             $slots = [];
             $slotTime = $openTime->copy();

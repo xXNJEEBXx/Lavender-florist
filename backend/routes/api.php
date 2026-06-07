@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ManualOrderController;
 
 // Public Routes
 Route::prefix('auth')->group(function () {
@@ -14,6 +15,7 @@ Route::prefix('auth')->group(function () {
 
 Route::get('/store/working-hours', [\App\Http\Controllers\WorkingHoursController::class, 'index']);
 Route::get('/store/available-slots', [\App\Http\Controllers\ScheduleController::class, 'availableSlots']);
+Route::post('/store/expand-url', [\App\Http\Controllers\AddressController::class, 'expandUrl']);
 
 Route::post('/telegram/webhook', [\App\Http\Controllers\TelegramWebhookController::class, 'handle']);
 
@@ -29,6 +31,11 @@ Route::get('/products', function(Request $request) {
 Route::get('/products/{product:slug}', function(App\Models\Product $product) {
     return response()->json($product->load(['images', 'components']));
 });
+
+// Shared Orders (Public with Token)
+Route::get('/shared-order/{token}', [\App\Http\Controllers\SharedOrderController::class, 'getSharedOrder']);
+Route::put('/shared-order/{token}/items', [\App\Http\Controllers\SharedOrderController::class, 'updateItems']);
+Route::post('/shared-order/{token}/checkout', [\App\Http\Controllers\SharedOrderController::class, 'checkout']);
 
 // Protected Customer Routes
 Route::middleware('auth:sanctum')->group(function () {
@@ -58,6 +65,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/orders/{order_number}/receipt', [\App\Http\Controllers\CustomerOrderController::class, 'uploadReceipt']);
 });
 
+// Public Draft Orders
+Route::get('/draft-orders/{token}', [\App\Http\Controllers\ManualOrderController::class, 'getDraftOrder']);
+Route::post('/draft-orders/{token}/complete', [\App\Http\Controllers\ManualOrderController::class, 'completeDraftOrder']);
+
 // Protected Admin Routes
 Route::middleware(['auth:sanctum', \App\Http\Middleware\AdminMiddleware::class])->prefix('admin')->group(function () {
     
@@ -76,6 +87,11 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\AdminMiddleware::class])
     Route::apiResource('products', \App\Http\Controllers\ProductController::class);
     
     // Orders Management
+    Route::post('orders/manual/search-customer', [\App\Http\Controllers\ManualOrderController::class, 'searchCustomer']);
+    Route::post('orders/manual/checkout', [\App\Http\Controllers\ManualOrderController::class, 'checkout']);
+    Route::get('orders/manual/draft/{token}', [\App\Http\Controllers\ManualOrderController::class, 'getDraft']);
+    Route::put('orders/manual/draft/{token}', [\App\Http\Controllers\ManualOrderController::class, 'updateDraft']);
+    Route::post('orders/manual/draft', [\App\Http\Controllers\ManualOrderController::class, 'createDraft']);
     Route::put('orders/{order}/full', [\App\Http\Controllers\OrderController::class, 'fullUpdate']);
     Route::post('orders/{order}/verify-payment', [\App\Http\Controllers\OrderController::class, 'verifyPayment']);
     Route::post('orders/{order}/send-to-delivery', [\App\Http\Controllers\OrderController::class, 'sendToDelivery']);

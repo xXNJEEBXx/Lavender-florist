@@ -2,10 +2,10 @@ import { motion } from 'framer-motion';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useCart } from '../store/CartContext';
 import { useAuth } from '../store/AuthContext';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Loader2 } from 'lucide-react';
 
 export default function Cart() {
-  const { items, updateQuantity, removeItem, subtotal, getAvailableStock } = useCart();
+  const { items, updateQuantity, removeItem, subtotal, getAvailableStock, isSharedSession, exitSharedSession, isLoading } = useCart();
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -14,18 +14,38 @@ export default function Cart() {
   const total = subtotal + deliveryFee;
 
   const handleCheckoutClick = () => {
-    if (isAuthenticated) {
-      navigate('/checkout');
-    } else {
-      navigate('/login', { state: { from: '/checkout' } });
-    }
+    // If it's a shared session, no need to require login strictly unless you want to.
+    // The Complete Draft Order endpoint doesn't require auth token.
+    navigate('/checkout');
   };
 
   return (
     <div className="max-w-7xl mx-auto px-4 lg:px-8 py-12">
       <h1 className="text-3xl font-serif font-bold text-primary-950 mb-8">سلة المشتريات</h1>
+      
+      {isSharedSession && (
+        <div className="mb-8 p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex justify-between items-center animate-in fade-in slide-in-from-top-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+            </div>
+            <div>
+              <p className="font-bold text-emerald-800">أنت تتسوق في جلسة مشتركة</p>
+              <p className="text-sm text-emerald-600">هذا الطلب مرتبط مباشرة مع إدارة المتجر.</p>
+            </div>
+          </div>
+          <button onClick={exitSharedSession} className="text-emerald-700 bg-emerald-100/50 hover:bg-emerald-200 px-4 py-2 rounded-xl text-sm font-bold transition-colors">
+            إنهاء الجلسة المشتركة
+          </button>
+        </div>
+      )}
 
-      {items.length > 0 ? (
+      {isLoading ? (
+        <div className="flex flex-col items-center justify-center py-20">
+          <Loader2 className="w-12 h-12 animate-spin text-primary-600 mb-4" />
+          <p className="text-primary-800 font-medium">جاري تحميل بيانات السلة...</p>
+        </div>
+      ) : items.length > 0 ? (
         <div className="flex flex-col lg:flex-row gap-12">
           {/* Cart Items List */}
           <div className="flex-1 space-y-6">

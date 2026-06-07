@@ -11,23 +11,31 @@ class CustomerOrderController extends Controller
 {
     public function show(Request $request, $order_number)
     {
-        $customer = $request->user();
-        $order = Order::with(['items.product.primaryImage', 'items.giftMessage', 'driver', 'address'])
-                      ->where('customer_id', $customer->id)
-                      ->where('order_number', $order_number)
-                      ->firstOrFail();
+        $user = $request->user();
+        $query = Order::with(['items.product.primaryImage', 'items.giftMessage', 'driver', 'address'])
+                      ->where('order_number', $order_number);
+        
+        if ($user->role !== 'admin') {
+            $query->where('customer_id', $user->id);
+        }
+
+        $order = $query->firstOrFail();
 
         return response()->json($order);
     }
 
     public function uploadReceipt(Request $request, $order_number)
     {
-        $customer = $request->user();
+        $user = $request->user();
         
-        $order = Order::with(['items.product.primaryImage', 'items.giftMessage', 'driver', 'address'])
-                      ->where('customer_id', $customer->id)
-                      ->where('order_number', $order_number)
-                      ->firstOrFail();
+        $query = Order::with(['items.product.primaryImage', 'items.giftMessage', 'driver', 'address'])
+                      ->where('order_number', $order_number);
+
+        if ($user->role !== 'admin') {
+            $query->where('customer_id', $user->id);
+        }
+
+        $order = $query->firstOrFail();
 
         if ($order->payment_method !== 'bank_transfer') {
             throw ValidationException::withMessages(['receipt' => 'هذا الطلب لا يتطلب تحويل بنكي']);

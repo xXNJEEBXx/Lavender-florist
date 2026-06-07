@@ -80,6 +80,10 @@ export const storeApi = {
       params: { prep_minutes: prepMinutes, delivery_type: deliveryType, delivery_speed: deliverySpeed }
     });
     return data;
+  },
+  expandUrl: async (url: string) => {
+    const { data } = await api.post('/store/expand-url', { url });
+    return data;
   }
 };
 
@@ -92,6 +96,11 @@ export const publicProductsApi = {
 export const adminOrdersApi = {
   getAll: (status: string = 'all', page: number = 1) => api.get(`/admin/orders?status=${status}&page=${page}`).then(res => res.data),
   getById: (id: number) => api.get(`/admin/orders/${id}`).then(res => res.data),
+  searchCustomer: (phone: string) => api.post(`/admin/orders/manual/search-customer`, { phone }).then(res => res.data),
+  createDraft: (data: any) => api.post(`/admin/orders/manual/draft`, data).then(res => res.data),
+  getDraft: (token: string) => api.get(`/admin/orders/manual/draft/${token}`).then(res => res.data),
+  updateDraft: (token: string, data: any) => api.put(`/admin/orders/manual/draft/${token}`, data).then(res => res.data),
+  checkoutManual: (data: any) => api.post(`/admin/orders/manual/checkout`, data).then(res => res.data),
   verifyPayment: async (id: number) => {
     const { data } = await api.post(`/admin/orders/${id}/verify-payment`);
     return data;
@@ -132,8 +141,27 @@ export const adminSettingsApi = {
     const { data } = await api.post('/admin/breaks', payload);
     return data;
   },
+  processCheckout: async (payload: any) => {
+    const { data } = await api.post('/checkout', payload);
+    return data;
+  },
   deleteBreak: async (id: number) => {
     const { data } = await api.delete(`/admin/breaks/${id}`);
+    return data;
+  }
+};
+
+export const sharedOrderApi = {
+  getSharedOrder: async (token: string) => {
+    const { data } = await api.get(`/shared-order/${token}`);
+    return data;
+  },
+  updateItems: async (token: string, items: any[]) => {
+    const { data } = await api.put(`/shared-order/${token}/items`, { items });
+    return data;
+  },
+  checkout: async (token: string, payload: any) => {
+    const { data } = await api.post(`/shared-order/${token}/checkout`, payload);
     return data;
   }
 };
@@ -158,7 +186,9 @@ export const orderApi = {
       }
     });
     return response.data;
-  }
+  },
+  getDraftOrder: (token: string) => api.get(`/draft-orders/${token}`).then(res => res.data),
+  completeDraftOrder: (token: string, data: any) => api.post(`/draft-orders/${token}/complete`, data).then(res => res.data),
 };
 
 export const customerApi = {
