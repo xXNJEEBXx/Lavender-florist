@@ -31,7 +31,7 @@ class TelegramPoll extends Command
                 $response = Http::timeout(60)->get("https://api.telegram.org/bot{$token}/getUpdates");
                 
                 if (!$response->successful()) {
-                    $this->error('Failed to connect to Telegram API. Retrying in 5 seconds...');
+                    $this->error('Failed to connect to Telegram API. Status: ' . $response->status() . ' Body: ' . $response->body());
                     sleep(5);
                     continue;
                 }
@@ -43,6 +43,10 @@ class TelegramPoll extends Command
 
             $updates = $response->json()['result'] ?? [];
             $synced = 0;
+
+            if (!empty($updates)) {
+                \Illuminate\Support\Facades\Log::info('Telegram Updates:', $updates);
+            }
 
             foreach ($updates as $update) {
                 try {

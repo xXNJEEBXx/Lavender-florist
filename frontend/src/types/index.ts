@@ -117,6 +117,8 @@ export interface OrderItem {
 export interface Order {
   id: number;
   order_number: string;
+  owner_name: string | null;
+  owner_phone: string | null;
   user_id: number;
   user: User;
   status: 'pending' | 'confirmed' | 'preparing' | 'ready' | 'delivering' | 'delivered' | 'cancelled';

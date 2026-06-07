@@ -214,6 +214,7 @@ class OrderController extends Controller
             'payment_status' => 'required|in:pending,paid,refunded',
             'notes' => 'nullable|string',
             'owner_name' => 'nullable|string|max:255',
+            'owner_phone' => 'nullable|string|max:255',
             'address' => 'nullable|array',
             'address.city' => 'nullable|string',
             'address.district' => 'nullable|string',
@@ -248,6 +249,8 @@ class OrderController extends Controller
             // Update basic order fields
             $order->update([
                 'status' => $validated['status'],
+                'owner_name' => $validated['owner_name'] ?? $order->owner_name,
+                'owner_phone' => $validated['owner_phone'] ?? $order->owner_phone,
                 'delivery_type' => $validated['delivery_type'],
                 'delivery_fee' => $validated['delivery_fee'],
                 'delivery_date' => $validated['delivery_date'] ?? null,

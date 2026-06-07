@@ -46,6 +46,7 @@ export default function EditOrderModal({ order, onClose, onSave }: { order: any,
   const [formData, setFormData] = useState({
     status: order.status || 'pending',
     owner_name: order.owner_name || '',
+    owner_phone: order.owner_phone || '',
     delivery_type: order.delivery_type || 'local',
     delivery_fee: parseFloat(order.delivery_fee) || 0,
     delivery_date: order.delivery_date ? order.delivery_date.split('T')[0] : '',
@@ -189,9 +190,15 @@ export default function EditOrderModal({ order, onClose, onSave }: { order: any,
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-bold text-primary-900 mb-2">إسم صاحب الطلب</label>
-                  <input type="text" value={formData.owner_name} onChange={e => setFormData({...formData, owner_name: e.target.value})} className="w-full bg-white border border-primary-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary-500" />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-bold text-primary-900 mb-2">إسم صاحب الطلب</label>
+                    <input type="text" value={formData.owner_name} onChange={e => setFormData({...formData, owner_name: e.target.value})} className="w-full bg-white border border-primary-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary-500" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-primary-900 mb-2">رقم جوال صاحب الطلب</label>
+                    <input type="text" value={formData.owner_phone} onChange={e => setFormData({...formData, owner_phone: e.target.value})} className="w-full bg-white border border-primary-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary-500" dir="ltr" />
+                  </div>
                 </div>
 
                 <div>

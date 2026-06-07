@@ -411,12 +411,14 @@ class TelegramWebhookController extends Controller
 
         $status = $statusLabels[$order->status] ?? $order->status;
         $customerName = $order->owner_name ?? $order->customer->name ?? 'غير محدد';
+        $customerPhone = $order->owner_phone ?? $order->customer->phone ?? 'غير محدد';
         $total = number_format($order->total, 2);
         $itemsCount = $order->items->sum('quantity');
 
         $text = "{$status}\n\n";
         $text .= "📦 <b>{$order->order_number}</b>\n";
         $text .= "👤 {$customerName}\n";
+        $text .= "📱 {$customerPhone}\n";
         $text .= "🛒 {$itemsCount} منتج | 💰 {$total} ر.س\n";
 
         if ($order->address) {
@@ -448,7 +450,7 @@ class TelegramWebhookController extends Controller
         $order->load(['items.product', 'address', 'customer']);
 
         $customerName = $order->owner_name ?? $order->customer->name ?? 'غير محدد';
-        $customerPhone = $order->customer->phone ?? 'غير محدد';
+        $customerPhone = $order->owner_phone ?? $order->customer->phone ?? 'غير محدد';
         $total = number_format($order->total, 2);
 
         $deliveryTypes = [
