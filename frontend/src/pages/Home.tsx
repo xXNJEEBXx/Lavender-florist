@@ -124,7 +124,7 @@ export default function Home() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-12">
               {products.map((product, index) => {
                 const hasDiscount = product.compare_at_price && Number(product.compare_at_price) > Number(product.price);
-                const imageUrl = product.primary_image ? `http://localhost:8000${product.primary_image.image_url}` : null;
+                const imageUrl = product.primary_image ? `http://127.0.0.1:8000${product.primary_image.image_url}` : null;
                 
                 return (
                   <motion.div 

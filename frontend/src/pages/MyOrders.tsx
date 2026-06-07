@@ -101,7 +101,7 @@ export default function MyOrders() {
                       <div key={item.id} className="relative group shrink-0">
                         <div className="w-16 h-16 rounded-xl bg-gray-50 border border-primary-100 overflow-hidden">
                           {item.product?.primary_image ? (
-                            <img src={`http://localhost:8000${item.product.primary_image.image_url}`} alt={item.product_name} className="w-full h-full object-cover" />
+                            <img src={`http://127.0.0.1:8000${item.product.primary_image.image_url}`} alt={item.product_name} className="w-full h-full object-cover" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-gray-300">
                               <Package className="w-6 h-6" />

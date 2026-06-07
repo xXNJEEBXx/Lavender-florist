@@ -37,7 +37,7 @@ export default function Cart() {
               >
                 {/* Image */}
                 {item.product.primary_image ? (
-                  <img src={`http://localhost:8000${item.product.primary_image.image_url}`} alt={item.product.name} className="w-24 h-24 bg-primary-50 rounded-xl object-cover flex-shrink-0" />
+                  <img src={`http://127.0.0.1:8000${item.product.primary_image.image_url}`} alt={item.product.name} className="w-24 h-24 bg-primary-50 rounded-xl object-cover flex-shrink-0" />
                 ) : (
                   <div className="w-24 h-24 bg-primary-50 rounded-xl flex items-center justify-center flex-shrink-0 border border-primary-100">
                     <svg className="text-primary-300" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m8 14 4-4 4 4"/></svg>

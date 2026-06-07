@@ -68,7 +68,7 @@ export default function ComponentsList() {
       is_active: item.is_active
     });
     setImageFile(null);
-    setImagePreview(item.image_url ? `http://localhost:8000${item.image_url}` : null);
+    setImagePreview(item.image_url ? `http://127.0.0.1:8000${item.image_url}` : null);
     setIsModalOpen(true);
   };
 
@@ -177,7 +177,7 @@ export default function ComponentsList() {
                     <td className="py-4 px-6">
                       <div className="flex items-center gap-3">
                         {item.image_url ? (
-                          <img src={`http://localhost:8000${item.image_url}`} alt={item.name} className="w-10 h-10 rounded-lg object-cover border border-primary-100" />
+                          <img src={`http://127.0.0.1:8000${item.image_url}`} alt={item.name} className="w-10 h-10 rounded-lg object-cover border border-primary-100" />
                         ) : (
                           <div className="w-10 h-10 rounded-lg bg-primary-100 flex items-center justify-center text-primary-600">
                             <Package className="w-5 h-5" />

@@ -28,9 +28,9 @@ export default function ProductDetail() {
       .then(data => {
         setProduct(data);
         if (data.primary_image) {
-          setActiveImage(`http://localhost:8000${data.primary_image.image_url}`);
+          setActiveImage(`http://127.0.0.1:8000${data.primary_image.image_url}`);
         } else if (data.images && data.images.length > 0) {
-          setActiveImage(`http://localhost:8000${data.images[0].image_url}`);
+          setActiveImage(`http://127.0.0.1:8000${data.images[0].image_url}`);
         }
       })
       .catch(err => {
@@ -120,7 +120,7 @@ export default function ProductDetail() {
           {product.images && product.images.length > 0 && (
             <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
               {product.images.map(img => {
-                const imgUrl = `http://localhost:8000${img.image_url}`;
+                const imgUrl = `http://127.0.0.1:8000${img.image_url}`;
                 return (
                   <button 
                     key={img.id} 
@@ -226,7 +226,7 @@ export default function ProductDetail() {
                         </button>
                         
                         {cards.map(card => {
-                          const imgUrl = card.primary_image ? `http://localhost:8000${card.primary_image.image_url}` : null;
+                          const imgUrl = card.primary_image ? `http://127.0.0.1:8000${card.primary_image.image_url}` : null;
                           return (
                             <button 
                               key={card.id}

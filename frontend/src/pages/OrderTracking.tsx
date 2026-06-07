@@ -333,7 +333,7 @@ export default function OrderTracking() {
                   <div key={item.id} className="flex gap-4">
                     <div className="w-16 h-16 bg-primary-50 rounded-xl overflow-hidden shrink-0">
                       {item.product?.primary_image ? (
-                        <img src={`http://localhost:8000${item.product.primary_image.image_url}`} alt={item.product_name} className="w-full h-full object-cover" />
+                        <img src={`http://127.0.0.1:8000${item.product.primary_image.image_url}`} alt={item.product_name} className="w-full h-full object-cover" />
                       ) : null}
                     </div>
                     <div className="flex-1">
@@ -419,7 +419,7 @@ export default function OrderTracking() {
                   <h4 className="font-bold text-primary-900 mb-2">معلومات التحويل البنكي</h4>
                   <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-xl text-emerald-800 space-y-2">
                     {order.bank_transfer_receipt && (
-                      <a href={`http://localhost:8000${order.bank_transfer_receipt}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-emerald-700 hover:text-emerald-900 font-bold underline">
+                      <a href={`http://127.0.0.1:8000${order.bank_transfer_receipt}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-emerald-700 hover:text-emerald-900 font-bold underline">
                         <FileText className="w-4 h-4" /> عرض إيصال التحويل المرفق
                       </a>
                     )}

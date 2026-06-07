@@ -689,7 +689,7 @@ export default function Checkout() {
                     <div className="flex items-start gap-3">
                       <div className="w-12 h-12 bg-primary-50 rounded-lg overflow-hidden flex-shrink-0">
                         {item.product.primary_image ? (
-                          <img src={`http://localhost:8000${item.product.primary_image.image_url}`} alt={item.product.name} className="w-full h-full object-cover" />
+                          <img src={`http://127.0.0.1:8000${item.product.primary_image.image_url}`} alt={item.product.name} className="w-full h-full object-cover" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-primary-300"><ShoppingBag className="w-4 h-4"/></div>
                         )}

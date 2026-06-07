@@ -78,9 +78,9 @@ export default function ProductFormModal({ isOpen, onClose, onSuccess, product }
 
       // Load existing images as previews
       if (product.images && product.images.length > 0) {
-        setImagePreviews(product.images.map(img => `http://localhost:8000${img.image_url}`));
+        setImagePreviews(product.images.map(img => `http://127.0.0.1:8000${img.image_url}`));
       } else if (product.primary_image) {
-        setImagePreviews([`http://localhost:8000${product.primary_image.image_url}`]);
+        setImagePreviews([`http://127.0.0.1:8000${product.primary_image.image_url}`]);
       } else {
         setImagePreviews([]);
         setImagePreviews([]);
@@ -472,7 +472,7 @@ export default function ProductFormModal({ isOpen, onClose, onSuccess, product }
                   return (
                     <div key={index} className="flex gap-4 items-center bg-white p-3 rounded-xl border border-primary-100">
                       {selectedComp?.image_url ? (
-                        <img src={`http://localhost:8000${selectedComp.image_url}`} alt={selectedComp.name} className="w-10 h-10 rounded-lg object-cover border border-primary-100 flex-shrink-0" />
+                        <img src={`http://127.0.0.1:8000${selectedComp.image_url}`} alt={selectedComp.name} className="w-10 h-10 rounded-lg object-cover border border-primary-100 flex-shrink-0" />
                       ) : (
                         <div className="w-10 h-10 rounded-lg bg-primary-50 flex items-center justify-center text-primary-300 flex-shrink-0 border border-primary-100">
                           <ImageIcon className="w-5 h-5" />
