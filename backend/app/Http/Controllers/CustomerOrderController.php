@@ -12,7 +12,7 @@ class CustomerOrderController extends Controller
     public function show(Request $request, $order_number)
     {
         $user = $request->user();
-        $query = Order::with(['items.product.primaryImage', 'items.giftMessage', 'driver', 'address'])
+        $query = Order::with(['items.product.primaryImage', 'items.giftMessage', 'driver', 'address', 'customer'])
                       ->where('order_number', $order_number);
         
         if ($user->role !== 'admin') {
@@ -28,7 +28,7 @@ class CustomerOrderController extends Controller
     {
         $user = $request->user();
         
-        $query = Order::with(['items.product.primaryImage', 'items.giftMessage', 'driver', 'address'])
+        $query = Order::with(['items.product.primaryImage', 'items.giftMessage', 'driver', 'address', 'customer'])
                       ->where('order_number', $order_number);
 
         if ($user->role !== 'admin') {

@@ -369,7 +369,7 @@ export default function OrderTracking() {
               </div>
             </div>
 
-            <div className="pt-6 border-t border-primary-100 grid grid-cols-2 gap-4 text-sm">
+            <div className="pt-6 border-t border-primary-100 grid grid-cols-3 gap-4 text-sm">
               <div>
                 <span className="block text-primary-500 mb-1">تاريخ الطلب</span>
                 <span className="font-bold text-primary-900">{new Date(order.created_at).toLocaleDateString('ar-SA')}</span>
@@ -378,15 +378,30 @@ export default function OrderTracking() {
                 <span className="block text-primary-500 mb-1">طريقة الاستلام</span>
                 <span className="font-bold text-primary-900">{order.delivery_type === 'pickup' ? 'استلام من الفرع' : 'توصيل'}</span>
               </div>
+              <div>
+                <span className="block text-primary-500 mb-1">الموعد</span>
+                <span className="font-bold text-primary-900">
+                  {order.scheduled_at ? (
+                    <span dir="ltr">{new Date(order.scheduled_at).toLocaleString('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
+                  ) : order.delivery_date ? (
+                    <span dir="ltr">{new Date(order.delivery_date).toLocaleDateString('en-CA')}</span>
+                  ) : (
+                    'أسرع وقت'
+                  )}
+                </span>
+              </div>
             </div>
 
             {/* Extra Details */}
             <div className="pt-6 border-t border-primary-100 space-y-4 text-sm">
-              {order.owner_name && (
+              {(order.owner_name || order.customer?.name) && (
                 <div>
                   <h4 className="font-bold text-primary-900 mb-2">صاحب الطلب</h4>
-                  <div className="bg-primary-50 p-4 rounded-xl text-primary-900 font-bold">
-                    {order.owner_name}
+                  <div className="bg-primary-50 p-4 rounded-xl text-primary-900">
+                    <p className="font-bold">{order.owner_name || order.customer?.name}</p>
+                    {(order.owner_phone || order.customer?.phone) && (
+                      <p className="text-primary-700" dir="ltr">{order.owner_phone || order.customer?.phone}</p>
+                    )}
                   </div>
                 </div>
               )}
