@@ -120,6 +120,7 @@ export interface Order {
   status: 'pending' | 'confirmed' | 'preparing' | 'ready' | 'delivering' | 'delivered' | 'cancelled';
   payment_status: 'pending' | 'paid' | 'failed' | 'refunded';
   payment_method: 'cod' | 'card' | 'bank_transfer';
+  payment_justification: string | null;
   subtotal: number;
   delivery_fee: number;
   discount: number;
@@ -128,6 +129,7 @@ export interface Order {
   delivery_type: 'delivery' | 'pickup';
   delivery_date: string | null;
   delivery_time_slot: string | null;
+  scheduled_at: string | null;
   notes: string | null;
   coupon_id: number | null;
   items: OrderItem[];

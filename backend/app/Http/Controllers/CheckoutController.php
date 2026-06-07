@@ -140,6 +140,7 @@ class CheckoutController extends Controller
                 'ready_by' => $readyBy,
                 'delivery_fee' => $deliveryFee,
                 'delivery_minutes' => $validated['delivery_minutes'] ?? null,
+                'driver_notes' => $address ? $address->delivery_notes : null,
                 'subtotal' => $subtotal,
                 'discount' => 0,
                 'total' => $total,

@@ -55,6 +55,7 @@ class CustomerOrderController extends Controller
         if ($request->filled('payment_justification')) {
             $justification = "تبرير التحويل البنكي:\n" . $request->input('payment_justification');
             $order->notes = $order->notes ? $order->notes . "\n\n" . $justification : $justification;
+            $order->payment_justification = $request->input('payment_justification');
         }
 
         $order->save();

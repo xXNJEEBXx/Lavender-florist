@@ -100,8 +100,8 @@ class OrderController extends Controller
             throw ValidationException::withMessages(['payment' => 'هذا الطلب ليس تحويلاً بنكياً']);
         }
 
-        if (!$order->bank_transfer_receipt) {
-            throw ValidationException::withMessages(['payment' => 'لا يوجد إيصال مرفق للمراجعة']);
+        if (!$order->bank_transfer_receipt && !$order->payment_justification) {
+            throw ValidationException::withMessages(['payment' => 'لا يوجد إيصال أو مبرر مرفق للمراجعة']);
         }
 
         $order->payment_status = 'paid';
@@ -202,7 +202,8 @@ class OrderController extends Controller
             'delivery_type' => 'required|in:local,shipping,pickup',
             'delivery_fee' => 'required|numeric|min:0',
             'delivery_date' => 'nullable|date',
-            'delivery_time_slot' => 'nullable|in:morning,afternoon,evening',
+            'scheduled_date' => 'nullable|date',
+            'scheduled_time' => 'nullable|string',
             'estimated_preparation_time' => 'required|integer|min:0',
             'driver_notes' => 'nullable|string',
             'subtotal' => 'required|numeric|min:0',
@@ -234,13 +235,20 @@ class OrderController extends Controller
                 }
             }
 
+            $scheduledAt = $order->scheduled_at;
+            if (!empty($validated['scheduled_date']) && !empty($validated['scheduled_time'])) {
+                $scheduledAt = \Carbon\Carbon::parse($validated['scheduled_date'] . ' ' . $validated['scheduled_time']);
+            } elseif (!empty($validated['scheduled_date'])) {
+                $scheduledAt = \Carbon\Carbon::parse($validated['scheduled_date']);
+            }
+
             // Update basic order fields
             $order->update([
                 'status' => $validated['status'],
                 'delivery_type' => $validated['delivery_type'],
                 'delivery_fee' => $validated['delivery_fee'],
                 'delivery_date' => $validated['delivery_date'] ?? null,
-                'delivery_time_slot' => $validated['delivery_time_slot'] ?? null,
+                'scheduled_at' => $scheduledAt,
                 'estimated_preparation_time' => $validated['estimated_preparation_time'],
                 'driver_notes' => $validated['driver_notes'] ?? null,
                 'subtotal' => $validated['subtotal'],

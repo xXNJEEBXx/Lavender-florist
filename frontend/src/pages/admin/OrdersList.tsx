@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, FileText, CheckCircle2, Clock, Package, Truck, X, MapPin, Download, AlertTriangle, Timer, ChevronDown, ChevronUp, Edit } from 'lucide-react';
 import { adminOrdersApi } from '../../services/api';
@@ -210,9 +210,9 @@ export default function OrdersList() {
   const handleSendToDelivery = async (skipPrimary: boolean = false) => {
     if (!selectedOrder) return;
     
-    if (selectedOrder.delivery_date) {
-        const timeStr = selectedOrder.delivery_time_slot ? ` الفتره (${selectedOrder.delivery_time_slot})` : '';
-        const msg = `هذا الطلب مجدول للتوصيل بتاريخ ${selectedOrder.delivery_date}${timeStr}.\nهل أنت متأكد من إرساله للمندوب الآن؟`;
+    if (selectedOrder.delivery_date || selectedOrder.scheduled_at) {
+        const timeStr = selectedOrder.scheduled_at ? ` الساعة ${new Date(selectedOrder.scheduled_at).toLocaleTimeString("ar-SA", { hour: "2-digit", minute: "2-digit" })}` : '';
+        const msg = `هذا الطلب مجدول للتوصيل بتاريخ ${selectedOrder.delivery_date || new Date(selectedOrder.scheduled_at).toLocaleDateString("en-CA")}${timeStr}.\nهل أنت متأكد من إرساله للمندوب الآن؟`;
         if (!window.confirm(msg)) return;
     }
 
@@ -229,9 +229,9 @@ export default function OrdersList() {
   };
 
   const handleSendToDeliveryFromRow = async (order: any, skipPrimary: boolean = false) => {
-    if (order.delivery_date) {
-        const timeStr = order.delivery_time_slot ? ` الفتره (${order.delivery_time_slot})` : '';
-        const msg = `هذا الطلب مجدول للتوصيل بتاريخ ${order.delivery_date}${timeStr}.\nهل أنت متأكد من إرساله للمندوب الآن؟`;
+    if (order.delivery_date || order.scheduled_at) {
+        const timeStr = order.scheduled_at ? ` الساعة ${new Date(order.scheduled_at).toLocaleTimeString("ar-SA", { hour: "2-digit", minute: "2-digit" })}` : '';
+        const msg = `هذا الطلب مجدول للتوصيل بتاريخ ${order.delivery_date || new Date(order.scheduled_at).toLocaleDateString("en-CA")}${timeStr}.\nهل أنت متأكد من إرساله للمندوب الآن؟`;
         if (!window.confirm(msg)) return;
     }
     const orderId = order.id;
@@ -529,7 +529,7 @@ export default function OrdersList() {
                         <td className="px-4 py-3">
                           {order.payment_status === 'paid' ? (
                             <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600"><CheckCircle2 className="w-3.5 h-3.5" /> مدفوع</span>
-                          ) : order.bank_transfer_receipt ? (
+                          ) : (order.bank_transfer_receipt || order.payment_justification) ? (
                             <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-600"><Clock className="w-3.5 h-3.5" /> بانتظار</span>
                           ) : (
                             <span className="text-xs text-gray-400">غير مدفوع</span>
@@ -784,13 +784,13 @@ export default function OrdersList() {
                             <h3 className="text-lg font-bold text-primary-900 mb-1 flex items-center gap-2"><FileText className="w-5 h-5 text-primary-500" /> إيصال التحويل البنكي</h3>
                             {selectedOrder.payment_status === 'paid' ? (
                               <p className="text-emerald-700 text-sm font-medium flex items-center gap-1"><CheckCircle2 className="w-4 h-4" /> تم تأكيد الدفع</p>
-                            ) : selectedOrder.bank_transfer_receipt ? (
+                            ) : (selectedOrder.bank_transfer_receipt || selectedOrder.payment_justification) ? (
                               <p className="text-amber-600 text-sm font-medium flex items-center gap-1"><Clock className="w-4 h-4" /> بانتظار التحقق</p>
                             ) : (
                               <p className="text-rose-500 text-sm font-medium">لم يرفع الإيصال بعد</p>
                             )}
                           </div>
-                          {selectedOrder.payment_status !== 'paid' && selectedOrder.bank_transfer_receipt && (
+                          {selectedOrder.payment_status !== 'paid' && (selectedOrder.bank_transfer_receipt || selectedOrder.payment_justification) && (
                             <button onClick={handleVerifyPayment} disabled={isVerifying} className="bg-emerald-500 text-white px-6 py-2 rounded-xl font-bold hover:bg-emerald-600 transition-colors shadow-lg shadow-emerald-500/20 disabled:opacity-50 flex items-center gap-2">
                               {isVerifying ? 'جاري التأكيد...' : 'تأكيد الحوالة والبدء بالتجهيز'}
                             </button>
@@ -958,4 +958,5 @@ function UserIcon() {
     </svg>
   );
 }
+
 
