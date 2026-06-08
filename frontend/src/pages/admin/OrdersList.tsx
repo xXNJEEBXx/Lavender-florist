@@ -448,6 +448,7 @@ export default function OrdersList() {
                 <th className="w-10 px-3 py-3.5"></th>
                 <th className="px-4 py-3.5 text-primary-900 font-bold text-sm">رقم الطلب</th>
                 <th className="px-4 py-3.5 text-primary-900 font-bold text-sm">العميل</th>
+                <th className="px-4 py-3.5 text-primary-900 font-bold text-sm">تواصل</th>
                 <th className="px-4 py-3.5 text-primary-900 font-bold text-sm">المبلغ</th>
                 <th className="px-4 py-3.5 text-primary-900 font-bold text-sm whitespace-nowrap">الوقت</th>
                 <th className="px-4 py-3.5 text-primary-900 font-bold text-sm whitespace-nowrap">نوع الطلب</th>
@@ -460,7 +461,7 @@ export default function OrdersList() {
             <tbody className="divide-y divide-primary-50">
               {isLoading ? (
                 <tr>
-                  <td colSpan={10} className="px-6 py-16 text-center">
+                  <td colSpan={11} className="px-6 py-16 text-center">
                     <div className="flex flex-col items-center gap-3">
                       <div className="w-8 h-8 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin" />
                       <span className="text-primary-500 font-bold">جاري التحميل...</span>
@@ -469,7 +470,7 @@ export default function OrdersList() {
                 </tr>
               ) : orders.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="px-6 py-16 text-center">
+                  <td colSpan={11} className="px-6 py-16 text-center">
                     <Package className="w-12 h-12 text-primary-200 mx-auto mb-3" />
                     <p className="text-primary-500 font-bold">لا توجد طلبات</p>
                   </td>
@@ -494,6 +495,20 @@ export default function OrdersList() {
                         <td className="px-4 py-3 whitespace-nowrap">
                           <div className="font-bold text-primary-900 text-sm">{order.owner_name || order.customer?.name || 'ضيف (بدون اسم)'}</div>
                           <div className="text-xs text-primary-500" dir="ltr">{order.owner_phone || order.customer?.phone || 'بدون رقم'}</div>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-center">
+                          {(order.owner_phone || order.customer?.phone) ? (
+                            <a 
+                              href={`https://wa.me/${(order.owner_phone || order.customer?.phone).replace(/^05/, '9665')}`} 
+                              target="_blank" 
+                              rel="noreferrer" 
+                              className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[#25D366]/10 text-[#25D366] hover:bg-[#25D366] hover:text-white transition-colors"
+                              onClick={e => e.stopPropagation()}
+                              title="مراسلة عبر واتساب"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592zm3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.729.729 0 0 0-.529.247c-.182.198-.691.677-.691 1.654 0 .977.71 1.916.81 2.049.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232z"/></svg>
+                            </a>
+                          ) : <span className="text-gray-300">-</span>}
                         </td>
                         <td className="px-4 py-3 font-bold text-primary-900 text-sm whitespace-nowrap">{order.total} ر.س</td>
                         <td className="px-4 py-3 whitespace-nowrap">
@@ -833,7 +848,7 @@ export default function OrdersList() {
                           </div>
                           {selectedOrder.payment_status !== 'paid' && (selectedOrder.bank_transfer_receipt || selectedOrder.payment_justification) && (
                             <button onClick={handleVerifyPayment} disabled={isVerifying} className="bg-emerald-500 text-white px-6 py-2 rounded-xl font-bold hover:bg-emerald-600 transition-colors shadow-lg shadow-emerald-500/20 disabled:opacity-50 flex items-center gap-2">
-                              {isVerifying ? 'جاري التأكيد...' : 'تأكيد الحوالة والبدء بالتجهيز'}
+                              {isVerifying ? 'جاري التأكيد...' : (selectedOrder.status === 'pending' ? 'تأكيد الحوالة والبدء بالتجهيز' : 'تأكيد الحوالة فقط')}
                             </button>
                           )}
                         </div>
