@@ -519,7 +519,7 @@ export default function OrdersList() {
                           ) : <span className="text-gray-300">-</span>}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-center">
-                          <div className="font-bold text-primary-900 text-sm mb-1">{order.address?.recipient_name || order.owner_name || order.customer?.name || 'ضيف (بدون اسم)'}</div>
+                          <div className="font-bold text-primary-900 text-sm mb-1">{order.address?.recipient_name ? order.address.recipient_name : (order.address ? 'غير محدد' : '-')}</div>
                           <div className="text-xs text-primary-500 mb-2" dir="ltr">{order.address?.recipient_phone || order.owner_phone || order.customer?.phone || 'بدون رقم'}</div>
                           {(order.address?.recipient_phone || order.owner_phone || order.customer?.phone) ? (
                             <div className="flex items-center justify-center gap-2">
@@ -777,7 +777,7 @@ export default function OrdersList() {
                         )}
                         <div>
                           <span className="text-primary-500 block mb-1">المستلم</span>
-                          <strong className="text-primary-900">{selectedOrder.address?.recipient_name || selectedOrder.owner_name || selectedOrder.customer?.name || 'بدون اسم'}</strong>
+                          <strong className="text-primary-900">{selectedOrder.address?.recipient_name || 'غير محدد'}</strong>
                         </div>
                         <div>
                           <span className="text-primary-500 block mb-1">رقم الجوال</span>
