@@ -689,7 +689,21 @@ export default function Checkout() {
                   </div>
                   <h2 className="text-xl font-bold text-primary-900">التوصيل إلى</h2>
                 </div>
-                <button type="button" onClick={() => setIsAddressModalOpen(true)} className="text-sm font-semibold text-primary-700 bg-primary-50 px-4 py-2 rounded-lg hover:bg-primary-100 transition-colors flex items-center gap-2">
+                <button type="button" onClick={() => {
+                  setEditingAddressId(null);
+                  setNewAddress({
+                    name: 'المنزل',
+                    recipient_name: '',
+                    recipient_phone: '',
+                    city: 'الأحساء',
+                    street_address: '',
+                    is_default: false,
+                    door_image: null,
+                    delivery_notes: '',
+                    google_maps_link: ''
+                  });
+                  setIsAddressModalOpen(true);
+                }} className="text-sm font-semibold text-primary-700 bg-primary-50 px-4 py-2 rounded-lg hover:bg-primary-100 transition-colors flex items-center gap-2">
                   <Plus className="w-4 h-4" /> عنوان جديد
                 </button>
               </div>
@@ -709,7 +723,21 @@ export default function Checkout() {
               ) : addresses.length === 0 ? (
                 <div className="text-center py-8 border-2 border-dashed border-primary-200 rounded-2xl">
                   <p className="text-primary-500 mb-4">ليس لديك عناوين محفوظة</p>
-                  <button type="button" onClick={() => setIsAddressModalOpen(true)} className="px-6 py-2 bg-primary-800 text-white rounded-xl hover:bg-primary-900 transition-colors">
+                  <button type="button" onClick={() => {
+                    setEditingAddressId(null);
+                    setNewAddress({
+                      name: 'المنزل',
+                      recipient_name: '',
+                      recipient_phone: '',
+                      city: 'الأحساء',
+                      street_address: '',
+                      is_default: false,
+                      door_image: null,
+                      delivery_notes: '',
+                      google_maps_link: ''
+                    });
+                    setIsAddressModalOpen(true);
+                  }} className="px-6 py-2 bg-primary-800 text-white rounded-xl hover:bg-primary-900 transition-colors">
                     إضافة عنوان
                   </button>
                 </div>
@@ -740,7 +768,8 @@ export default function Checkout() {
                                 street_address: address.street_address || '',
                                 is_default: address.is_default || false,
                                 door_image: null,
-                                delivery_notes: address.delivery_notes || ''
+                                delivery_notes: address.delivery_notes || '',
+                                google_maps_link: address.google_maps_link || ''
                               });
                               setIsAddressModalOpen(true);
                             }}
