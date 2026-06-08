@@ -45,8 +45,8 @@ export default function EditOrderModal({ order, onClose, onSave }: { order: any,
 
   const [formData, setFormData] = useState({
     status: order.status || 'pending',
-    owner_name: order.owner_name || '',
-    owner_phone: order.owner_phone || '',
+    owner_name: order.owner_name || order.customer?.name || order.address?.recipient_name || '',
+    owner_phone: order.owner_phone || order.customer?.phone || order.address?.recipient_phone || '',
     delivery_type: order.delivery_type || 'local',
     delivery_fee: parseFloat(order.delivery_fee) || 0,
     delivery_date: order.delivery_date ? order.delivery_date.split('T')[0] : '',
