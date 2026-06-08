@@ -764,7 +764,7 @@ export default function OrdersList() {
                           {selectedOrder.address.street || selectedOrder.address.street_address || ''}<br/>
                           {selectedOrder.address.district ? `${selectedOrder.address.district}، ` : ''}{selectedOrder.address.city}
                         </p>
-                        {selectedOrder.address.latitude && isLoaded ? (
+                        {selectedOrder.address.latitude && selectedOrder.address.longitude && isLoaded ? (
                           <div className="mt-4">
                             <div className="h-40 rounded-xl overflow-hidden border border-primary-100 mb-2">
                               <GoogleMap
@@ -780,11 +780,15 @@ export default function OrdersList() {
                               فتح في خرائط جوجل
                             </a>
                           </div>
-                        ) : selectedOrder.address.latitude && (
+                        ) : selectedOrder.address.latitude && selectedOrder.address.longitude ? (
                           <a href={`https://maps.google.com/?q=${selectedOrder.address.latitude},${selectedOrder.address.longitude}`} target="_blank" rel="noreferrer" className="mt-4 block text-center bg-primary-50 text-primary-700 py-2 rounded-lg text-sm font-bold hover:bg-primary-100 transition-colors">
                             فتح في خرائط جوجل
                           </a>
-                        )}
+                        ) : selectedOrder.address.google_maps_link ? (
+                          <a href={selectedOrder.address.google_maps_link} target="_blank" rel="noreferrer" className="mt-4 block text-center bg-primary-50 text-primary-700 py-2 rounded-lg text-sm font-bold hover:bg-primary-100 transition-colors">
+                            فتح في خرائط جوجل (الرابط المرفق)
+                          </a>
+                        ) : null}
                       </div>
                     )}
 
