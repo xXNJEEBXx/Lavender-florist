@@ -96,16 +96,21 @@ class SharedOrderController extends Controller
 
         $validated = $request->validate([
             'customer_name' => 'nullable|string',
-            'customer_phone' => 'required|string',
+            'owner_phone' => 'required|string',
             'payment_method' => 'required|string',
             'delivery_fee' => 'nullable|numeric',
-            'delivery_minutes' => 'nullable|numeric',
-            'address_id' => 'nullable|exists:addresses,id'
+            'delivery_minutes' => 'nullable|integer',
+            'address_id' => 'nullable|exists:addresses,id',
+            'notes' => 'nullable|string',
+            'scheduled_date' => 'nullable|date',
+            'scheduled_time' => 'nullable|string',
         ]);
+
+        $order = Order::where('token', $token)->firstOrFail();
 
         $order->owner_name = $validated['customer_name'] ?? $order->owner_name;
         
-        $phone = PhoneUtils::normalize($validated['customer_phone']);
+        $phone = PhoneUtils::normalize($validated['owner_phone']);
         $order->owner_phone = $phone;
         
         // Find or create customer if not set

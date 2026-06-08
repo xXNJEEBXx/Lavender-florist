@@ -459,7 +459,7 @@ export default function Checkout() {
         delivery_minutes: deliveryType === 'local' ? deliveryMinutes : 0,
         notes: notes || '',
         owner_name: ownerName || null,
-        customer_phone: ownerPhone,
+        owner_phone: ownerPhone,
         items: items.map(item => ({
           product_id: item.product.id,
           quantity: item.quantity,
