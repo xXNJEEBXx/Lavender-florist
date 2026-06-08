@@ -823,11 +823,12 @@ class TelegramWebhookController extends Controller
             'delivered_at' => now(),
         ]);
 
+        // Add delivery fee to driver's balance
+        $driver->increment('balance', $order->delivery_fee);
+
         $this->telegram->answerCallbackQuery($callbackQueryId, 'تم تسليم الطلب بنجاح! عمل رائع 🌟');
 
-        $totalEarnings = Order::where('driver_id', $driver->id)
-            ->where('status', 'delivered')
-            ->sum('delivery_fee');
+        $totalEarnings = $driver->balance; // Use the updated balance instead of querying sum again
 
         $address = $order->address;
         
