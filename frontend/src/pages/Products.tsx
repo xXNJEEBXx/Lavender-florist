@@ -13,9 +13,11 @@ interface Product {
   };
 }
 
+import { publicProductsApi } from '../services/api';
+
 export default function Products() {
   const [activeCategory, setActiveCategory] = useState('all');
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Categories
@@ -27,19 +29,13 @@ export default function Products() {
     { id: 'gift_sets', name: 'تغليف وهدايا' },
   ];
 
-  // Placeholder fetch
   useEffect(() => {
-    // We will replace this with real axios fetch
-    setTimeout(() => {
-      setProducts([
-        { id: 1, name: 'باقة الحب الأبدي', slug: 'eternal-love', price: '150.00', category: 'bouquets' },
-        { id: 2, name: 'فازة السعادة', slug: 'happiness-vase', price: '220.00', category: 'table_arrangements' },
-        { id: 3, name: 'بوكس الأناقة', slug: 'elegance-box', price: '180.00', category: 'boxes' },
-        { id: 4, name: 'باقة التخرج', slug: 'graduation-bouquet', price: '120.00', category: 'bouquets' },
-        { id: 5, name: 'تغليف أسود فاخر', slug: 'luxury-wrapping', price: '50.00', category: 'gift_sets' },
-      ]);
-      setLoading(false);
-    }, 800);
+    publicProductsApi.getAll()
+      .then(data => {
+        setProducts(data);
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
   }, []);
 
   const filteredProducts = activeCategory === 'all' 
@@ -102,7 +98,7 @@ export default function Products() {
             >
               <Link to={`/products/${product.slug}`} className="block relative aspect-[4/5] bg-primary-50 overflow-hidden">
                 {product.primary_image ? (
-                  <img src={product.primary_image.image_url} alt={product.name} className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500" />
+                  <img src={`http://127.0.0.1:8000${product.primary_image.image_url}`} alt={product.name} className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500" />
                 ) : (
                   <div className="absolute inset-0 flex items-center justify-center text-primary-300">
                     <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m8 14 4-4 4 4"/></svg>
