@@ -7,12 +7,12 @@ export default function HeroSection() {
   return (
     <section className="relative min-h-[85vh] flex items-center overflow-hidden">
       {/* Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-lavender-100 via-background to-rose-50" />
+      <div className="absolute inset-0 bg-gradient-to-br from-primary-100 via-background to-rose-50" />
       
       {/* Decorative blobs */}
-      <div className="absolute top-20 right-10 w-72 h-72 bg-lavender-200/40 rounded-full blur-3xl" />
+      <div className="absolute top-20 right-10 w-72 h-72 bg-primary-200/40 rounded-full blur-3xl" />
       <div className="absolute bottom-20 left-10 w-96 h-96 bg-rose-200/30 rounded-full blur-3xl" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-lavender-100/20 rounded-full blur-3xl" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary-100/20 rounded-full blur-3xl" />
       
       {/* Floating petals */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -53,7 +53,7 @@ export default function HeroSection() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
             >
-              <span className="inline-flex items-center gap-2 bg-lavender-100 text-lavender-700 px-4 py-2 rounded-full text-sm font-semibold mb-6">
+              <span className="inline-flex items-center gap-2 bg-primary-100 text-primary-700 px-4 py-2 rounded-full text-sm font-semibold mb-6">
                 <Sparkles className="w-4 h-4" />
                 أجمل التنسيقات الزهرية
               </span>
@@ -125,7 +125,7 @@ export default function HeroSection() {
                 { value: '5★', label: 'تقييم' },
               ].map((stat, i) => (
                 <div key={i} className="text-center">
-                  <p className="text-2xl font-bold text-lavender-600">{stat.value}</p>
+                  <p className="text-2xl font-bold text-primary-600">{stat.value}</p>
                   <p className="text-sm text-text-muted">{stat.label}</p>
                 </div>
               ))}
@@ -141,7 +141,7 @@ export default function HeroSection() {
           >
             <div className="relative">
               {/* Main circle */}
-              <div className="w-[450px] h-[450px] rounded-full bg-gradient-to-br from-lavender-200 via-rose-100 to-lavender-100 flex items-center justify-center shadow-2xl shadow-lavender-300/30">
+              <div className="w-[450px] h-[450px] rounded-full bg-gradient-to-br from-primary-200 via-rose-100 to-primary-100 flex items-center justify-center shadow-2xl shadow-primary-300/30">
                 <motion.div
                   animate={{ rotate: 360 }}
                   transition={{ duration: 60, repeat: Infinity, ease: 'linear' }}

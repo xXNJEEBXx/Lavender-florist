@@ -8,6 +8,7 @@ import AuthCallback from '@/pages/AuthCallback';
 import Checkout from '@/pages/Checkout';
 import OrderTracking from '@/pages/OrderTracking';
 import MyOrders from '@/pages/MyOrders';
+import Terms from '@/pages/Terms';
 import SharedSessionReceiver from '@/pages/SharedSessionReceiver';
 import AdminLayout from '@/components/layout/AdminLayout';
 import Dashboard from '@/pages/admin/Dashboard';
@@ -53,6 +54,7 @@ function App() {
               <Route path="/checkout" element={<Checkout />} />
               <Route path="/orders/:orderNumber" element={<OrderTracking />} />
               <Route path="/my-orders" element={<MyOrders />} />
+              <Route path="/terms" element={<Terms />} />
             </Route>
 
             <Route path="/admin" element={<AdminLayout />}>

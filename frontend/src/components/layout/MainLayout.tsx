@@ -1,6 +1,7 @@
 import { Outlet, Link } from 'react-router-dom';
 import { useAuth } from '../../store/AuthContext';
 import { useCart } from '../../store/CartContext';
+import Footer from './Footer';
 
 export default function MainLayout() {
   const { openLoginModal, isAuthenticated, user, logout, isLoading } = useAuth();
@@ -21,12 +22,10 @@ export default function MainLayout() {
         </div>
         <nav className="hidden md:flex items-center gap-8 text-primary-900/80 font-medium">
           <Link to="/" className="hover:text-primary-600 transition-colors">الرئيسية</Link>
-          <Link to="/" className="hover:text-primary-600 transition-colors">المنتجات</Link>
+          <a href="/#products" className="hover:text-primary-600 transition-colors">المنتجات</a>
           {!isLoading && isAuthenticated && (
             <Link to="/my-orders" className="hover:text-primary-600 transition-colors text-primary-950 font-bold">طلباتي</Link>
           )}
-          <Link to="/about" className="hover:text-primary-600 transition-colors">من نحن</Link>
-          <Link to="/contact" className="hover:text-primary-600 transition-colors">تواصل معنا</Link>
         </nav>
         <div className="flex items-center gap-4">
           <button className="text-sm font-medium text-primary-700 hover:text-primary-900 transition-colors px-2">
@@ -85,38 +84,7 @@ export default function MainLayout() {
         <Outlet />
       </main>
 
-      <footer className="bg-primary-950 text-primary-100 py-12 px-4 lg:px-8">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div>
-            <div className="flex items-center gap-2 mb-4">
-              <img src="/logo.png" alt="Lavender" className="h-10 w-10 brightness-0 invert opacity-90" />
-              <h2 className="text-xl font-serif text-white">لافندر فلوريست</h2>
-            </div>
-            <p className="text-primary-300 text-sm leading-relaxed max-w-sm">
-              تنسيق أزهار و تغليف هدايا بلمسة فنية تعبر عن مشاعرك. نحن هنا لنجعل مناسباتكم أكثر جمالاً.
-            </p>
-          </div>
-          <div>
-            <h3 className="text-white font-semibold mb-4">روابط سريعة</h3>
-            <ul className="space-y-2 text-sm text-primary-300">
-              <li><a href="/" className="hover:text-white transition-colors">باقات الورد</a></li>
-              <li><a href="/" className="hover:text-white transition-colors">تنسيقات الهدايا</a></li>
-              <li><a href="/contact" className="hover:text-white transition-colors">الشروط والأحكام</a></li>
-            </ul>
-          </div>
-          <div>
-            <h3 className="text-white font-semibold mb-4">تواصل معنا</h3>
-            <ul className="space-y-2 text-sm text-primary-300">
-              <li>واتساب: +966 543282345</li>
-              <li>انستقرام: @lavender_florist</li>
-              <li>الأحساء، المملكة العربية السعودية</li>
-            </ul>
-          </div>
-        </div>
-        <div className="max-w-7xl mx-auto mt-12 pt-8 border-t border-primary-800 text-center text-sm text-primary-400">
-          © {new Date().getFullYear()} لافندر فلوريست. جميع الحقوق محفوظة.
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

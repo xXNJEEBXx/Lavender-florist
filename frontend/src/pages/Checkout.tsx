@@ -7,6 +7,7 @@ import { adminSettingsApi, customerApi, publicProductsApi, publicSettingsApi, st
 import { normalizeSaudiPhone } from "../utils/phone";
 import { CheckCircle2, ChevronRight, MapPin, CreditCard, ShoppingBag, Truck, Plus, X, Map as MapIcon, Zap, Clock, Info, Loader2, Ticket, Percent } from 'lucide-react';
 import { useJsApiLoader, GoogleMap, Marker } from '@react-google-maps/api';
+import Modal from '../components/ui/Modal';
 
 const STORE_LOCATION = { lat: 25.4535688, lng: 49.5847893 }; // Actual Store Location
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
@@ -1099,25 +1100,13 @@ export default function Checkout() {
       </div>
 
       {/* Add Address Modal */}
-      <AnimatePresence>
-        {isAddressModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-primary-950/40 backdrop-blur-sm" onClick={() => setIsAddressModalOpen(false)} />
-            
-            <motion.div 
-              initial={{ scale: 0.95, opacity: 0 }} 
-              animate={{ scale: 1, opacity: 1 }} 
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-3xl shadow-xl w-full max-w-lg relative z-10 overflow-hidden flex flex-col max-h-[90vh]"
-            >
-              <div className="p-6 border-b border-primary-100 flex justify-between items-center bg-primary-50 shrink-0">
-                <h3 className="text-xl font-bold text-primary-900">{editingAddressId ? 'تعديل العنوان' : 'إضافة عنوان جديد'}</h3>
-                <button onClick={() => setIsAddressModalOpen(false)} className="p-2 hover:bg-white rounded-full text-primary-500">
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              
-              <form onSubmit={handleSaveAddress} className="p-6 overflow-y-auto">
+      <Modal
+        isOpen={isAddressModalOpen}
+        onClose={() => setIsAddressModalOpen(false)}
+        size="lg"
+        title={<span className="text-xl font-bold text-primary-900">{editingAddressId ? 'تعديل العنوان' : 'إضافة عنوان جديد'}</span>}
+      >
+        <form onSubmit={handleSaveAddress} className="space-y-4">
                 {addressError && (
                   <div className="bg-rose-50 text-rose-600 p-3 rounded-lg text-sm mb-4 border border-rose-100">
                     {addressError}
@@ -1230,53 +1219,43 @@ export default function Checkout() {
                   )}
                 </div>
               </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      </Modal>
 
       {/* Google Maps Real Modal */}
-      <AnimatePresence>
-        {isMapModalOpen && isLoaded && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsMapModalOpen(false)} />
-            <motion.div 
-              initial={{ y: 50, opacity: 0 }} 
-              animate={{ y: 0, opacity: 1 }} 
-              exit={{ y: 50, opacity: 0 }}
-              className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl relative z-10 overflow-hidden flex flex-col"
-            >
-              <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                <h3 className="font-bold flex items-center gap-2"><MapIcon className="w-5 h-5 text-emerald-600"/> تحديد الموقع</h3>
-                <div className="flex items-center gap-2">
-                  <button 
-                    onClick={() => {
-                      if (navigator.geolocation) {
-                        navigator.geolocation.getCurrentPosition(
-                          (position) => {
-                            const pos = {
-                              lat: position.coords.latitude,
-                              lng: position.coords.longitude,
-                            };
-                            setMapCenter(pos);
-                            setSelectedLocation(pos);
-                          },
-                          () => {
-                            alert("لم نتمكن من تحديد موقعك. تأكد من إعطاء الصلاحية للمتصفح.");
-                          },
-                          { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-                        );
-                      } else {
-                        alert("المتصفح الخاص بك لا يدعم تحديد الموقع.");
-                      }
-                    }}
-                    className="flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-100 hover:bg-emerald-200 px-3 py-1.5 rounded-lg transition-colors"
-                  >
-                    <MapPin className="w-4 h-4" /> موقعي الحالي
-                  </button>
-                  <button onClick={() => setIsMapModalOpen(false)} className="p-2 hover:bg-gray-200 rounded-full"><X className="w-5 h-5" /></button>
-                </div>
-              </div>
+      <Modal
+        isOpen={isMapModalOpen && isLoaded}
+        onClose={() => setIsMapModalOpen(false)}
+        size="2xl"
+        title={<span className="font-bold flex items-center gap-2"><MapIcon className="w-5 h-5 text-emerald-600"/> تحديد الموقع</span>}
+        headerAction={
+          <button 
+            onClick={() => {
+              if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                  (position) => {
+                    const pos = {
+                      lat: position.coords.latitude,
+                      lng: position.coords.longitude,
+                    };
+                    setMapCenter(pos);
+                    setSelectedLocation(pos);
+                  },
+                  () => {
+                    alert("لم نتمكن من تحديد موقعك. تأكد من إعطاء الصلاحية للمتصفح.");
+                  },
+                  { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                );
+              } else {
+                alert("المتصفح الخاص بك لا يدعم تحديد الموقع.");
+              }
+            }}
+            className="flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-100 hover:bg-emerald-200 px-3 py-1.5 rounded-lg transition-colors"
+          >
+            <MapPin className="w-4 h-4" /> موقعي الحالي
+          </button>
+        }
+      >
+        <div className="flex flex-col">
               
               <div className="h-[400px] w-full relative">
                 <GoogleMap
@@ -1328,10 +1307,8 @@ export default function Checkout() {
                   تأكيد الموقع
                 </button>
               </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+        </div>
+      </Modal>
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Upload, Image as ImageIcon, Trash2, Languages, Percent } from 'lucide-react';
 import type { Product } from '../../types';
 import { adminProductsApi, adminComponentsApi } from '../../services/api';
+import Modal from '../ui/Modal';
 
 interface ProductFormModalProps {
   isOpen: boolean;
@@ -255,33 +256,13 @@ export default function ProductFormModal({ isOpen, onClose, onSuccess, product }
   if (!isOpen) return null;
 
   return (
-    <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <motion.div 
-          initial={{ opacity: 0 }} 
-          animate={{ opacity: 1 }} 
-          exit={{ opacity: 0 }} 
-          className="absolute inset-0 bg-primary-950/40 backdrop-blur-sm"
-          onClick={onClose}
-        />
-        <motion.div 
-          initial={{ scale: 0.95, opacity: 0, y: 20 }} 
-          animate={{ scale: 1, opacity: 1, y: 0 }} 
-          exit={{ scale: 0.95, opacity: 0, y: 20 }}
-          className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl relative z-10 max-h-[90vh] overflow-y-auto"
-        >
-          {/* Header */}
-          <div className="sticky top-0 bg-white/80 backdrop-blur-md border-b border-primary-100 p-6 flex items-center justify-between z-20">
-            <h2 className="text-2xl font-bold text-primary-900 font-serif">
-              {product ? 'تعديل المنتج' : 'إضافة منتج جديد'}
-            </h2>
-            <button onClick={onClose} className="p-2 hover:bg-primary-50 rounded-full text-primary-500 transition-colors">
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="p-6 space-y-8">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      size="3xl"
+      title={<span className="text-2xl font-bold text-primary-900 font-serif">{product ? 'تعديل المنتج' : 'إضافة منتج جديد'}</span>}
+    >
+      <form onSubmit={handleSubmit} className="space-y-8 pt-2">
             {error && (
               <div className="p-4 bg-rose-50 text-rose-600 rounded-xl text-sm border border-rose-100">
                 {error}
@@ -625,9 +606,7 @@ export default function ProductFormModal({ isOpen, onClose, onSuccess, product }
                 إلغاء
               </button>
             </div>
-          </form>
-        </motion.div>
-      </div>
-    </AnimatePresence>
+      </form>
+    </Modal>
   );
 }

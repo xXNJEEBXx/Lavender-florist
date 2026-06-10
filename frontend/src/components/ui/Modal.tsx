@@ -5,9 +5,10 @@ import { X } from 'lucide-react';
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
-  title?: string;
+  title?: ReactNode;
+  headerAction?: ReactNode;
   children: ReactNode;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | 'full';
 }
 
 const sizeClasses = {
@@ -15,9 +16,12 @@ const sizeClasses = {
   md: 'max-w-md',
   lg: 'max-w-lg',
   xl: 'max-w-xl',
+  '2xl': 'max-w-2xl',
+  '3xl': 'max-w-3xl',
+  full: 'max-w-full m-4',
 };
 
-export default function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalProps) {
+export default function Modal({ isOpen, onClose, title, headerAction, children, size = 'md' }: ModalProps) {
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
@@ -58,12 +62,15 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md' }:
             {title && (
               <div className="flex items-center justify-between px-6 py-4 border-b border-border">
                 <h3 className="text-lg font-bold text-text">{title}</h3>
-                <button
-                  onClick={onClose}
-                  className="p-2 rounded-lg hover:bg-lavender-50 transition-colors text-text-muted hover:text-text cursor-pointer"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+                <div className="flex items-center gap-2">
+                  {headerAction}
+                  <button
+                    onClick={onClose}
+                    className="p-2 rounded-lg hover:bg-lavender-50 transition-colors text-text-muted hover:text-text cursor-pointer"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
             )}
 

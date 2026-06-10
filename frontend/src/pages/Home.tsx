@@ -78,7 +78,7 @@ export default function Home() {
       </section>
 
       {/* Real Products Section */}
-      <section className="py-24 bg-white relative">
+      <section id="products" className="py-24 bg-white relative">
         <div className="max-w-7xl mx-auto px-4 lg:px-8">
           <div className="flex flex-col items-center mb-16 text-center">
             <motion.span 
