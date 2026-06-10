@@ -6,18 +6,24 @@ use App\Models\User;
 use App\Utils\PhoneUtils;
 use App\Models\Order;
 use App\Models\Address;
-use App\Models\Product;
-use App\Models\OrderItem;
-use App\Models\Component;
 use App\Models\ActivityLog;
+use App\Services\OrderService;
+use App\Services\TelegramService;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\ValidationException;
 
 class ManualOrderController extends Controller
 {
+    protected $orderService;
+    protected $telegramService;
+
+    public function __construct(OrderService $orderService, TelegramService $telegramService)
+    {
+        $this->orderService = $orderService;
+        $this->telegramService = $telegramService;
+    }
     // ADMIN: Search Customer by Phone
     public function searchCustomer(Request $request)
     {
@@ -53,25 +59,8 @@ class ManualOrderController extends Controller
         ]);
 
         return DB::transaction(function () use ($validated, $request) {
-            $subtotal = 0;
-            $itemsData = [];
-
             $items = $validated['items'] ?? [];
-            foreach ($items as $item) {
-                $product = Product::findOrFail($item['product_id']);
-                $unitPrice = $product->price;
-                $totalPrice = $unitPrice * $item['quantity'];
-                $subtotal += $totalPrice;
-
-                $itemsData[] = [
-                    'product_id' => $product->id,
-                    'product_name' => $product->name,
-                    'quantity' => $item['quantity'],
-                    'unit_price' => $unitPrice,
-                    'total_price' => $totalPrice,
-                    'gift_message' => $item['gift_message'] ?? null,
-                ];
-            }
+            [$subtotal, $itemsData, $componentsToDeduct] = $this->orderService->processOrderItems($items);
 
             $phone = PhoneUtils::normalize($validated['customer_phone']);
             $customerId = null;
@@ -105,23 +94,7 @@ class ManualOrderController extends Controller
                 'total' => $subtotal,
             ]);
 
-            foreach ($itemsData as $itemData) {
-                $gm = $itemData['gift_message'];
-                unset($itemData['gift_message']);
-                $itemData['order_id'] = $order->id;
-                $orderItem = OrderItem::create($itemData);
-
-                if ($gm) {
-                    DB::table('gift_messages')->insert([
-                        'order_id' => $order->id,
-                        'order_item_id' => $orderItem->id,
-                        'sender_name' => 'مسودة',
-                        'message' => $gm,
-                        'created_at' => now(),
-                        'updated_at' => now()
-                    ]);
-                }
-            }
+            $this->orderService->saveOrderItems($order, $itemsData, 'مسودة');
 
             $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
             return response()->json([
@@ -167,32 +140,8 @@ class ManualOrderController extends Controller
             // Update items if provided
             if (isset($validated['items'])) {
                 $order->items()->delete();
-                $subtotal = 0;
-                foreach ($validated['items'] as $itemData) {
-                    $product = Product::findOrFail($itemData['product_id']);
-                    $totalPrice = $product->price * $itemData['quantity'];
-                    $subtotal += $totalPrice;
-
-                    $orderItem = OrderItem::create([
-                        'order_id' => $order->id,
-                        'product_id' => $product->id,
-                        'product_name' => $product->name,
-                        'quantity' => $itemData['quantity'],
-                        'unit_price' => $product->price,
-                        'total_price' => $totalPrice,
-                    ]);
-
-                    if (!empty($itemData['gift_message'])) {
-                        DB::table('gift_messages')->insert([
-                            'order_id' => $order->id,
-                            'order_item_id' => $orderItem->id,
-                            'sender_name' => 'مسودة',
-                            'message' => $itemData['gift_message'],
-                            'created_at' => now(),
-                            'updated_at' => now()
-                        ]);
-                    }
-                }
+                [$subtotal, $itemsData, $componentsToDeduct] = $this->orderService->processOrderItems($validated['items']);
+                $this->orderService->saveOrderItems($order, $itemsData, 'مسودة');
                 $order->subtotal = $subtotal;
             }
 
@@ -292,47 +241,14 @@ class ManualOrderController extends Controller
                 }
             }
 
-            $subtotal = 0;
-            $orderItemsData = [];
-            $componentsToDeduct = [];
+            [$subtotal, $orderItemsData, $componentsToDeduct] = $this->orderService->processOrderItems($validated['items']);
+            $this->orderService->validateStock($componentsToDeduct);
 
-            foreach ($validated['items'] as $item) {
-                $product = Product::with('components')->findOrFail($item['product_id']);
-                $totalPrice = $product->price * $item['quantity'];
-                $subtotal += $totalPrice;
-
-                $orderItemsData[] = [
-                    'product_id' => $product->id,
-                    'product_name' => $product->name,
-                    'quantity' => $item['quantity'],
-                    'unit_price' => $product->price,
-                    'total_price' => $totalPrice,
-                    'gift_message' => $item['gift_message'] ?? null
-                ];
-
-                foreach ($product->components as $component) {
-                    $needed = $component->pivot->quantity * $item['quantity'];
-                    $componentsToDeduct[$component->id] = ($componentsToDeduct[$component->id] ?? 0) + $needed;
-                }
-            }
-
-            foreach ($componentsToDeduct as $componentId => $qty) {
-                $component = Component::find($componentId);
-                if (!$component || $component->stock_quantity < $qty) {
-                    throw ValidationException::withMessages(['items' => "الكمية المطلوبة من أحد المنتجات غير متوفرة."]);
-                }
-            }
-
-            $scheduledAt = null;
-            $readyBy = null;
-            if (!empty($validated['delivery_date']) && !empty($validated['scheduled_time'])) {
-                $scheduledAt = \Carbon\Carbon::parse($validated['delivery_date'] . ' ' . $validated['scheduled_time']);
-                if ($validated['delivery_type'] === 'local') {
-                    $readyBy = $scheduledAt->copy()->subMinutes(30);
-                } else {
-                    $readyBy = $scheduledAt->copy();
-                }
-            }
+            [$scheduledAt, $readyBy] = $this->orderService->determineScheduling(
+                $validated['delivery_type'],
+                $validated['delivery_date'] ?? null,
+                $validated['scheduled_time'] ?? null
+            );
 
             $total = $subtotal + $validated['delivery_fee'];
             $status = $validated['payment_status'] === 'paid' ? 'confirmed' : 'pending';
@@ -359,30 +275,8 @@ class ManualOrderController extends Controller
                 'notes' => $validated['notes'] ?? null
             ]);
 
-            foreach ($orderItemsData as $itemData) {
-                $gm = $itemData['gift_message'];
-                unset($itemData['gift_message']);
-                $itemData['order_id'] = $order->id;
-                $orderItem = OrderItem::create($itemData);
-
-                if ($gm) {
-                    DB::table('gift_messages')->insert([
-                        'order_id' => $order->id,
-                        'order_item_id' => $orderItem->id,
-                        'sender_name' => $customer->name,
-                        'message' => $gm,
-                        'created_at' => now(),
-                        'updated_at' => now()
-                    ]);
-                }
-            }
-
-            foreach ($componentsToDeduct as $componentId => $qty) {
-                $comp = Component::find($componentId);
-                if ($comp) {
-                    $comp->decrement('stock_quantity', $qty);
-                }
-            }
+            $this->orderService->saveOrderItems($order, $orderItemsData, $customer->name);
+            $this->orderService->deductStock($componentsToDeduct, $admin->id, $order->order_number);
 
             ActivityLog::create([
                 'event_type' => 'created',
@@ -397,7 +291,7 @@ class ManualOrderController extends Controller
             // Notify admins via Telegram
             if ($order->payment_method !== 'bank_transfer' || $order->payment_status === 'paid') {
                 try {
-                    \App\Http\Controllers\TelegramWebhookController::notifyAdminsNewOrder($order);
+                    $this->telegramService->notifyNewOrder($order);
                 } catch (\Exception $e) {
                     \Illuminate\Support\Facades\Log::error('Failed to notify admins via Telegram (manual order)', ['error' => $e->getMessage()]);
                 }

@@ -435,130 +435,7 @@ class TelegramWebhookController extends Controller
         return $text;
     }
 
-    // ==========================================
-    // Static method: Notify admins about new order
-    // ==========================================
-
-    public static function notifyAdminsNewOrder(Order $order)
-    {
-        $telegram = app(TelegramService::class);
-
-        $admins = User::where('role', 'admin')
-            ->whereNotNull('telegram_chat_id')
-            ->where('telegram_notify_new_orders', true)
-            ->get();
-
-        if ($admins->isEmpty()) return;
-
-        $order->load(['items.product', 'address', 'customer']);
-
-        $customerName = $order->owner_name ?: ($order->customer->name ?? ($order->address->recipient_name ?? 'غير محدد'));
-        $customerPhone = $order->owner_phone ?: ($order->customer->phone ?? ($order->address->recipient_phone ?? 'غير محدد'));
-        $total = number_format($order->total, 2);
-
-        $deliveryTypes = [
-            'local' => '🚚 توصيل محلي',
-            'pickup' => '🏪 استلام من الفرع',
-            'shipping' => '📦 شحن',
-        ];
-        $deliveryType = $deliveryTypes[$order->delivery_type] ?? $order->delivery_type;
-
-        $text = "🔔 <b>طلب جديد!</b>\n\n";
-        if ($order->payment_method === 'bank_transfer' && ($order->bank_transfer_receipt || $order->payment_justification)) {
-            $text = "💳 <b>تم إرفاق إيصال تحويل لطلب!</b>\n\n";
-        }
-        $text .= "📦 رقم الطلب: <b>{$order->order_number}</b>\n";
-        $text .= "👤 العميل: {$customerName}\n";
-        $text .= "📱 الجوال: {$customerPhone}\n\n";
-
-        // Items summary
-        $text .= "<b>🛒 المنتجات:</b>\n";
-        foreach ($order->items as $item) {
-            $productName = $item->product->name ?? $item->product_name ?? 'منتج';
-            $text .= "  • {$productName} × {$item->quantity}\n";
-        }
-
-        $text .= "\n💵 الإجمالي: <b>{$total} ر.س</b>\n";
-        $text .= "📍 {$deliveryType}\n";
-
-        if ($order->address) {
-            $text .= "🏠 {$order->address->city}";
-            if ($order->address->street) {
-                $text .= " - {$order->address->street}";
-            }
-            $text .= "\n";
-        }
-
-        if ($order->notes) {
-            $text .= "\n📝 ملاحظات: {$order->notes}\n";
-        }
-
-        $buttons = [
-            [
-                ['text' => '✅ تأكيد الطلب', 'callback_data' => "admin_confirm_{$order->id}"],
-                ['text' => '❌ إلغاء', 'callback_data' => "admin_cancel_{$order->id}"],
-            ],
-            [
-                ['text' => '📋 تفاصيل الطلب', 'callback_data' => "admin_detail_{$order->id}"],
-            ],
-        ];
-
-        foreach ($admins as $admin) {
-            try {
-                $telegram->sendMessage($admin->telegram_chat_id, $text, ['inline_keyboard' => $buttons]);
-            } catch (\Exception $e) {
-                Log::error("Failed to notify admin {$admin->id} via Telegram", ['error' => $e->getMessage()]);
-            }
-        }
-    }
-
-    // ==========================================
-    // Static method: Notify admins about driver updates
-    // ==========================================
-
-    public static function notifyAdminsDriverUpdate(Order $order, string $event)
-    {
-        $telegram = app(TelegramService::class);
-
-        $admins = User::where('role', 'admin')
-            ->whereNotNull('telegram_chat_id')
-            ->where('telegram_notify_driver', true)
-            ->get();
-
-        if ($admins->isEmpty()) return;
-
-        $order->load(['driver', 'address']);
-
-        $events = [
-            'accepted' => '✅ قبل المندوب الطلب',
-            'picked_up' => '📦 استلم المندوب الطلب من المتجر',
-            'delivered' => '🎉 تم تسليم الطلب للعميل',
-        ];
-
-        $eventText = $events[$event] ?? $event;
-        $driverName = $order->driver->name ?? 'غير محدد';
-
-        $text = "🚗 <b>تحديث المندوب</b>\n\n";
-        $text .= "{$eventText}\n\n";
-        $text .= "📦 رقم الطلب: <b>{$order->order_number}</b>\n";
-        $text .= "🧑‍✈️ المندوب: {$driverName}\n";
-
-        if ($order->address) {
-            $text .= "📍 {$order->address->city}";
-            if ($order->address->street) {
-                $text .= " - {$order->address->street}";
-            }
-            $text .= "\n";
-        }
-
-        foreach ($admins as $admin) {
-            try {
-                $telegram->sendMessage($admin->telegram_chat_id, $text);
-            } catch (\Exception $e) {
-                Log::error("Failed to notify admin {$admin->id} about driver update", ['error' => $e->getMessage()]);
-            }
-        }
-    }
+    // Static methods have been moved to TelegramService
 
     // ==========================================
     // Driver Actions (Existing, Preserved)
@@ -629,7 +506,7 @@ class TelegramWebhookController extends Controller
         $this->telegram->editMessageText($chatId, $messageId, $newText, $replyMarkup);
 
         // Notify admins
-        self::notifyAdminsDriverUpdate($order, 'accepted');
+        $this->telegram->notifyDriverUpdate($order, 'accepted');
     }
 
     protected function pickedUpOrder($orderId, $driver, $chatId, $messageId, $callbackQueryId)
@@ -728,7 +605,7 @@ class TelegramWebhookController extends Controller
         }
 
         // Notify admins
-        self::notifyAdminsDriverUpdate($order, 'picked_up');
+        $this->telegram->notifyDriverUpdate($order, 'picked_up');
     }
 
     protected function askDeliverOrder($orderId, $driver, $chatId, $messageId, $callbackQueryId)
@@ -847,6 +724,6 @@ class TelegramWebhookController extends Controller
         $this->telegram->editMessageText($chatId, $messageId, $newText, ['inline_keyboard' => []]);
 
         // Notify admins
-        self::notifyAdminsDriverUpdate($order, 'delivered');
+        $this->telegram->notifyDriverUpdate($order, 'delivered');
     }
 }

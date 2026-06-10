@@ -70,9 +70,10 @@ export default function Dashboard() {
 
   const stats = [
     { title: 'إجمالي المبيعات', value: dashboardData?.stats?.sales?.value || '0', icon: <DollarSign size={24} />, trend: dashboardData?.stats?.sales?.trend || '0%', color: 'text-emerald-500', bg: 'bg-emerald-50' },
+    { title: 'صافي الربح', value: dashboardData?.stats?.netProfit?.value || '0', icon: <DollarSign size={24} />, trend: dashboardData?.stats?.netProfit?.trend || '0%', color: 'text-emerald-600', bg: 'bg-emerald-100' },
     { title: 'الطلبات الجديدة', value: dashboardData?.stats?.orders?.value || '0', icon: <ShoppingBag size={24} />, trend: dashboardData?.stats?.orders?.trend || '0%', color: 'text-blue-500', bg: 'bg-blue-50' },
     { title: 'العملاء', value: dashboardData?.stats?.customers?.value || '0', icon: <Users size={24} />, trend: dashboardData?.stats?.customers?.trend || '0%', color: 'text-purple-500', bg: 'bg-purple-50' },
-    { title: 'منتجات نشطة', value: dashboardData?.stats?.products?.value || '0', icon: <TrendingUp size={24} />, trend: dashboardData?.stats?.products?.trend || '0%', color: 'text-rose-500', bg: 'bg-rose-50' },
+    { title: 'عدد المنتجات', value: dashboardData?.stats?.products?.value || '0', icon: <Package size={24} />, trend: dashboardData?.stats?.products?.trend || '0%', color: 'text-rose-500', bg: 'bg-rose-50' },
   ];
 
   const salesData = dashboardData?.salesData || [];
@@ -82,7 +83,7 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         {stats.map((stat, i) => (
           <motion.div
             key={i}

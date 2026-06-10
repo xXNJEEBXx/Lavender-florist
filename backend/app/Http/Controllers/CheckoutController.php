@@ -5,12 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Models\Order;
 use App\Models\Address;
-use App\Models\Product;
-use App\Models\OrderItem;
-use App\Models\Component;
 use App\Models\Coupon;
 use App\Models\CouponUsage;
 use App\Models\ActivityLog;
+use App\Services\OrderService;
+use App\Services\TelegramService;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -19,6 +18,15 @@ use Illuminate\Validation\ValidationException;
 
 class CheckoutController extends Controller
 {
+    protected $orderService;
+    protected $telegramService;
+
+    public function __construct(OrderService $orderService, TelegramService $telegramService)
+    {
+        $this->orderService = $orderService;
+        $this->telegramService = $telegramService;
+    }
+
     public function process(Request $request)
     {
         \Illuminate\Support\Facades\Log::info("Checkout Payload:", $request->all());
@@ -51,7 +59,7 @@ class CheckoutController extends Controller
                 throw ValidationException::withMessages(['auth' => 'يجب تسجيل الدخول أولاً']);
             }
 
-            // 1. Check Address belongs to Customer if not pickup
+            // 2. Check Address belongs to Customer if not pickup
             $address = null;
             if ($validated['delivery_type'] !== 'pickup') {
                 if (empty($validated['address_id'])) {
@@ -66,136 +74,38 @@ class CheckoutController extends Controller
                 }
             }
 
-            // 2. Process Cart Items and Calculate Total
-            $subtotal = 0;
-            $orderItemsData = [];
-            $componentsToDeduct = [];
+            // 3. Process Cart Items
+            [$subtotal, $orderItemsData, $componentsToDeduct] = $this->orderService->processOrderItems($validated['items']);
 
-            foreach ($validated['items'] as $item) {
-                $product = Product::with('components')->findOrFail($item['product_id']);
-                
-                // Calculate item total
-                $unitPrice = $product->price; 
-                // Note: we can use $product->compare_at_price logic here if needed, but assuming $product->price is the selling price
-                $totalPrice = $unitPrice * $item['quantity'];
-                
-                $subtotal += $totalPrice;
+            // 4. Validate Stock
+            $this->orderService->validateStock($componentsToDeduct);
 
-                $orderItemsData[] = [
-                    'product_id' => $product->id,
-                    'product_name' => $product->name,
-                    'quantity' => $item['quantity'],
-                    'unit_price' => $unitPrice,
-                    'total_price' => $totalPrice,
-                    'gift_message' => $item['gift_message'] ?? null
-                ];
+            // 5. Handle Scheduling Logic
+            [$scheduledAt, $readyBy] = $this->orderService->determineScheduling(
+                $validated['delivery_type'],
+                $validated['scheduled_date'] ?? null,
+                $validated['scheduled_time'] ?? null
+            );
 
-                // Track components usage
-                foreach ($product->components as $component) {
-                    $neededQuantity = $component->pivot->quantity * $item['quantity'];
-                    if (!isset($componentsToDeduct[$component->id])) {
-                        $componentsToDeduct[$component->id] = 0;
-                    }
-                    $componentsToDeduct[$component->id] += $neededQuantity;
-                }
-            }
-
-            // 3. Validate Stock before proceeding
-            foreach ($componentsToDeduct as $componentId => $qtyToDeduct) {
-                $component = Component::find($componentId);
-                if (!$component || $component->stock_quantity < $qtyToDeduct) {
-                    throw ValidationException::withMessages([
-                        'items' => 'عذراً، الكمية المطلوبة من بعض المنتجات لم تعد متوفرة في المخزون.'
-                    ]);
-                }
-            }
-
-            // 4. Handle Scheduling Logic
-            $scheduledAt = null;
-            $readyBy = null;
-            if (!empty($validated['scheduled_date']) && !empty($validated['scheduled_time'])) {
-                $scheduledAt = \Carbon\Carbon::parse($validated['scheduled_date'] . ' ' . $validated['scheduled_time']);
-                if ($validated['delivery_type'] === 'local') {
-                    $readyBy = $scheduledAt->copy()->subMinutes(30);
-                } else {
-                    $readyBy = $scheduledAt->copy();
-                }
-            }
-
-            $frontendDeliveryFee = $validated['delivery_fee']; // fee before backend applies coupon
-
-            // Recalculate original delivery fee on the backend as a fallback
-            $backendCalculatedOriginalFee = 0;
-            if ($validated['delivery_type'] === 'local') {
-                $mins = $validated['delivery_minutes'] ?? 0;
-                if ($mins > 0) {
-                    if ($mins <= 6) $backendCalculatedOriginalFee = 15;
-                    elseif ($mins <= 10) $backendCalculatedOriginalFee = 20;
-                    elseif ($mins <= 13) $backendCalculatedOriginalFee = 25;
-                    elseif ($mins <= 15) $backendCalculatedOriginalFee = 30;
-                    elseif ($mins <= 27) $backendCalculatedOriginalFee = 35;
-                    elseif ($mins <= 37) $backendCalculatedOriginalFee = 40;
-                }
-                if (($validated['delivery_speed'] ?? 'standard') === 'express') {
-                    $backendCalculatedOriginalFee += 20;
-                }
-            }
-
-            $originalFee = $validated['original_delivery_fee'] ?? max($frontendDeliveryFee, $backendCalculatedOriginalFee);
+            // 6. Calculate Fees and Discounts
+            $frontendDeliveryFee = $validated['delivery_fee'];
+            $originalFee = $validated['original_delivery_fee'] ?? $this->orderService->calculateOriginalFee(
+                $validated['delivery_type'],
+                $validated['delivery_minutes'] ?? null,
+                $validated['delivery_speed'] ?? 'standard',
+                $frontendDeliveryFee
+            );
             
-            // Calculate Discount
-            $discount = 0;
-            $couponId = null;
-            $coupon = null;
-            if (!empty($validated['coupon_code'])) {
-                $coupon = Coupon::where('code', $validated['coupon_code'])->first();
-                if ($coupon && $coupon->is_valid) {
-                    // Check minimum order amount
-                    if (!$coupon->min_order_amount || $subtotal >= $coupon->min_order_amount) {
-                        // Check usage limit per customer
-                        $user_usages = CouponUsage::where('coupon_id', $coupon->id)->where('user_id', $customer->id)->count();
-                        if ($user_usages < $coupon->usage_per_customer) {
-                            $couponId = $coupon->id;
-                            if ($coupon->type === 'fixed') {
-                                $discount = min($coupon->value, $subtotal);
-                            } elseif ($coupon->type === 'percentage') {
-                                $discount = ($subtotal * $coupon->value) / 100;
-                                if ($coupon->max_discount_amount && $discount > $coupon->max_discount_amount) {
-                                    $discount = $coupon->max_discount_amount;
-                                }
-                            } elseif ($coupon->type === 'free_delivery') {
-                                $validated['delivery_fee'] = 0;
-                            } elseif ($coupon->type === 'delivery_discount') {
-                                if ($coupon->value > 0) {
-                                    $validated['delivery_fee'] = max(0, $validated['delivery_fee'] - $coupon->value);
-                                } else {
-                                    $validated['delivery_fee'] = 0;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+            [$discount, $couponId, $finalDeliveryFee] = $this->orderService->applyCoupon(
+                $validated['coupon_code'] ?? null, 
+                $subtotal, 
+                $frontendDeliveryFee, 
+                $customer->id
+            );
 
-            // $validated['delivery_fee'] may have been reduced by coupon logic above.
-            $finalDeliveryFee = $validated['delivery_fee'];
+            $driverFee = $this->orderService->calculateDriverFee($frontendDeliveryFee, $finalDeliveryFee, $originalFee);
 
-            
-            $storeBearsDoorDiscount = filter_var(\App\Models\StoreSetting::getSetting('store_bears_door_discount', 'true'), FILTER_VALIDATE_BOOLEAN);
-            $storeBearsDeliveryCoupon = filter_var(\App\Models\StoreSetting::getSetting('store_bears_delivery_coupon', 'true'), FILTER_VALIDATE_BOOLEAN);
-
-            $driverFee = $originalFee;
-            if (!$storeBearsDoorDiscount) {
-                // Deduct the door image discount if the store doesn't bear it
-                $driverFee -= max(0, $originalFee - $frontendDeliveryFee);
-            }
-            if (!$storeBearsDeliveryCoupon) {
-                // Deduct the coupon discount if the store doesn't bear it
-                $driverFee -= max(0, $frontendDeliveryFee - $finalDeliveryFee);
-            }
-            $driverFee = max(0, $driverFee);
-
-            // 5. Create Order
+            // 7. Create Order
             $deliveryFee = $finalDeliveryFee;
             $total = max(0, $subtotal - $discount) + $deliveryFee;
 
@@ -224,57 +134,24 @@ class CheckoutController extends Controller
                 'owner_phone' => $validated['owner_phone'] ?? null
             ]);
 
-            // 5. Save Order Items and Gift Messages
-            foreach ($orderItemsData as $itemData) {
-                $giftMessage = $itemData['gift_message'];
-                unset($itemData['gift_message']);
-                
-                $itemData['order_id'] = $order->id;
-                $orderItem = OrderItem::create($itemData);
+            // 8. Save Order Items
+            $this->orderService->saveOrderItems($order, $orderItemsData, $customer->name);
 
-                if ($giftMessage) {
-                    DB::table('gift_messages')->insert([
-                        'order_id' => $order->id,
-                        'order_item_id' => $orderItem->id,
-                        'sender_name' => $customer->name,
-                        'message' => $giftMessage,
-                        'created_at' => now(),
-                        'updated_at' => now()
-                    ]);
-                }
-            }
-
-            // 6. Record Coupon Usage
-            if ($coupon && $couponId) {
+            // 9. Record Coupon Usage
+            if ($couponId) {
                 CouponUsage::create([
-                    'coupon_id' => $coupon->id,
+                    'coupon_id' => $couponId,
                     'user_id' => $customer->id,
                     'order_id' => $order->id,
                     'discount_amount' => $discount,
                 ]);
-                $coupon->increment('times_used');
+                Coupon::find($couponId)->increment('times_used');
             }
 
-            // 7. Deduct Components Stock (Inventory Management)
-            foreach ($componentsToDeduct as $componentId => $qtyToDeduct) {
-                $component = Component::find($componentId);
-                if ($component) {
-                    $component->decrement('stock_quantity', $qtyToDeduct);
-                    
-                    // Create stock log (optional but good practice)
-                    DB::table('component_stock_logs')->insert([
-                        'component_id' => $componentId,
-                        'performed_by' => $customer->id,
-                        'type' => 'consumption',
-                        'quantity' => -$qtyToDeduct,
-                        'stock_after' => $component->stock_quantity,
-                        'notes' => 'Consumed for order ' . $order->order_number,
-                        'created_at' => now()
-                    ]);
-                }
-            }
+            // 10. Deduct Components Stock
+            $this->orderService->deductStock($componentsToDeduct, $customer->id, $order->order_number);
 
-            // Log activity
+            // 11. Log activity
             ActivityLog::create([
                 'event_type' => 'created',
                 'actor_type' => 'customer',
@@ -285,12 +162,12 @@ class CheckoutController extends Controller
                 'ip_address' => $request->ip()
             ]);
 
-            // Notify admins via Telegram
+            // 12. Notify admins
             if ($order->payment_method !== 'bank_transfer') {
                 try {
-                    TelegramWebhookController::notifyAdminsNewOrder($order);
+                    $this->telegramService->notifyNewOrder($order);
                 } catch (\Exception $e) {
-                    \Illuminate\Support\Facades\Log::error('Failed to notify admins via Telegram', ['error' => $e->getMessage()]);
+                    \Illuminate\Support\Facades\Log::error('Failed to notify admins', ['error' => $e->getMessage()]);
                 }
             }
 
