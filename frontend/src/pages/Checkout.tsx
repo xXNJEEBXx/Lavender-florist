@@ -3,9 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
 import { useCart } from '../store/CartContext';
 import { useAuth } from '../store/AuthContext';
-import { adminSettingsApi, customerApi, publicProductsApi, storeApi, sharedOrderApi } from "../services/api";
+import { adminSettingsApi, customerApi, publicProductsApi, publicSettingsApi, storeApi, sharedOrderApi, couponApi } from "../services/api";
 import { normalizeSaudiPhone } from "../utils/phone";
-import { CheckCircle2, ChevronRight, MapPin, CreditCard, ShoppingBag, Truck, Plus, X, Map as MapIcon, Zap, Clock, Info, Loader2 } from 'lucide-react';
+import { CheckCircle2, ChevronRight, MapPin, CreditCard, ShoppingBag, Truck, Plus, X, Map as MapIcon, Zap, Clock, Info, Loader2, Ticket, Percent } from 'lucide-react';
 import { useJsApiLoader, GoogleMap, Marker } from '@react-google-maps/api';
 
 const STORE_LOCATION = { lat: 25.4535688, lng: 49.5847893 }; // Actual Store Location
@@ -58,6 +58,22 @@ export default function Checkout() {
   const [ownerName, setOwnerName] = useState('');
   const [ownerPhone, setOwnerPhone] = useState(user?.phone || '');
   const [paymentMethod, setPaymentMethod] = useState('bank_transfer');
+
+  // Coupon State
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
+  const [couponError, setCouponError] = useState('');
+
+  // Settings State
+  const [enableDoorImageDiscount, setEnableDoorImageDiscount] = useState(true);
+
+  // Load Settings
+  useEffect(() => {
+    publicSettingsApi.get().then(res => {
+      setEnableDoorImageDiscount(res.enable_door_image_discount);
+    }).catch(console.error);
+  }, []);
 
   // New Address Form State
   const [addressError, setAddressError] = useState('');
@@ -268,7 +284,7 @@ export default function Checkout() {
   };
 
   const selectedAddressForHash = addresses.find(a => a.id === selectedAddressId);
-  const selectedAddressHash = selectedAddressForHash ? `${selectedAddressForHash.id}-${selectedAddressForHash.street_address}` : null;
+  const selectedAddressHash = selectedAddressForHash ? `${selectedAddressForHash.id}-${selectedAddressForHash.street_address}-${selectedAddressForHash.latitude}-${selectedAddressForHash.longitude}` : null;
 
   const getDeliveryFee = (mins: number) => {
     if (deliveryType === 'pickup') return 0;
@@ -282,12 +298,57 @@ export default function Checkout() {
   };
 
   const deliveryFeeBase = deliveryMinutes !== null && !isRejecting ? getDeliveryFee(deliveryMinutes) : 0;
-  const hasDoorImageDiscount = selectedAddressForHash && selectedAddressForHash.door_image_path ? 2 : 0;
+  const hasDoorImageDiscount = enableDoorImageDiscount && selectedAddressForHash && selectedAddressForHash.door_image_path ? 2 : 0;
   const deliveryFeeSpeed = deliveryType === 'local' && deliverySpeed === 'express' ? deliveryFeeBase + 20 : deliveryFeeBase;
-  const deliveryFee = Math.max(0, deliveryFeeSpeed - hasDoorImageDiscount);
-  const total = subtotal + deliveryFee;
+  const originalDeliveryFee = deliveryFeeSpeed;
+  const baseDeliveryFee = Math.max(0, deliveryFeeSpeed - hasDoorImageDiscount);
+  let finalDeliveryFee = baseDeliveryFee;
 
-  const deliveryTimeAdded = deliveryType === 'pickup' ? 0 : (deliverySpeed === 'express' ? 60 : 240);
+  // Apply Coupon Logic
+  let discountAmount = 0;
+  let deliveryDiscountDisplay = 0;
+  if (appliedCoupon) {
+    if (appliedCoupon.type === 'free_delivery') {
+      deliveryDiscountDisplay = finalDeliveryFee;
+      finalDeliveryFee = 0;
+    } else if (appliedCoupon.type === 'delivery_discount') {
+      if (appliedCoupon.value > 0) {
+        deliveryDiscountDisplay = Math.min(finalDeliveryFee, appliedCoupon.value);
+        finalDeliveryFee = Math.max(0, finalDeliveryFee - appliedCoupon.value);
+      } else {
+        deliveryDiscountDisplay = finalDeliveryFee;
+        finalDeliveryFee = 0;
+      }
+    } else {
+      discountAmount = appliedCoupon.discount_amount;
+    }
+  }
+
+  const deliveryFee = finalDeliveryFee;
+  const total = Math.max(0, subtotal - discountAmount) + deliveryFee;
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) return;
+    setIsApplyingCoupon(true);
+    setCouponError('');
+    try {
+      const res = await couponApi.validate(couponCode.trim(), subtotal);
+      setAppliedCoupon(res.coupon);
+    } catch (err: any) {
+      setCouponError(err.response?.data?.message || 'كود الخصم غير صحيح');
+      setAppliedCoupon(null);
+    } finally {
+      setIsApplyingCoupon(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setCouponCode('');
+    setAppliedCoupon(null);
+    setCouponError('');
+  };
+
+  const deliveryTimeAdded = deliveryType === 'pickup' ? 0 : (deliverySpeed === 'express' ? 60 : 45);
   const totalWaitTimeMinutes = queueTimeMinutes + cartPrepTime + deliveryTimeAdded;
 
   const loadSlots = async () => {
@@ -416,6 +477,7 @@ export default function Checkout() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Submitting order with new logic V2', { baseDeliveryFee, originalDeliveryFee });
     if (items.length === 0) return;
     if (deliveryType === 'local' && !selectedAddressId) {
       setError('الرجاء اختيار عنوان التوصيل');
@@ -455,11 +517,13 @@ export default function Checkout() {
         scheduled_time: isScheduled ? scheduledTime : null,
         delivery_type: deliveryType,
         delivery_speed: deliveryType === 'pickup' ? 'standard' : deliverySpeed,
-        delivery_fee: deliveryFee,
+        delivery_fee: baseDeliveryFee,
+        original_delivery_fee: originalDeliveryFee,
         delivery_minutes: deliveryType === 'local' ? deliveryMinutes : 0,
         notes: notes || '',
         owner_name: ownerName || null,
         owner_phone: ownerPhone,
+        coupon_code: appliedCoupon ? appliedCoupon.code : null,
         items: items.map(item => ({
           product_id: item.product.id,
           quantity: item.quantity,
@@ -645,6 +709,7 @@ export default function Checkout() {
                   )}
               </div>
 
+              {/* Temporarily hidden Delivery Speed option 
               {deliveryType === 'local' && !isScheduled && (
                 <div className="mt-6 pt-6 border-t border-primary-100">
                   <div className="flex items-center gap-3 mb-4">
@@ -661,7 +726,7 @@ export default function Checkout() {
                         <span className="font-bold text-primary-900">توصيل عادي</span>
                         {deliverySpeed === 'standard' && <CheckCircle2 className="w-5 h-5 text-primary-600" />}
                       </div>
-                      <p className="text-sm text-primary-600">خلال 4 ساعات كحد أقصى (تضاف رسوم التوصيل الأساسية)</p>
+                      <p className="text-sm text-primary-600">خلال 45 دقيقة كحد أقصى (تضاف رسوم التوصيل الأساسية)</p>
                     </button>
                     <button
                       type="button"
@@ -677,6 +742,7 @@ export default function Checkout() {
                   </div>
                 </div>
               )}
+              */}
             </div>
 
             {/* Address Selection */}
@@ -747,8 +813,10 @@ export default function Checkout() {
                     <div 
                       key={address.id} 
                       onClick={() => {
-                        setSelectedAddressId(address.id);
-                        setDeliveryMinutes(null);
+                        if (selectedAddressId !== address.id) {
+                          setSelectedAddressId(address.id);
+                          setDeliveryMinutes(null);
+                        }
                       }}
                       className={`cursor-pointer p-4 rounded-2xl border-2 transition-all ${selectedAddressId === address.id ? 'border-primary-500 bg-primary-50' : 'border-primary-100 hover:border-primary-300'}`}
                     >
@@ -872,12 +940,58 @@ export default function Checkout() {
               </div>
               
               <hr className="border-primary-100 mb-6" />
+
+              {/* Coupon Section */}
+              <div className="mb-6 bg-primary-50/50 p-4 rounded-2xl border border-primary-100">
+                <div className="flex items-center gap-2 mb-3">
+                  <Ticket className="w-4 h-4 text-primary-600" />
+                  <span className="font-bold text-sm text-primary-900">كود الخصم</span>
+                </div>
+                {!appliedCoupon ? (
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={couponCode}
+                      onChange={e => setCouponCode(e.target.value.toUpperCase())}
+                      className="flex-1 px-3 py-2 rounded-xl border border-primary-200 focus:ring-2 focus:ring-primary-500 outline-none text-sm uppercase"
+                      placeholder="أدخل الكود هنا"
+                      dir="ltr"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleApplyCoupon}
+                      disabled={isApplyingCoupon || !couponCode}
+                      className="px-4 py-2 bg-primary-600 text-white rounded-xl text-sm font-bold hover:bg-primary-700 transition-colors disabled:opacity-70"
+                    >
+                      {isApplyingCoupon ? '...' : 'تطبيق'}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex justify-between items-center bg-emerald-50 text-emerald-700 px-3 py-2 rounded-xl border border-emerald-200">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span className="font-bold text-sm">{appliedCoupon.code}</span>
+                      <span className="text-xs">تم التطبيق بنجاح</span>
+                    </div>
+                    <button type="button" onClick={handleRemoveCoupon} className="p-1 hover:bg-emerald-100 rounded-lg transition-colors">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+                {couponError && <p className="text-rose-500 text-xs mt-2 font-medium">{couponError}</p>}
+              </div>
               
               <div className="space-y-4 text-sm text-primary-700 mb-6">
                 <div className="flex justify-between">
                   <span>المجموع الفرعي</span>
                   <span className="font-medium">{subtotal} ر.س</span>
                 </div>
+                {appliedCoupon && appliedCoupon.type !== 'free_delivery' && appliedCoupon.type !== 'delivery_discount' && (
+                  <div className="flex justify-between text-emerald-600 font-bold">
+                    <span>الخصم ({appliedCoupon.code})</span>
+                    <span>- {discountAmount} ر.س</span>
+                  </div>
+                )}
                 {deliveryType === 'local' && (
                   <div className="flex justify-between">
                     <span>رسوم التوصيل</span>
@@ -885,7 +999,7 @@ export default function Checkout() {
                       {isCalculating ? (
                         <span className="animate-pulse text-primary-500">جاري الحساب...</span>
                       ) : (
-                        `${deliveryFee} ر.س`
+                        `${originalDeliveryFee} ر.س`
                       )}
                     </span>
                   </div>
@@ -894,6 +1008,12 @@ export default function Checkout() {
                   <div className="flex justify-between text-sm text-emerald-600 font-bold">
                     <span>خصم صورة الباب 🎁</span>
                     <span>- {hasDoorImageDiscount} ر.س</span>
+                  </div>
+                )}
+                {appliedCoupon && (appliedCoupon.type === 'free_delivery' || appliedCoupon.type === 'delivery_discount') && deliveryDiscountDisplay > 0 && (
+                  <div className="flex justify-between text-emerald-600 font-bold">
+                    <span>خصم توصيل ({appliedCoupon.code})</span>
+                    <span>- {deliveryDiscountDisplay} ر.س</span>
                   </div>
                 )}
                 {deliveryType === 'local' && !isCalculating && !isRejecting && deliveryMinutes !== null && (

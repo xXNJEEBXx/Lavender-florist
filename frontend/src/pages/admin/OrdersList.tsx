@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, FileText, CheckCircle2, Clock, Package, Truck, X, MapPin, Download, AlertTriangle, Timer, ChevronDown, ChevronUp, Edit } from 'lucide-react';
-import { adminOrdersApi } from '../../services/api';
+import { adminOrdersApi, adminDriversApi } from '../../services/api';
 import { GoogleMap, Marker, useJsApiLoader } from '@react-google-maps/api';
 import EditOrderModal from '../../components/admin/EditOrderModal';
 
@@ -67,6 +67,7 @@ const nextStatus: Record<string, { status: string; label: string }> = {
 // ?? Main Component ??????????????????????????????????????????????
 export default function OrdersList() {
   const [cachedOrders, setCachedOrders] = useState<Record<string, any[]>>({ incomplete: [], all: [] });
+  const [drivers, setDrivers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('incomplete');
   const [page, setPage] = useState(1);
@@ -111,8 +112,12 @@ export default function OrdersList() {
     try {
       if (!silent && cachedOrders[statusFilter].length === 0) setIsLoading(true);
       
-      const allRes = await adminOrdersApi.getAll('all', page);
+      const [allRes, driversRes] = await Promise.all([
+        adminOrdersApi.getAll('all', page),
+        adminDriversApi.getAll().catch(() => [])
+      ]);
 
+      setDrivers(driversRes || []);
       const allOrders = allRes.data || [];
       const incompleteOrders = allOrders.filter((o: any) => !['delivered', 'cancelled'].includes(o.status));
 
@@ -224,7 +229,7 @@ export default function OrdersList() {
     }
   };
 
-  const handleSendToDelivery = async (skipPrimary: boolean = false) => {
+  const handleSendToDelivery = async (targetDriver: string | number = 'default') => {
     if (!selectedOrder) return;
     
     if (selectedOrder.delivery_date || selectedOrder.scheduled_at) {
@@ -235,7 +240,7 @@ export default function OrdersList() {
 
     try {
       setIsUpdatingStatus(true);
-      const res = await adminOrdersApi.sendToDelivery(selectedOrder.id, skipPrimary);
+      const res = await adminOrdersApi.sendToDelivery(selectedOrder.id, targetDriver);
       showToast(res.message, 'success');
       openOrderDetails(selectedOrder.id);
     } catch (error: any) {
@@ -245,21 +250,19 @@ export default function OrdersList() {
     }
   };
 
-  const handleSendToDeliveryFromRow = async (order: any, skipPrimary: boolean = false) => {
+  const handleSendToDeliveryFromRow = async (order: any, targetDriver: string | number = 'default') => {
     if (order.delivery_date || order.scheduled_at) {
         const timeStr = order.scheduled_at ? ` الساعة ${new Date(order.scheduled_at).toLocaleTimeString("ar-SA", { hour: "2-digit", minute: "2-digit" })}` : '';
         const msg = `هذا الطلب مجدول للتوصيل بتاريخ ${order.delivery_date || new Date(order.scheduled_at).toLocaleDateString("en-CA")}${timeStr}.\nهل أنت متأكد من إرساله للمندوب الآن؟`;
         if (!window.confirm(msg)) return;
     }
-    const orderId = order.id;
-
     try {
-      setUpdatingRowId(orderId);
-      const res = await adminOrdersApi.sendToDelivery(orderId, skipPrimary);
-      const updatedOrder = { ...orders.find(o => o.id === orderId), status: 'ready', driver_id: res.driver_id || -1 };
+      setUpdatingRowId(order.id);
+      const res = await adminOrdersApi.sendToDelivery(order.id, targetDriver);
+      showToast(res.message, 'success');
+      // Update order in cache immediately to reflect the change
+      const updatedOrder = await adminOrdersApi.getById(order.id);
       updateOrderInCache(updatedOrder);
-      showToast(res.message || 'تم إرسال الطلب للمندوب', 'success');
-      loadOrders(true);
     } catch (error: any) {
       showToast(error.response?.data?.message || 'فشل الإرسال للتوصيل', 'error');
     } finally {
@@ -1023,14 +1026,25 @@ export default function OrdersList() {
                         إبلاغ العميل عبر واتساب
                       </a>
                     ) : (
-                      <>
-                        <button onClick={() => handleSendToDelivery(false)} disabled={isUpdatingStatus || selectedOrder.driver_id !== null} className="bg-primary-800 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-primary-900 transition-colors flex items-center gap-2 disabled:opacity-50">
-                          <Truck className="w-4 h-4"/> إرسال للمندوب
+                      <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg p-1">
+                        <select 
+                          id={`target-driver-${selectedOrder.id}`}
+                          className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2"
+                          disabled={isUpdatingStatus || selectedOrder.driver_id !== null}
+                        >
+                          <option value="default">الأساسي (مع انتظار للاحتياطي)</option>
+                          <option value="all">كل المناديب فوراً (تخطي الأساسي)</option>
+                          {drivers.map(d => (
+                            <option key={d.id} value={d.id}>المندوب: {d.name} ({d.is_primary ? 'أساسي' : 'احتياطي'})</option>
+                          ))}
+                        </select>
+                        <button onClick={() => {
+                          const val = (document.getElementById(`target-driver-${selectedOrder.id}`) as HTMLSelectElement).value;
+                          handleSendToDelivery(val);
+                        }} disabled={isUpdatingStatus || selectedOrder.driver_id !== null} className="bg-primary-800 whitespace-nowrap text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-primary-900 transition-colors flex items-center gap-2 disabled:opacity-50">
+                          <Truck className="w-4 h-4"/> إرسال
                         </button>
-                        <button onClick={() => handleSendToDelivery(true)} disabled={isUpdatingStatus || selectedOrder.driver_id !== null} className="bg-amber-100 text-amber-800 border border-amber-200 px-4 py-2 rounded-lg text-sm font-bold hover:bg-amber-200 transition-colors disabled:opacity-50">
-                          تخطي الأساسي
-                        </button>
-                      </>
+                      </div>
                     )}
                   </div>
                 )}

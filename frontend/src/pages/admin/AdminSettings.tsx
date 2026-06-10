@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Save, MessageCircle, Bell, BellOff, Loader2, CheckCircle2, XCircle, RefreshCw } from 'lucide-react';
+import { Save, MessageCircle, Bell, BellOff, Loader2, CheckCircle2, XCircle, RefreshCw, Truck, Ticket, Percent } from 'lucide-react';
 import { adminSettingsApi } from '../../services/api';
 import toast from 'react-hot-toast';
 
@@ -15,6 +15,14 @@ interface TelegramSettings {
 
 export default function AdminSettings() {
   const [settings, setSettings] = useState<TelegramSettings | null>(null);
+  
+  // Store Settings State
+  const [storeSettings, setStoreSettings] = useState({
+    enable_door_image_discount: true,
+    store_bears_door_discount: true,
+    store_bears_delivery_coupon: true
+  });
+
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [username, setUsername] = useState('');
@@ -25,9 +33,13 @@ export default function AdminSettings() {
 
   const loadSettings = async () => {
     try {
-      const data = await adminSettingsApi.getTelegram();
-      setSettings(data);
-      setUsername(data.telegram_username || '');
+      const [telegramData, storeData] = await Promise.all([
+        adminSettingsApi.getTelegram(),
+        adminSettingsApi.getStoreSettings()
+      ]);
+      setSettings(telegramData);
+      setUsername(telegramData.telegram_username || '');
+      setStoreSettings(storeData);
     } catch (err) {
       console.error('Failed to load settings', err);
       toast.error('فشل في تحميل الإعدادات');
@@ -39,14 +51,17 @@ export default function AdminSettings() {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const data = await adminSettingsApi.updateTelegram({
-        telegram_username: username,
-        telegram_notify_new_orders: settings?.telegram_notify_new_orders ?? true,
-        telegram_notify_driver: settings?.telegram_notify_driver ?? false,
-        telegram_notify_website: settings?.telegram_notify_website ?? true,
-      });
-      setSettings(data);
-      setUsername(data.telegram_username || '');
+      const [telegramData] = await Promise.all([
+        adminSettingsApi.updateTelegram({
+          telegram_username: username,
+          telegram_notify_new_orders: settings?.telegram_notify_new_orders ?? true,
+          telegram_notify_driver: settings?.telegram_notify_driver ?? false,
+          telegram_notify_website: settings?.telegram_notify_website ?? true,
+        }),
+        adminSettingsApi.updateStoreSettings(storeSettings)
+      ]);
+      setSettings(telegramData);
+      setUsername(telegramData.telegram_username || '');
       toast.success('تم حفظ الإعدادات بنجاح! ✅');
     } catch (err) {
       console.error('Failed to save settings', err);
@@ -232,6 +247,79 @@ export default function AdminSettings() {
                 </div>
               </div>
             )}
+          </div>
+
+        </div>
+
+        {/* Store Settings Card */}
+        <div className="bg-white rounded-2xl border border-primary-100 shadow-sm overflow-hidden mt-6">
+          <div className="p-6 border-b border-primary-100 bg-gradient-to-l from-emerald-50 to-green-50 flex items-center gap-4">
+            <div className="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
+              <Truck className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-primary-950">إعدادات رسوم التوصيل والمناديب</h2>
+              <p className="text-primary-500 text-sm">تخصيص الخصومات ورسوم التوصيل</p>
+            </div>
+          </div>
+
+          <div className="p-6 space-y-4">
+            {/* Door Image Discount Toggle */}
+            <label className="flex items-center justify-between p-4 bg-white border border-primary-100 rounded-xl hover:bg-primary-50/50 transition-colors cursor-pointer group">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center group-hover:bg-emerald-200 transition-colors">
+                  <Ticket className="w-5 h-5 text-emerald-600" />
+                </div>
+                <div>
+                  <p className="font-bold text-primary-900 text-sm">تفعيل خصم صورة الباب</p>
+                  <p className="text-xs text-primary-400">إظهار خيار إضافة صورة للباب بخصم للعميل</p>
+                </div>
+              </div>
+              <input 
+                type="checkbox" 
+                checked={storeSettings.enable_door_image_discount}
+                onChange={e => setStoreSettings(s => ({...s, enable_door_image_discount: e.target.checked}))}
+                className="w-5 h-5 text-emerald-600 rounded-md border-emerald-300 focus:ring-emerald-500 cursor-pointer"
+              />
+            </label>
+
+            {/* Store Bears Door Discount Toggle */}
+            <label className={`flex items-center justify-between p-4 bg-white border border-primary-100 rounded-xl hover:bg-primary-50/50 transition-colors cursor-pointer group ${!storeSettings.enable_door_image_discount ? 'opacity-50 pointer-events-none' : ''}`}>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-sky-100 rounded-xl flex items-center justify-center group-hover:bg-sky-200 transition-colors">
+                  <Percent className="w-5 h-5 text-sky-600" />
+                </div>
+                <div>
+                  <p className="font-bold text-primary-900 text-sm">تحمل المتجر لخصم صورة الباب</p>
+                  <p className="text-xs text-primary-400">إذا تم التفعيل، المندوب سيستلم أجرة التوصيل كاملة ولن يخصم منها خصم الباب</p>
+                </div>
+              </div>
+              <input 
+                type="checkbox" 
+                checked={storeSettings.store_bears_door_discount}
+                onChange={e => setStoreSettings(s => ({...s, store_bears_door_discount: e.target.checked}))}
+                className="w-5 h-5 text-sky-600 rounded-md border-sky-300 focus:ring-sky-500 cursor-pointer"
+              />
+            </label>
+
+            {/* Store Bears Delivery Coupon Toggle */}
+            <label className="flex items-center justify-between p-4 bg-white border border-primary-100 rounded-xl hover:bg-primary-50/50 transition-colors cursor-pointer group">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center group-hover:bg-amber-200 transition-colors">
+                  <Ticket className="w-5 h-5 text-amber-600" />
+                </div>
+                <div>
+                  <p className="font-bold text-primary-900 text-sm">تحمل المتجر لخصومات التوصيل (الكوبونات)</p>
+                  <p className="text-xs text-primary-400">إذا استخدم العميل كوبون توصيل مجاني أو مخفض، המנדوب يستلم رسوم التوصيل كاملة</p>
+                </div>
+              </div>
+              <input 
+                type="checkbox" 
+                checked={storeSettings.store_bears_delivery_coupon}
+                onChange={e => setStoreSettings(s => ({...s, store_bears_delivery_coupon: e.target.checked}))}
+                className="w-5 h-5 text-amber-600 rounded-md border-amber-300 focus:ring-amber-500 cursor-pointer"
+              />
+            </label>
           </div>
 
           {/* Save Button */}

@@ -12,7 +12,8 @@ import {
   Clock,
   CalendarOff,
   Plus,
-  ShieldCheck
+  ShieldCheck,
+  Ticket
 } from 'lucide-react';
 
 interface AdminSidebarProps {
@@ -24,6 +25,7 @@ export default function AdminSidebar({ isOpen = true }: AdminSidebarProps) {
     { name: 'الصفحة الرئيسية', path: '/', icon: <Store size={20} /> },
     { name: 'لوحة التحكم', path: '/admin', icon: <LayoutDashboard size={20} /> },
     { name: 'المنتجات', path: '/admin/products', icon: <Flower2 size={20} /> },
+    { name: 'الكوبونات', path: '/admin/coupons', icon: <Ticket size={20} /> },
     { name: 'المواد الخام', path: '/admin/components', icon: <Package size={20} /> },
     { name: 'الطلبات', path: '/admin/orders', icon: <ShoppingCart size={20} /> },
     { name: 'إنشاء طلب يدوي', path: '/admin/orders/manual', icon: <Plus size={20} /> },

@@ -27,11 +27,11 @@ class ScheduleController extends Controller
         // Delivery time added to the total
         $deliveryTimeAdded = 0;
         if ($deliveryType === 'local') {
-            $deliveryTimeAdded = $deliverySpeed === 'express' ? 60 : 240;
+            $deliveryTimeAdded = $deliverySpeed === 'express' ? 60 : 45;
         }
 
         $totalLeadMinutes = $queueMinutes + $prepMinutes + $deliveryTimeAdded;
-        $minReadyAt = Carbon::now()->addMinutes($totalLeadMinutes);
+        $minReadyAt = Carbon::now('Asia/Riyadh')->addMinutes($totalLeadMinutes);
 
         // 2. Get working hours (regular schedule)
         $regularHours = WorkingHours::where('type', 'regular')
@@ -40,8 +40,8 @@ class ScheduleController extends Controller
             ->keyBy('day_of_week');
 
         // 3. Get closures/holidays for the next 30 days
-        $startDate = Carbon::today();
-        $endDate = Carbon::today()->addDays(30);
+        $startDate = Carbon::today('Asia/Riyadh');
+        $endDate = Carbon::today('Asia/Riyadh')->addDays(30);
 
         $closures = WorkingHours::whereIn('type', ['closure', 'holiday'])
             ->where('is_active', true)
@@ -75,12 +75,13 @@ class ScheduleController extends Controller
                     }
                 }
             }
-            $dStr = Carbon::parse($order->ready_by)->format('Y-m-d');
+            $readyByRiyadh = Carbon::parse($order->ready_by, 'Asia/Riyadh');
+            $dStr = $readyByRiyadh->format('Y-m-d');
             if (!isset($ordersByDate[$dStr])) {
                 $ordersByDate[$dStr] = [];
             }
             $ordersByDate[$dStr][] = [
-                'ready_by' => Carbon::parse($order->ready_by),
+                'ready_by' => $readyByRiyadh,
                 'prep_minutes' => $prep
             ];
         }
@@ -108,8 +109,8 @@ class ScheduleController extends Controller
                 continue; // No working hours for this day = day off
             }
 
-            $openTime = Carbon::parse($dateStr . ' ' . $wh->open_time);
-            $closeTime = Carbon::parse($dateStr . ' ' . $wh->close_time);
+            $openTime = Carbon::parse($dateStr . ' ' . $wh->open_time, 'Asia/Riyadh');
+            $closeTime = Carbon::parse($dateStr . ' ' . $wh->close_time, 'Asia/Riyadh');
 
             if ($closeTime->lte($openTime)) {
                 $closeTime->addDay();

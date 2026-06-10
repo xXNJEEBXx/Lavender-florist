@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { CheckCircle2, Copy, FileText, Upload, Clock, Package, Truck, MapPin } from 'lucide-react';
+import { CheckCircle2, Copy, FileText, Upload, Clock, Package, Truck, MapPin, Edit3 } from 'lucide-react';
 import { orderApi } from '../services/api';
+import { useCart } from '../store/CartContext';
+import toast from 'react-hot-toast';
 
 function DeliveryTimeDisplay({ order }: { order: any }) {
   if (order.status === 'delivered' || order.status === 'cancelled') return null;
@@ -70,6 +72,10 @@ export default function OrderTracking() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
   const [uploadSuccess, setUploadSuccess] = useState('');
+  const [isCancelling, setIsCancelling] = useState(false);
+
+  const navigate = useNavigate();
+  const { restoreCartItems } = useCart() as any;
 
   useEffect(() => {
     if (orderNumber) {
@@ -95,7 +101,31 @@ export default function OrderTracking() {
 
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text);
-    alert('تم النسخ!');
+    toast.success('تم النسخ!');
+  };
+
+  const handleEditOrder = async () => {
+    if (!window.confirm('سيتم إلغاء هذا الطلب وإعادة المنتجات إلى السلة لتتمكن من تعديل التوصيل أو محتويات الطلب. هل أنت متأكد؟')) return;
+    
+    setIsCancelling(true);
+    try {
+      await orderApi.cancelOrder(order.order_number);
+      const cartItems = order.items.map((i: any) => ({
+        product: {
+          ...i.product,
+          price: i.unit_price,
+          id: i.product_id
+        },
+        quantity: i.quantity,
+        gift_message: i.gift_message
+      }));
+      restoreCartItems(cartItems);
+      toast.success('تم نقل منتجاتك للسلة بنجاح.');
+      navigate('/checkout');
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'فشل في إلغاء الطلب');
+      setIsCancelling(false);
+    }
   };
 
   const handleUpload = async (e: React.FormEvent) => {
@@ -159,6 +189,24 @@ export default function OrderTracking() {
           <div className="space-y-6">
 
             <DeliveryTimeDisplay order={order} />
+
+            {/* Edit Order Alert/Button */}
+            {order.status === 'pending' && (!order.bank_transfer_receipt && !order.payment_justification || order.payment_method === 'cash_on_delivery') && (
+              <div className="bg-sky-50 border border-sky-100 p-5 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div>
+                  <h3 className="font-bold text-sky-900">هل ترغب بتعديل التوصيل أو المنتجات؟</h3>
+                  <p className="text-sm text-sky-700">يمكنك إلغاء الطلب والعودة للسلة في هذه المرحلة.</p>
+                </div>
+                <button 
+                  onClick={handleEditOrder}
+                  disabled={isCancelling}
+                  className="bg-white text-sky-700 border border-sky-200 hover:bg-sky-100 font-bold py-2 px-4 rounded-xl transition-colors flex items-center gap-2 whitespace-nowrap disabled:opacity-50"
+                >
+                  <Edit3 className="w-4 h-4" />
+                  {isCancelling ? 'جاري الإلغاء...' : 'تعديل الطلب'}
+                </button>
+              </div>
+            )}
             
             {/* Needs Transfer Alert */}
             {needsTransfer && (

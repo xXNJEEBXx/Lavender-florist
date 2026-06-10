@@ -39,6 +39,10 @@ export const adminActivityLogsApi = {
   getAll: () => api.get('/admin/activity-logs').then(res => res.data),
 };
 
+export const dashboardApi = {
+  getStats: () => api.get('/admin/stats').then(res => res.data),
+};
+
 export const adminProductsApi = {
   getAll: () => api.get('/admin/products').then(res => res.data),
   getById: (id: number) => api.get(`/admin/products/${id}`).then(res => res.data),
@@ -93,6 +97,10 @@ export const publicProductsApi = {
   checkout: (data: any) => api.post('/checkout', data).then(res => res.data),
 };
 
+export const publicSettingsApi = {
+  get: () => api.get('/settings/public').then(res => res.data),
+};
+
 export const adminOrdersApi = {
   getAll: (status: string = 'all', page: number = 1) => api.get(`/admin/orders?status=${status}&page=${page}`).then(res => res.data),
   getById: (id: number) => api.get(`/admin/orders/${id}`).then(res => res.data),
@@ -113,10 +121,14 @@ export const adminOrdersApi = {
     const { data } = await api.put(`/admin/orders/${id}`, { status });
     return data;
   },
-  sendToDelivery: async (id: number, skipPrimary: boolean = false) => {
-    const { data } = await api.post(`/admin/orders/${id}/send-to-delivery`, { skip_primary: skipPrimary });
+  sendToDelivery: async (id: number, targetDriver: string | number = 'default') => {
+    const { data } = await api.post(`/admin/orders/${id}/send-to-delivery`, { target_driver: targetDriver });
     return data;
   }
+};
+
+export const adminDriversApi = {
+  getAll: () => api.get('/admin/drivers').then(res => res.data),
 };
 
 export const adminSettingsApi = {
@@ -156,6 +168,15 @@ export const adminSettingsApi = {
   updateTelegram: async (payload: any) => {
     const { data } = await api.put('/admin/settings/telegram', payload);
     return data;
+  },
+  
+  getStoreSettings: async () => {
+    const { data } = await api.get('/admin/settings/store');
+    return data;
+  },
+  updateStoreSettings: async (payload: any) => {
+    const { data } = await api.put('/admin/settings/store', payload);
+    return data;
   }
 };
 
@@ -183,17 +204,18 @@ export const orderApi = {
     const response = await api.get(`/orders/${orderNumber}`);
     return response.data;
   },
-  uploadReceipt: async (orderNumber: string, file: File | null, paymentJustification?: string) => {
+  uploadReceipt: async (orderNumber: string, file: File | null, justification: string) => {
     const formData = new FormData();
     if (file) formData.append('receipt', file);
-    if (paymentJustification) formData.append('payment_justification', paymentJustification);
-    
-    const response = await api.post(`/orders/${orderNumber}/receipt`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
+    if (justification) formData.append('payment_justification', justification);
+    const { data } = await api.post(`/orders/${orderNumber}/receipt`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
     });
-    return response.data;
+    return data;
+  },
+  cancelOrder: async (orderNumber: string) => {
+    const { data } = await api.delete(`/orders/${orderNumber}`);
+    return data;
   },
   getDraftOrder: (token: string) => api.get(`/draft-orders/${token}`).then(res => res.data),
   completeDraftOrder: (token: string, data: any) => api.post(`/draft-orders/${token}/complete`, data).then(res => res.data),
@@ -222,6 +244,21 @@ export const adminsApi = {
   addAdmin: (data: any) => api.post('/admin/admins', data).then(res => res.data),
   updateAdmin: (id: number, data: any) => api.put(`/admin/admins/${id}`, data).then(res => res.data),
   deleteAdmin: (id: number) => api.delete(`/admin/admins/${id}`).then(res => res.data),
+};
+
+export const customerAdminApi = {
+  getAll: (page: number = 1, search: string = '') => api.get(`/admin/customers?page=${page}&search=${search}`).then(res => res.data),
+  getById: (id: number) => api.get(`/admin/customers/${id}`).then(res => res.data),
+  toggleActive: (id: number) => api.post(`/admin/customers/${id}/toggle-active`).then(res => res.data),
+};
+
+export const couponApi = {
+  validate: (code: string, subtotal: number) => api.post('/coupons/validate', { code, subtotal }).then(res => res.data),
+  // Admin Routes
+  getAll: () => api.get('/admin/coupons').then(res => res.data),
+  create: (data: any) => api.post('/admin/coupons', data).then(res => res.data),
+  update: (id: number, data: any) => api.put(`/admin/coupons/${id}`, data).then(res => res.data),
+  delete: (id: number) => api.delete(`/admin/coupons/${id}`).then(res => res.data),
 };
 
 export default api;

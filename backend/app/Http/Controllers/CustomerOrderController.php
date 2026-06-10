@@ -80,4 +80,27 @@ class CustomerOrderController extends Controller
             'order' => $order
         ]);
     }
+
+    public function destroy(Request $request, $order_number)
+    {
+        $user = $request->user();
+        
+        $query = Order::where('order_number', $order_number);
+
+        if ($user->role !== 'admin') {
+            $query->where('customer_id', $user->id);
+        }
+
+        $order = $query->firstOrFail();
+
+        if ($order->status !== 'pending' || ($order->payment_method === 'bank_transfer' && ($order->bank_transfer_receipt || $order->payment_justification))) {
+            throw ValidationException::withMessages(['order' => 'لا يمكن تعديل أو إلغاء هذا الطلب في المرحلة الحالية.']);
+        }
+
+        // Delete order items
+        $order->items()->delete();
+        $order->delete();
+
+        return response()->json(['message' => 'تم إلغاء الطلب بنجاح']);
+    }
 }

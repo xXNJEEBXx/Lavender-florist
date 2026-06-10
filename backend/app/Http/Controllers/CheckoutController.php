@@ -8,6 +8,8 @@ use App\Models\Address;
 use App\Models\Product;
 use App\Models\OrderItem;
 use App\Models\Component;
+use App\Models\Coupon;
+use App\Models\CouponUsage;
 use App\Models\ActivityLog;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
@@ -19,11 +21,13 @@ class CheckoutController extends Controller
 {
     public function process(Request $request)
     {
+        \Illuminate\Support\Facades\Log::info("Checkout Payload:", $request->all());
         $validated = $request->validate([
             'address_id' => 'nullable|exists:addresses,id',
             'delivery_type' => 'required|in:local,shipping,pickup',
             'delivery_speed' => 'nullable|in:standard,express',
             'delivery_fee' => 'required|numeric|min:0',
+            'original_delivery_fee' => 'nullable|numeric|min:0',
             'delivery_minutes' => 'nullable|integer|min:0',
             'delivery_date' => 'nullable|date|after_or_equal:today',
             'scheduled_date' => 'nullable|date|after_or_equal:today',
@@ -32,6 +36,7 @@ class CheckoutController extends Controller
             'notes' => 'nullable|string',
             'owner_name' => 'nullable|string|max:255',
             'owner_phone' => 'nullable|string|max:255',
+            'coupon_code' => 'nullable|string',
             
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
@@ -117,18 +122,82 @@ class CheckoutController extends Controller
                 }
             }
 
-            // 5. Create Order
-            $deliveryFee = $validated['delivery_fee'];
-            
-            // Apply 2 SAR discount if door image is present
-            if ($address && $address->door_image_path) {
-                // Ensure we don't apply it if frontend already did it, but it's safer to let backend do it or verify.
-                // Assuming frontend sends the base delivery fee, we subtract 2 here. 
-                // But wait, if frontend sends the ALREADY discounted fee? We should just accept the frontend fee.
-                // We'll leave the delivery fee as is, but log it or add a discount field.
+            $frontendDeliveryFee = $validated['delivery_fee']; // fee before backend applies coupon
+
+            // Recalculate original delivery fee on the backend as a fallback
+            $backendCalculatedOriginalFee = 0;
+            if ($validated['delivery_type'] === 'local') {
+                $mins = $validated['delivery_minutes'] ?? 0;
+                if ($mins > 0) {
+                    if ($mins <= 6) $backendCalculatedOriginalFee = 15;
+                    elseif ($mins <= 10) $backendCalculatedOriginalFee = 20;
+                    elseif ($mins <= 13) $backendCalculatedOriginalFee = 25;
+                    elseif ($mins <= 15) $backendCalculatedOriginalFee = 30;
+                    elseif ($mins <= 27) $backendCalculatedOriginalFee = 35;
+                    elseif ($mins <= 37) $backendCalculatedOriginalFee = 40;
+                }
+                if (($validated['delivery_speed'] ?? 'standard') === 'express') {
+                    $backendCalculatedOriginalFee += 20;
+                }
             }
+
+            $originalFee = $validated['original_delivery_fee'] ?? max($frontendDeliveryFee, $backendCalculatedOriginalFee);
             
-            $total = $subtotal + $deliveryFee;
+            // Calculate Discount
+            $discount = 0;
+            $couponId = null;
+            $coupon = null;
+            if (!empty($validated['coupon_code'])) {
+                $coupon = Coupon::where('code', $validated['coupon_code'])->first();
+                if ($coupon && $coupon->is_valid) {
+                    // Check minimum order amount
+                    if (!$coupon->min_order_amount || $subtotal >= $coupon->min_order_amount) {
+                        // Check usage limit per customer
+                        $user_usages = CouponUsage::where('coupon_id', $coupon->id)->where('user_id', $customer->id)->count();
+                        if ($user_usages < $coupon->usage_per_customer) {
+                            $couponId = $coupon->id;
+                            if ($coupon->type === 'fixed') {
+                                $discount = min($coupon->value, $subtotal);
+                            } elseif ($coupon->type === 'percentage') {
+                                $discount = ($subtotal * $coupon->value) / 100;
+                                if ($coupon->max_discount_amount && $discount > $coupon->max_discount_amount) {
+                                    $discount = $coupon->max_discount_amount;
+                                }
+                            } elseif ($coupon->type === 'free_delivery') {
+                                $validated['delivery_fee'] = 0;
+                            } elseif ($coupon->type === 'delivery_discount') {
+                                if ($coupon->value > 0) {
+                                    $validated['delivery_fee'] = max(0, $validated['delivery_fee'] - $coupon->value);
+                                } else {
+                                    $validated['delivery_fee'] = 0;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // $validated['delivery_fee'] may have been reduced by coupon logic above.
+            $finalDeliveryFee = $validated['delivery_fee'];
+
+            
+            $storeBearsDoorDiscount = filter_var(\App\Models\StoreSetting::getSetting('store_bears_door_discount', 'true'), FILTER_VALIDATE_BOOLEAN);
+            $storeBearsDeliveryCoupon = filter_var(\App\Models\StoreSetting::getSetting('store_bears_delivery_coupon', 'true'), FILTER_VALIDATE_BOOLEAN);
+
+            $driverFee = $originalFee;
+            if (!$storeBearsDoorDiscount) {
+                // Deduct the door image discount if the store doesn't bear it
+                $driverFee -= max(0, $originalFee - $frontendDeliveryFee);
+            }
+            if (!$storeBearsDeliveryCoupon) {
+                // Deduct the coupon discount if the store doesn't bear it
+                $driverFee -= max(0, $frontendDeliveryFee - $finalDeliveryFee);
+            }
+            $driverFee = max(0, $driverFee);
+
+            // 5. Create Order
+            $deliveryFee = $finalDeliveryFee;
+            $total = max(0, $subtotal - $discount) + $deliveryFee;
 
             $order = Order::create([
                 'order_number' => 'LF-' . date('Ymd') . '-' . rand(1000, 9999),
@@ -141,10 +210,12 @@ class CheckoutController extends Controller
                 'scheduled_at' => $scheduledAt,
                 'ready_by' => $readyBy,
                 'delivery_fee' => $deliveryFee,
+                'driver_fee' => $driverFee,
                 'delivery_minutes' => $validated['delivery_minutes'] ?? null,
                 'driver_notes' => $address ? $address->delivery_notes : null,
                 'subtotal' => $subtotal,
-                'discount' => 0,
+                'discount' => $discount,
+                'coupon_id' => $couponId,
                 'total' => $total,
                 'payment_method' => $validated['payment_method'],
                 'payment_status' => 'pending',
@@ -173,7 +244,18 @@ class CheckoutController extends Controller
                 }
             }
 
-            // 6. Deduct Components Stock (Inventory Management)
+            // 6. Record Coupon Usage
+            if ($coupon && $couponId) {
+                CouponUsage::create([
+                    'coupon_id' => $coupon->id,
+                    'user_id' => $customer->id,
+                    'order_id' => $order->id,
+                    'discount_amount' => $discount,
+                ]);
+                $coupon->increment('times_used');
+            }
+
+            // 7. Deduct Components Stock (Inventory Management)
             foreach ($componentsToDeduct as $componentId => $qtyToDeduct) {
                 $component = Component::find($componentId);
                 if ($component) {

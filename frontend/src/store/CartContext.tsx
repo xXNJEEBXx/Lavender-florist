@@ -23,6 +23,7 @@ interface CartContextType {
   sharedToken: string | null;
   exitSharedSession: () => void;
   isLoading: boolean;
+  restoreCartItems: (newItems: LocalCartItem[]) => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -44,18 +45,10 @@ function saveLocalCart(items: LocalCartItem[]) {
 }
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<LocalCartItem[]>([]);
   const [sharedToken, setSharedToken] = useState<string | null>(localStorage.getItem(SHARED_TOKEN_KEY));
   const isSharedSession = !!sharedToken;
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Initial load
-  useEffect(() => {
-    if (!isSharedSession) {
-      setItems(loadLocalCart());
-      setIsLoading(false);
-    }
-  }, [isSharedSession]);
+  const [items, setItems] = useState<LocalCartItem[]>(() => isSharedSession ? [] : loadLocalCart());
+  const [isLoading, setIsLoading] = useState(isSharedSession);
 
   // Save local cart
   useEffect(() => {
@@ -180,6 +173,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
     if (isSharedSession) syncSharedCart([]);
   };
 
+  const restoreCartItems = (newItems: LocalCartItem[]) => {
+    setItems(newItems);
+  };
+
   const exitSharedSession = () => {
     localStorage.removeItem(SHARED_TOKEN_KEY);
     setSharedToken(null);
@@ -246,6 +243,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         sharedToken,
         exitSharedSession,
         isLoading,
+        restoreCartItems,
       }}
     >
       {children}

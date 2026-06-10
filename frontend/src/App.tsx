@@ -22,7 +22,9 @@ import AdminBreaks from '@/pages/admin/AdminBreaks';
 import AdminWorkingHours from '@/pages/admin/AdminWorkingHours';
 import AdminSettings from '@/pages/admin/AdminSettings';
 import AdminsList from '@/pages/admin/AdminsList';
-
+import CouponsList from '@/pages/admin/CouponsList';
+import Customers from '@/pages/admin/Customers';
+import CustomerDetails from '@/pages/admin/CustomerDetails';
 import { AuthProvider } from '@/store/AuthContext';
 import { CartProvider } from '@/store/CartContext';
 import LoginModal from '@/components/ui/LoginModal';
@@ -59,9 +61,12 @@ function App() {
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<Dashboard />} />
               <Route path="products" element={<ProductsList />} />
+              <Route path="coupons" element={<CouponsList />} />
               <Route path="components" element={<ComponentsList />} />
               <Route path="orders" element={<OrdersList />} />
               <Route path="orders/manual" element={<ManualOrder />} />
+              <Route path="customers" element={<Customers />} />
+              <Route path="customers/:id" element={<CustomerDetails />} />
               <Route path="drivers" element={<DriversList />} />
               <Route path="breaks" element={<AdminBreaks />} />
               <Route path="working-hours" element={<AdminWorkingHours />} />

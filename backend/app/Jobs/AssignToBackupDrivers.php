@@ -58,7 +58,7 @@ class AssignToBackupDrivers implements ShouldQueue
         $messageText = "🚨 <b>طلب توصيل جديد!</b> 🚨\n\n";
         $messageText .= "📦 <b>رقم الطلب:</b> {$this->order->order_number}\n";
         $messageText .= "📍 <b>المدينة/الحي:</b> {$address->city} - {$address->street}\n";
-        $messageText .= "💵 <b>مبلغ التوصيل:</b> {$this->order->delivery_fee} ريال\n";
+        $messageText .= "💵 <b>مبلغ التوصيل:</b> {$this->order->driver_fee} ريال\n";
         $messageText .= "⏱️ <b>المسافة تقريباً:</b> {$minutes}\n\n";
 
         if ($address && $address->delivery_notes) {

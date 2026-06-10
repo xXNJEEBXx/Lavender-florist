@@ -17,6 +17,14 @@ Route::get('/store/working-hours', [\App\Http\Controllers\WorkingHoursController
 Route::get('/store/available-slots', [\App\Http\Controllers\ScheduleController::class, 'availableSlots']);
 Route::post('/store/expand-url', [\App\Http\Controllers\AddressController::class, 'expandUrl']);
 
+// Delivery & Checkout
+Route::post('delivery/estimate', [\App\Http\Controllers\DeliveryController::class, 'estimate']);
+Route::post('checkout', [\App\Http\Controllers\CheckoutController::class, 'process']);
+Route::post('coupons/validate', [\App\Http\Controllers\CouponController::class, 'validateCoupon']);
+
+// Public Settings
+Route::get('settings/public', [\App\Http\Controllers\AdminSettingsController::class, 'getPublicSettings']);
+
 Route::post('/telegram/webhook', [\App\Http\Controllers\TelegramWebhookController::class, 'handle']);
 
 Route::get('/store/queue-status', [\App\Http\Controllers\QueueController::class, 'status']);
@@ -63,6 +71,7 @@ Route::middleware('auth:sanctum')->group(function () {
     });
     Route::get('/orders/{order_number}', [\App\Http\Controllers\CustomerOrderController::class, 'show']);
     Route::post('/orders/{order_number}/receipt', [\App\Http\Controllers\CustomerOrderController::class, 'uploadReceipt']);
+    Route::delete('/orders/{order_number}', [\App\Http\Controllers\CustomerOrderController::class, 'destroy']);
 });
 
 // Public Draft Orders
@@ -73,15 +82,21 @@ Route::post('/draft-orders/{token}/complete', [\App\Http\Controllers\ManualOrder
 Route::middleware(['auth:sanctum', \App\Http\Middleware\AdminMiddleware::class])->prefix('admin')->group(function () {
     
     // Dashboard Stats
-    Route::get('/stats', function() {
-        return response()->json(['sales' => 0, 'orders' => 0]);
-    });
+    Route::get('/stats', [\App\Http\Controllers\DashboardController::class, 'index']);
     
     // Activity Logs
     Route::get('/activity-logs', [\App\Http\Controllers\ActivityLogController::class, 'index']);
 
+    // Customers
+    Route::get('/customers', [\App\Http\Controllers\CustomerController::class, 'index']);
+    Route::get('/customers/{id}', [\App\Http\Controllers\CustomerController::class, 'show']);
+    Route::post('/customers/{id}/toggle-active', [\App\Http\Controllers\CustomerController::class, 'toggleActive']);
+
     // Components
     Route::apiResource('components', \App\Http\Controllers\ComponentController::class ?? \Illuminate\Routing\Controller::class);
+    
+    // Coupons
+    Route::apiResource('coupons', \App\Http\Controllers\CouponController::class);
     
     // Products
     Route::apiResource('products', \App\Http\Controllers\ProductController::class);
@@ -117,4 +132,8 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\AdminMiddleware::class])
     // Admin Settings (Telegram)
     Route::get('settings/telegram', [\App\Http\Controllers\AdminSettingsController::class, 'getTelegram']);
     Route::put('settings/telegram', [\App\Http\Controllers\AdminSettingsController::class, 'updateTelegram']);
+    
+    // Store Settings
+    Route::get('settings/store', [\App\Http\Controllers\AdminSettingsController::class, 'getStoreSettings']);
+    Route::put('settings/store', [\App\Http\Controllers\AdminSettingsController::class, 'updateStoreSettings']);
 });

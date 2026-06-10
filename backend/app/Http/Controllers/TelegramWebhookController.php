@@ -327,8 +327,11 @@ class TelegramWebhookController extends Controller
         }
 
         $text .= "\n💰 المجموع: <b>" . number_format($order->subtotal, 2) . " ر.س</b>\n";
-        if ($order->delivery_fee > 0) {
-            $text .= "🚚 التوصيل: " . number_format($order->delivery_fee, 2) . " ر.س\n";
+        if ($order->delivery_fee > 0 || $order->driver_fee > 0) {
+            $text .= "🚚 التوصيل (للعميل): " . number_format($order->delivery_fee, 2) . " ر.س\n";
+            if ($order->driver_fee !== $order->delivery_fee) {
+                $text .= "🧑‍✈️ التوصيل (للمندوب): " . number_format($order->driver_fee, 2) . " ر.س\n";
+            }
         }
         if ($order->discount > 0) {
             $text .= "🏷️ خصم: -" . number_format($order->discount, 2) . " ر.س\n";
@@ -823,8 +826,8 @@ class TelegramWebhookController extends Controller
             'delivered_at' => now(),
         ]);
 
-        // Add delivery fee to driver's balance
-        $driver->increment('balance', $order->delivery_fee);
+        // Add driver fee to driver's balance
+        $driver->increment('balance', $order->driver_fee);
 
         $this->telegram->answerCallbackQuery($callbackQueryId, 'تم تسليم الطلب بنجاح! عمل رائع 🌟');
 

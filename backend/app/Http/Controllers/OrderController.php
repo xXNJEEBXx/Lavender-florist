@@ -140,50 +140,64 @@ class OrderController extends Controller
             $order->update(['status' => 'ready', 'ready_at' => now()]);
         }
 
-        $skipPrimary = $validated['skip_primary'] ?? false;
-        
+        $targetDriver = $request->input('target_driver', 'default');
+        $skipPrimary = $request->input('skip_primary', false);
+
         $order->update(['delivery_offered_at' => now()]);
 
-        if ($skipPrimary) {
-            // Dispatch immediately to backups
-            AssignToBackupDrivers::dispatch($order);
-            return response()->json(['message' => 'تم تخطي الأساسي وإرسال الطلب للمناديب الاحتياطيين.']);
+        $address = $order->address;
+        $storeLocationUrl = "https://maps.google.com/?q=Lavender+Florist";
+
+        $minutes = $order->delivery_minutes ? $order->delivery_minutes . ' دقيقة' : 'غير محدد';
+        
+        $ownerName = $order->owner_name ?? $order->customer->name ?? 'غير محدد';
+        $messageText = "🚨 <b>طلب توصيل جديد!</b> 🚨\n\n";
+        $messageText .= "📦 <b>رقم الطلب:</b> {$order->order_number}\n";
+        $messageText .= "👤 <b>صاحب الطلب:</b> {$ownerName}\n";
+        $messageText .= "📍 <b>المدينة/الحي:</b> {$address->city} - {$address->street}\n";
+        $messageText .= "💸 <b>مبلغ التوصيل:</b> {$order->driver_fee} ريال\n";
+        $messageText .= "⏱️ <b>المسافة تقريباً:</b> {$minutes}\n\n";
+
+        if ($order->address && $order->address->delivery_notes) {
+            $messageText .= "📝 <b>ملاحظات إضافية للتوصيل:</b>\n" . e($order->address->delivery_notes) . "\n\n";
+        }
+
+        $messageText .= "🏪 <b>نقطة الاستلام:</b> <a href=\"{$storeLocationUrl}\">موقع المتجر (لافندر فلوريست)</a>\n";
+
+        $replyMarkup = [
+            'inline_keyboard' => [
+                [
+                    ['text' => '✅ قبول الطلب', 'callback_data' => "accept_order_{$order->id}"]
+                ]
+            ]
+        ];
+
+        if ($targetDriver === 'all' || $skipPrimary) {
+            // Send to ALL active drivers immediately
+            $drivers = Driver::where('is_active', true)->whereNotNull('telegram_chat_id')->get();
+            foreach ($drivers as $driver) {
+                $telegram->sendMessage($driver->telegram_chat_id, $messageText, $replyMarkup);
+            }
+            return response()->json(['message' => 'تم إرسال الطلب لجميع المناديب.']);
+        } elseif ($targetDriver !== 'default') {
+            // Send to specific driver
+            $driver = Driver::find($targetDriver);
+            if (!$driver || !$driver->telegram_chat_id) {
+                return response()->json(['message' => 'المندوب غير موجود أو لا يملك حساب تليجرام.'], 400);
+            }
+            $telegram->sendMessage($driver->telegram_chat_id, $messageText, $replyMarkup);
+            return response()->json(['message' => "تم إرسال الطلب إلى المندوب: {$driver->name}"]);
         } else {
-            // Send to primary
+            // Send to primary, wait 5 mins for backups
             $primaryDriver = Driver::where('is_primary', true)->where('is_active', true)->whereNotNull('telegram_chat_id')->first();
             
             if (!$primaryDriver) {
-                // No primary driver, send to backups immediately
+                // No primary driver, dispatch immediately to backups
                 AssignToBackupDrivers::dispatch($order);
                 return response()->json(['message' => 'لا يوجد مندوب أساسي مسجل، تم تحويل الطلب للمناديب الاحتياطيين.']);
             }
 
-            $address = $order->address;
-            $storeLocationUrl = "https://maps.google.com/?q=Lavender+Florist";
 
-            $minutes = $order->delivery_minutes ? $order->delivery_minutes . ' دقيقة' : 'غير محدد';
-            
-            $ownerName = $order->owner_name ?? $order->customer->name ?? 'غير محدد';
-            $messageText = "🚨 <b>طلب توصيل جديد!</b> 🚨\n\n";
-            $messageText .= "📦 <b>رقم الطلب:</b> {$order->order_number}\n";
-            $messageText .= "👤 <b>صاحب الطلب:</b> {$ownerName}\n";
-            $messageText .= "📍 <b>المدينة/الحي:</b> {$address->city} - {$address->street}\n";
-            $messageText .= "💸 <b>مبلغ التوصيل:</b> {$order->delivery_fee} ريال\n";
-            $messageText .= "⏱️ <b>المسافة تقريباً:</b> {$minutes}\n\n";
-
-            if ($order->address && $order->address->delivery_notes) {
-                $messageText .= "📝 <b>ملاحظات إضافية للتوصيل:</b>\n" . e($order->address->delivery_notes) . "\n\n";
-            }
-
-            $messageText .= "🏪 <b>نقطة الاستلام:</b> <a href=\"{$storeLocationUrl}\">موقع المتجر (لافندر فلوريست)</a>\n";
-
-            $replyMarkup = [
-                'inline_keyboard' => [
-                    [
-                        ['text' => '✅ قبول الطلب', 'callback_data' => "accept_order_{$order->id}"]
-                    ]
-                ]
-            ];
 
             $telegram->sendMessage($primaryDriver->telegram_chat_id, $messageText, $replyMarkup);
 

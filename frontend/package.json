@@ -12,6 +12,7 @@
   "dependencies": {
     "@react-google-maps/api": "^2.20.8",
     "axios": "^1.16.1",
+    "date-fns": "^4.4.0",
     "framer-motion": "^12.40.0",
     "lucide-react": "^1.17.0",
     "react": "^19.2.6",

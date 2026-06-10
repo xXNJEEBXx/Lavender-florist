@@ -45,13 +45,12 @@ class QueueController extends Controller
 
         $deliveryTimeAdded = 0;
         if ($deliveryType === 'local') {
-            $deliveryTimeAdded = $deliverySpeed === 'express' ? 60 : 240;
+            $deliveryTimeAdded = $deliverySpeed === 'express' ? 60 : 45;
         }
-
         $totalLeadMinutes = $totalQueueTimeMinutes + $prepMinutes + $deliveryTimeAdded;
-        $minReadyAt = Carbon::now()->addMinutes($totalLeadMinutes);
+        $minReadyAt = Carbon::now('Asia/Riyadh')->addMinutes($totalLeadMinutes);
 
-        $now = Carbon::now();
+        $now = Carbon::now('Asia/Riyadh');
         $dateStr = $now->format('Y-m-d');
         $dayOfWeek = $now->dayOfWeek;
 
@@ -69,8 +68,12 @@ class QueueController extends Controller
         if ($isClosed || !$wh || !$wh->open_time || !$wh->close_time) {
             $isAsapAvailable = false;
         } else {
-            $openTime = Carbon::parse($dateStr . ' ' . $wh->open_time);
-            $closeTime = Carbon::parse($dateStr . ' ' . $wh->close_time);
+            $openTime = Carbon::parse($dateStr . ' ' . $wh->open_time, 'Asia/Riyadh');
+            $closeTime = Carbon::parse($dateStr . ' ' . $wh->close_time, 'Asia/Riyadh');
+
+            if ($closeTime->lte($openTime)) {
+                $closeTime->addDay();
+            }
 
             if ($now->lt($openTime) || $minReadyAt->gt($closeTime)) {
                 $isAsapAvailable = false;
