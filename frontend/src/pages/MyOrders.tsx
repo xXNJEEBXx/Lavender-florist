@@ -63,8 +63,8 @@ export default function MyOrders() {
             </div>
             <h2 className="text-xl font-bold text-primary-900 mb-2">لا توجد طلبات بعد</h2>
             <p className="text-primary-600 mb-8 max-w-md mx-auto">لم تقم بإجراء أي طلبات حتى الآن. استكشف متجرنا واصنع لحظة لا تنسى لمن تحب!</p>
-            <Link to="/products" className="inline-flex px-8 py-3 bg-primary-800 text-white rounded-xl font-bold hover:bg-primary-900 transition-all shadow-lg shadow-primary-900/10">
-              تصفح المنتجات
+            <Link to="/" className="inline-flex px-8 py-3 bg-primary-800 text-white rounded-xl font-bold hover:bg-primary-900 transition-all shadow-lg shadow-primary-900/10">
+              تصفح التنسيقات
             </Link>
           </div>
         ) : (

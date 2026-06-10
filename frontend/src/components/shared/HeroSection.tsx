@@ -96,10 +96,10 @@ export default function HeroSection() {
               transition={{ duration: 0.6, delay: 0.5 }}
               className="flex flex-col sm:flex-row items-center gap-4 justify-center lg:justify-start"
             >
-              <Link to="/products">
-                <Button size="lg" icon={<ArrowLeft className="w-5 h-5" />}>
-                  تصفح المنتجات
-                </Button>
+              <Link to="/">
+                <button className="px-10 py-5 bg-white/10 backdrop-blur-md text-white border border-white/20 rounded-2xl font-bold text-lg hover:bg-white/20 transition-all shadow-lg shadow-white/5 transform hover:-translate-y-1 w-full sm:w-auto">
+                  تصفح التنسيقات
+                </button>
               </Link>
               <a
                 href="https://wa.me/message/2UZD32P2LOLCM1"

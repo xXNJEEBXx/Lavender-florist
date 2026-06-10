@@ -76,8 +76,8 @@ export default function ProductDetail() {
       <nav className="flex text-sm text-primary-500 mb-8 gap-2">
         <Link to="/" className="hover:text-primary-800">الرئيسية</Link>
         <span>/</span>
-        <Link to="/products" className="hover:text-primary-800">المنتجات</Link>
-        <span>/</span>
+        <Link to="/" className="hover:text-primary-800">المنتجات</Link>
+        <span className="text-primary-300">/</span>
         <span className="text-primary-900 font-medium">{product.name}</span>
       </nav>
 

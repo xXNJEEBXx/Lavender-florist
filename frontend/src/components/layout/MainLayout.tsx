@@ -21,7 +21,7 @@ export default function MainLayout() {
         </div>
         <nav className="hidden md:flex items-center gap-8 text-primary-900/80 font-medium">
           <Link to="/" className="hover:text-primary-600 transition-colors">الرئيسية</Link>
-          <Link to="/products" className="hover:text-primary-600 transition-colors">المنتجات</Link>
+          <Link to="/" className="hover:text-primary-600 transition-colors">المنتجات</Link>
           {!isLoading && isAuthenticated && (
             <Link to="/my-orders" className="hover:text-primary-600 transition-colors text-primary-950 font-bold">طلباتي</Link>
           )}
@@ -99,8 +99,8 @@ export default function MainLayout() {
           <div>
             <h3 className="text-white font-semibold mb-4">روابط سريعة</h3>
             <ul className="space-y-2 text-sm text-primary-300">
-              <li><a href="/products" className="hover:text-white transition-colors">باقات الورد</a></li>
-              <li><a href="/products" className="hover:text-white transition-colors">تنسيقات الهدايا</a></li>
+              <li><a href="/" className="hover:text-white transition-colors">باقات الورد</a></li>
+              <li><a href="/" className="hover:text-white transition-colors">تنسيقات الهدايا</a></li>
               <li><a href="/contact" className="hover:text-white transition-colors">الشروط والأحكام</a></li>
             </ul>
           </div>

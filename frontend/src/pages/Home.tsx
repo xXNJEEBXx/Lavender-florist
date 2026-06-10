@@ -194,12 +194,12 @@ export default function Home() {
           
           {products.length > 0 && (
             <div className="mt-16 text-center">
-              <Link 
-                to="/products"
+              <a 
+                href="#products"
                 className="inline-flex items-center justify-center px-8 py-4 border border-primary-200 text-primary-900 font-bold rounded-full hover:bg-primary-50 transition-colors"
               >
-                عرض جميع المجموعات
-              </Link>
+                المزيد من التنسيقات
+              </a>
             </div>
           )}
         </div>

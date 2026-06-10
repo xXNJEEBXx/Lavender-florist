@@ -126,8 +126,8 @@ export default function Cart() {
                 إتمام الطلب والدفع
               </button>
               
-              <Link to="/products" className="block text-center mt-4 text-sm text-primary-600 hover:text-primary-800 underline decoration-primary-200 underline-offset-4 transition-colors">
-                مواصلة التسوق
+              <Link to="/" className="block text-center mt-4 text-sm text-primary-600 hover:text-primary-800 underline decoration-primary-200 underline-offset-4 transition-colors">
+                متابعة التسوق
               </Link>
             </div>
           </div>
@@ -139,7 +139,7 @@ export default function Cart() {
           </div>
           <h2 className="text-2xl font-bold text-primary-900 mb-4">سلة المشتريات فارغة</h2>
           <p className="text-primary-500 mb-8 max-w-md mx-auto">يبدو أنك لم تضف أي منتجات بعد. تصفح مجموعتنا الجميلة واصنع باقتك الخاصة.</p>
-          <Link to="/products" className="inline-block px-8 py-3 bg-primary-800 text-white rounded-xl font-medium hover:bg-primary-900 transition-colors">
+          <Link to="/" className="inline-block px-8 py-3 bg-primary-800 text-white rounded-xl font-medium hover:bg-primary-900 transition-colors">
             تصفح المنتجات
           </Link>
         </div>
