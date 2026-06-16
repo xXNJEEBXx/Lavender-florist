@@ -61,20 +61,22 @@ export interface ProductComponent {
 export interface Product {
   id: number;
   name: string;
+  name_en: string | null;
   slug: string;
   description: string | null;
   short_description: string | null;
   price: number;
   compare_at_price: number | null;
   cost: number | null;
-  category: 'bouquets' | 'boxes' | 'vases' | 'baskets' | 'leis' | 'bridal' | 'gifts' | 'fresh-flowers' | 'add_ons' | 'cards';
+  category: string;
   occasions: ('graduation' | 'wedding' | 'love' | 'new-baby' | 'eid' | 'general' | 'all')[] | null;
   sku: string;
   stock_quantity: number;
+  calculated_stock: number;
   is_active: boolean;
   is_featured: boolean;
   allows_gift_message: boolean;
-  estimated_prep_time: number;
+  preparation_time_minutes: number;
   images: ProductImage[];
   components: ProductComponent[];
   primary_image_url: string | null;

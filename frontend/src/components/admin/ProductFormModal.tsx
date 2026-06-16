@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Upload, Image as ImageIcon, Trash2, Languages, Percent } from 'lucide-react';
 import type { Product } from '../../types';
 import { adminProductsApi, adminComponentsApi } from '../../services/api';
+import { occasions, categories as sharedCategories } from '../../data/placeholders';
 import Modal from '../ui/Modal';
 
 interface ProductFormModalProps {
@@ -21,6 +22,7 @@ export default function ProductFormModal({ isOpen, onClose, onSuccess, product }
   const [nameEn, setNameEn] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('bouquets');
+  const [selectedOccasions, setSelectedOccasions] = useState<string[]>([]);
   const [isActive, setIsActive] = useState(true);
   const [preparationTime, setPreparationTime] = useState('');
   
@@ -59,8 +61,9 @@ export default function ProductFormModal({ isOpen, onClose, onSuccess, product }
       setName(product.name);
       setNameEn(product.name_en || '');
       setDescription(product.description || '');
-      setCategory(product.category);
-      setIsActive(product.is_active);
+      setCategory(product.category || 'bouquets');
+      setSelectedOccasions(product.occasions || []);
+      setIsActive(product.is_active ?? true);
       setPreparationTime(product.preparation_time_minutes?.toString() || '');
       
       // Load pricing
@@ -104,6 +107,7 @@ export default function ProductFormModal({ isOpen, onClose, onSuccess, product }
       setNameEn('');
       setDescription('');
       setCategory('bouquets');
+      setSelectedOccasions([]);
       setIsActive(true);
       setPreparationTime('');
       setOriginalPrice('');
@@ -224,9 +228,13 @@ export default function ProductFormModal({ isOpen, onClose, onSuccess, product }
       }
       
       formData.append('category', category);
-      formData.append('is_active', isActive ? '1' : '0');
+      formData.append('is_active', String(isActive));
       if (preparationTime) formData.append('preparation_time_minutes', preparationTime);
       
+      selectedOccasions.forEach((occ, index) => {
+        formData.append(`occasions[${index}]`, occ);
+      });
+
       if (imageFiles.length > 0) {
         imageFiles.forEach(file => {
           formData.append('images[]', file);
@@ -409,12 +417,33 @@ export default function ProductFormModal({ isOpen, onClose, onSuccess, product }
                   onChange={e => setCategory(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl border border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all bg-white"
                 >
-                  <option value="bouquets">باقات ورد</option>
-                  <option value="gifts">هدايا وتغليف</option>
-                  <option value="vases">فازات</option>
-                  <option value="plants">نباتات</option>
-                  <option value="cards">بطاقات إهداء</option>
+                  {sharedCategories.map(cat => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
                 </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-primary-900 mb-2">المناسبات</label>
+                <div className="flex flex-wrap gap-2 p-3 border border-primary-200 rounded-xl bg-white">
+                  {occasions.filter(occ => occ.id !== 'all').map(occ => (
+                    <label key={occ.id} className="flex items-center gap-2 cursor-pointer bg-primary-50 px-3 py-1.5 rounded-lg border border-primary-100 hover:bg-primary-100 transition-colors">
+                      <input 
+                        type="checkbox"
+                        checked={selectedOccasions.includes(occ.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedOccasions([...selectedOccasions, occ.id]);
+                          } else {
+                            setSelectedOccasions(selectedOccasions.filter(id => id !== occ.id));
+                          }
+                        }}
+                        className="w-4 h-4 text-primary-600 rounded border-primary-300 focus:ring-primary-500"
+                      />
+                      <span className="text-sm font-medium text-primary-900">{occ.name}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
               
               <div>
@@ -543,8 +572,13 @@ export default function ProductFormModal({ isOpen, onClose, onSuccess, product }
                       className="px-3 py-2 rounded-lg border border-primary-200 focus:ring-2 focus:ring-primary-500 text-sm bg-white"
                     >
                       <option value="flower">ورد</option>
-                      <option value="packaging">تغليف</option>
-                      <option value="accessory">إكسسوار</option>
+                      <option value="greens">خضريات</option>
+                      <option value="container">أوعية</option>
+                      <option value="wrapping">تغليف</option>
+                      <option value="accessory">إضافات</option>
+                      <option value="food">أطعمة</option>
+                      <option value="filler">حشو</option>
+                      <option value="dried">مجففات</option>
                     </select>
                     <input 
                       type="number" 
