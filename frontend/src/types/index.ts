@@ -67,8 +67,8 @@ export interface Product {
   price: number;
   compare_at_price: number | null;
   cost: number | null;
-  category: string;
-  occasion: string | null;
+  category: 'bouquets' | 'boxes' | 'vases' | 'baskets' | 'leis' | 'bridal' | 'gifts' | 'fresh-flowers' | 'add_ons' | 'cards';
+  occasions: ('graduation' | 'wedding' | 'love' | 'new-baby' | 'eid' | 'general' | 'all')[] | null;
   sku: string;
   stock_quantity: number;
   is_active: boolean;
