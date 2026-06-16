@@ -11,7 +11,15 @@ Route::get('/storage/{folder}/{filename}', function ($folder, $filename) {
     if (!file_exists($path)) {
         abort(404);
     }
-    
+    $mimeType = mime_content_type($path);
+    return response()->file($path, ['Content-Type' => $mimeType]);
+})->where('filename', '.*');
+
+Route::get('/storage/{filename}', function ($filename) {
+    $path = storage_path('app/public/' . $filename);
+    if (!file_exists($path)) {
+        abort(404);
+    }
     $mimeType = mime_content_type($path);
     return response()->file($path, ['Content-Type' => $mimeType]);
 })->where('filename', '.*');
