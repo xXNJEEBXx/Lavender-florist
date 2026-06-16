@@ -3,7 +3,6 @@ import MainLayout from '@/components/layout/MainLayout';
 import Home from '@/pages/Home';
 import ProductDetail from '@/pages/ProductDetail';
 import Cart from '@/pages/Cart';
-import Login from '@/pages/Login';
 import AuthCallback from '@/pages/AuthCallback';
 import Checkout from '@/pages/Checkout';
 import OrderTracking from '@/pages/OrderTracking';
@@ -20,6 +19,7 @@ import DriversList from '@/pages/admin/DriversList';
 import AdminBreaks from '@/pages/admin/AdminBreaks';
 import AdminWorkingHours from '@/pages/admin/AdminWorkingHours';
 import AdminSettings from '@/pages/admin/AdminSettings';
+import AiSettings from '@/pages/admin/AiSettings';
 import AdminsList from '@/pages/admin/AdminsList';
 import CouponsList from '@/pages/admin/CouponsList';
 import Customers from '@/pages/admin/Customers';
@@ -38,7 +38,6 @@ function App() {
           <LoginModal />
           <Routes>
             {/* Auth Routes */}
-            <Route path="/login" element={<Login />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
             
             {/* Public Links */}
@@ -70,6 +69,7 @@ function App() {
               <Route path="breaks" element={<AdminBreaks />} />
               <Route path="working-hours" element={<AdminWorkingHours />} />
               <Route path="settings" element={<AdminSettings />} />
+              <Route path="ai-settings" element={<AiSettings />} />
               <Route path="admins" element={<AdminsList />} />
             </Route>
           </Routes>

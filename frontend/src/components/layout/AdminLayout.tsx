@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Outlet, Link } from 'react-router-dom';
 import { Menu } from 'lucide-react';
 import AdminSidebar from './AdminSidebar';
+import AiChatWidget from '../admin/AiChatWidget';
 
 export default function AdminLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -41,6 +42,9 @@ export default function AdminLayout() {
           <Outlet />
         </main>
       </div>
+      
+      {/* AI Assistant available only in Admin Layout */}
+      <AiChatWidget />
     </div>
   );
 }
