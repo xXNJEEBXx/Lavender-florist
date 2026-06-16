@@ -1,7 +1,6 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import MainLayout from './components/layout/MainLayout';
 import Home from './pages/Home';
-import ProductDetail from './pages/ProductDetail';
 import Cart from './pages/Cart';
 import AuthCallback from './pages/AuthCallback';
 import Checkout from './pages/Checkout';
@@ -29,6 +28,11 @@ import { CartProvider } from './store/CartContext';
 import LoginModal from './components/ui/LoginModal';
 import { Toaster } from 'react-hot-toast';
 
+const ProductRedirect = () => {
+  const { slug } = useParams();
+  return <Navigate to={`/?product=${slug}`} replace />;
+};
+
 function App() {
   return (
     <AuthProvider>
@@ -48,7 +52,7 @@ function App() {
             {/* Customer Protected Routes (Basic) */}
             <Route element={<MainLayout />}>
               <Route path="/" element={<Home />} />
-              <Route path="/products/:slug" element={<ProductDetail />} />
+              <Route path="/products/:slug" element={<ProductRedirect />} />
               <Route path="/cart" element={<Cart />} />
               <Route path="/checkout" element={<Checkout />} />
               <Route path="/orders/:orderNumber" element={<OrderTracking />} />

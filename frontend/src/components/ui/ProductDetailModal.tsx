@@ -87,10 +87,10 @@ export default function ProductDetailModal({ isOpen, onClose, slug }: ProductDet
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="3xl">
     <div className="py-4">
-      <div className="flex flex-col md:flex-row gap-12 lg:gap-20">
+      <div className="flex flex-col md:flex-row gap-6 md:gap-12 lg:gap-20">
         {/* Images */}
         <div className="md:w-1/2">
-          <div className="aspect-square md:aspect-[4/5] max-w-sm md:max-w-none mx-auto bg-primary-50 rounded-3xl overflow-hidden relative border border-primary-100 mb-4">
+          <div className="aspect-[4/5] sm:aspect-square md:aspect-[4/5] max-w-[200px] sm:max-w-sm md:max-w-none mx-auto bg-primary-50 rounded-2xl md:rounded-3xl overflow-hidden relative border border-primary-100 mb-4 shadow-sm">
             <AnimatePresence mode="wait">
               <motion.img 
                 key={activeImage || 'placeholder'}
@@ -142,26 +142,26 @@ export default function ProductDetailModal({ isOpen, onClose, slug }: ProductDet
         </div>
 
         {/* Product Info */}
-        <div className="md:w-1/2 flex flex-col">
-          <div className="mb-2 text-sm text-accent-700 font-medium">{displayCategory}</div>
-          <h1 className="text-2xl sm:text-4xl font-serif font-bold text-primary-950 mb-4 leading-tight">{product.name}</h1>
-          <div className="flex items-center gap-4 mb-8">
-            <span className="text-2xl sm:text-3xl font-bold text-primary-800">{product.price} ر.س</span>
+        <div className="md:w-1/2 flex flex-col pt-2 sm:pt-0">
+          <div className="mb-1 sm:mb-2 text-xs sm:text-sm text-accent-700 font-medium">{displayCategory}</div>
+          <h1 className="text-base sm:text-4xl font-serif font-bold text-primary-950 mb-3 sm:mb-4 leading-tight">{product.name}</h1>
+          <div className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-8">
+            <span className="text-lg sm:text-3xl font-bold text-primary-800">{product.price} ر.س</span>
             {hasDiscount && (
-              <span className="text-lg sm:text-xl text-primary-400 line-through decoration-primary-300">
+              <span className="text-sm sm:text-xl text-primary-400 line-through decoration-primary-300">
                 {product.compare_at_price} ر.س
               </span>
             )}
           </div>
           
-          <p className="text-primary-700 leading-relaxed mb-4 whitespace-pre-wrap">
+          <p className="text-xs sm:text-base text-primary-700 leading-relaxed mb-4 whitespace-pre-wrap">
             {product.description || 'تنسيق فاخر صُمم بعناية ليليق بمناسباتكم السعيدة.'}
           </p>
 
           {product.preparation_time_minutes && (
-            <div className="flex flex-col gap-1 text-primary-800 bg-primary-50 p-4 rounded-xl mb-8 w-fit">
-              <div className="flex items-center gap-3">
-                <svg className="text-accent-500" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <div className="flex flex-col gap-1 text-primary-800 bg-primary-50 p-3 sm:p-4 rounded-xl mb-6 sm:mb-8 w-fit text-sm sm:text-base">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <svg className="text-accent-500 w-4 h-4 sm:w-5 sm:h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                 <span>وقت التجهيز الأساسي: <span className="font-bold">{product.preparation_time_minutes} دقيقة</span></span>
               </div>
               {queueTimeMinutes > 0 && (
@@ -192,7 +192,7 @@ export default function ProductDetailModal({ isOpen, onClose, slug }: ProductDet
               </div>
 
               {gifts.map((gift, index) => (
-                <div key={gift.id} className="bg-primary-50/50 p-4 rounded-2xl border border-primary-100 relative">
+                <div key={gift.id} className="bg-primary-50/50 p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-primary-100 relative">
                   {gifts.length > 1 && (
                     <button 
                       onClick={() => setGifts(gifts.filter(g => g.id !== gift.id))}
@@ -215,7 +215,7 @@ export default function ProductDetailModal({ isOpen, onClose, slug }: ProductDet
                       newGifts[index].message = e.target.value;
                       setGifts(newGifts);
                     }}
-                    className="w-full px-4 py-3 rounded-xl border border-primary-200 focus:ring-primary-500 outline-none resize-none h-20 mb-4 text-sm"
+                    className="w-full px-3 py-2 sm:px-4 sm:py-3 rounded-lg sm:rounded-xl border border-primary-200 focus:ring-primary-500 outline-none resize-none h-16 sm:h-20 mb-3 sm:mb-4 text-xs sm:text-sm"
                   />
                   
                   {cards.length > 0 && (
@@ -228,10 +228,10 @@ export default function ProductDetailModal({ isOpen, onClose, slug }: ProductDet
                             newGifts[index].card = null;
                             setGifts(newGifts);
                           }}
-                          className={`shrink-0 min-w-[80px] h-[100px] rounded-xl border-2 flex flex-col items-center justify-center gap-1 transition-colors ${!gift.card ? 'border-primary-500 bg-primary-50' : 'border-primary-100 bg-white hover:border-primary-300'}`}
+                          className={`shrink-0 min-w-[70px] h-[80px] sm:min-w-[80px] sm:h-[100px] rounded-lg sm:rounded-xl border-2 flex flex-col items-center justify-center gap-1 transition-colors ${!gift.card ? 'border-primary-500 bg-primary-50' : 'border-primary-100 bg-white hover:border-primary-300'}`}
                         >
-                          <span className="text-primary-400 text-2xl">🚫</span>
-                          <span className="text-xs font-medium text-primary-700">بدون بطاقة</span>
+                          <span className="text-primary-400 text-xl sm:text-2xl">🚫</span>
+                          <span className="text-[10px] sm:text-xs font-medium text-primary-700">بدون بطاقة</span>
                         </button>
                         
                         {cards.map(card => {
@@ -243,7 +243,7 @@ export default function ProductDetailModal({ isOpen, onClose, slug }: ProductDet
                                 newGifts[index].card = card;
                                 setGifts(newGifts);
                               }}
-                              className={`shrink-0 min-w-[80px] h-[100px] rounded-xl border-2 relative overflow-hidden transition-colors ${gift.card?.id === card.id ? 'border-primary-500 shadow-md' : 'border-transparent hover:border-primary-300'}`}
+                              className={`shrink-0 min-w-[70px] h-[80px] sm:min-w-[80px] sm:h-[100px] rounded-lg sm:rounded-xl border-2 relative overflow-hidden transition-colors ${gift.card?.id === card.id ? 'border-primary-500 shadow-md' : 'border-transparent hover:border-primary-300'}`}
                             >
                               {card.primary_image_url ? (
                                 <img src={`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}${card.primary_image_url}`} alt={card.name} className="w-full h-full object-cover" />
