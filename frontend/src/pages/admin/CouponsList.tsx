@@ -148,7 +148,7 @@ export default function CouponsList() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <h1 className="text-2xl font-bold text-gray-900">إدارة الكوبونات</h1>
         <button
           onClick={() => handleOpenModal()}
@@ -381,3 +381,4 @@ export default function CouponsList() {
     </div>
   );
 }
+

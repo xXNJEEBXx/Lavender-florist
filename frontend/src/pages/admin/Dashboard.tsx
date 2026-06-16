@@ -146,7 +146,7 @@ export default function Dashboard() {
           transition={{ delay: 0.3 }}
           className="bg-white p-6 rounded-2xl border border-primary-100 shadow-sm flex flex-col"
         >
-          <div className="flex justify-between items-center mb-6">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
             <h3 className="text-lg font-bold text-primary-900 font-serif">حالة المخزون (تنبيهات)</h3>
           </div>
           
@@ -281,3 +281,4 @@ export default function Dashboard() {
     </div>
   );
 }
+

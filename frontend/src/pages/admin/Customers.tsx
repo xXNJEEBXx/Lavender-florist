@@ -46,7 +46,7 @@ export default function Customers() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <h1 className="text-2xl font-bold text-primary-950 font-serif flex items-center gap-2">
           <Users className="text-primary-500" />
           إدارة العملاء
@@ -176,3 +176,4 @@ export default function Customers() {
     </div>
   );
 }
+

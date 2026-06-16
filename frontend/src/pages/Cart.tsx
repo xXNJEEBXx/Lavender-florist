@@ -55,13 +55,13 @@ export default function Cart() {
                 key={item.cartItemId} 
                 className="flex flex-col bg-white p-4 rounded-2xl border border-primary-100 shadow-sm"
               >
-                <div className="flex gap-6">
+                <div className="flex gap-4 sm:gap-6">
                   {/* Image */}
                   {item.product.primary_image ? (
-                    <img src={`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}${item.product.primary_image.image_url}`} alt={item.product.name} className="w-24 h-24 bg-primary-50 rounded-xl object-cover flex-shrink-0" />
+                    <img src={`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}${item.product.primary_image.image_url}`} alt={item.product.name} className="w-20 h-20 sm:w-24 sm:h-24 bg-primary-50 rounded-xl object-cover flex-shrink-0" />
                   ) : (
-                    <div className="w-24 h-24 bg-primary-50 rounded-xl flex items-center justify-center flex-shrink-0 border border-primary-100">
-                      <svg className="text-primary-300" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m8 14 4-4 4 4"/></svg>
+                    <div className="w-20 h-20 sm:w-24 sm:h-24 bg-primary-50 rounded-xl flex items-center justify-center flex-shrink-0 border border-primary-100">
+                      <svg className="text-primary-300 w-6 h-6 sm:w-8 sm:h-8" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m8 14 4-4 4 4"/></svg>
                     </div>
                   )}
                   
@@ -78,10 +78,10 @@ export default function Cart() {
                       </button>
                     </div>
                     
-                    <div className="flex justify-between items-center mt-4">
+                    <div className="flex flex-col sm:flex-row justify-between sm:items-center mt-4 gap-4 sm:gap-0">
                       <div className="text-lg font-bold text-accent-700">{item.product.price} ر.س</div>
                       
-                      <div className="flex items-center bg-primary-50 rounded-lg border border-primary-100 overflow-hidden">
+                      <div className="flex items-center bg-primary-50 rounded-lg border border-primary-100 overflow-hidden w-fit">
                         <button onClick={() => updateQuantity(item.cartItemId, item.quantity - 1)} className="w-8 h-8 flex items-center justify-center text-primary-600 hover:bg-primary-100 transition-colors">-</button>
                         <span className="w-8 text-center text-sm font-medium">{item.quantity}</span>
                         <button 

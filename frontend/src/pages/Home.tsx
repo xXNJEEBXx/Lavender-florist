@@ -65,7 +65,7 @@ export default function Home() {
   return (
     <div>
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-primary-50 via-primary-100 to-accent-50 py-20 lg:py-32">
+      <section className="relative overflow-hidden bg-gradient-to-br from-primary-50 via-primary-100 to-accent-50 py-12 lg:py-32">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <video 
             autoPlay 
@@ -80,18 +80,18 @@ export default function Home() {
           <div className="absolute inset-0 bg-gradient-to-t from-primary-50 via-transparent to-transparent"></div>
         </div>
         
-        <div className="max-w-7xl mx-auto px-4 lg:px-8 relative z-10 flex flex-col items-center justify-center text-center h-[calc(100vh-80px)] min-h-[600px]">
+        <div className="max-w-7xl mx-auto px-4 lg:px-8 relative z-10 flex flex-col items-center justify-center text-center h-[calc(100vh-80px)] min-h-[500px] md:min-h-[600px]">
           <motion.div 
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, ease: "easeOut" }}
-            className="flex flex-col items-center bg-white/40 backdrop-blur-md p-10 md:p-16 rounded-[3rem] border border-white/40 shadow-xl"
+            className="flex flex-col items-center bg-white/40 backdrop-blur-md p-6 sm:p-10 md:p-16 rounded-3xl sm:rounded-[3rem] border border-white/40 shadow-xl w-full sm:w-auto"
           >
             <motion.h1 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 1, delay: 0.3 }}
-              className="text-6xl md:text-8xl lg:text-9xl font-bold text-primary-900 font-serif mb-6 leading-tight drop-shadow-lg tracking-tight"
+              className="text-4xl sm:text-6xl md:text-8xl lg:text-9xl font-bold text-primary-900 font-serif mb-4 sm:mb-6 leading-tight drop-shadow-lg tracking-tight"
             >
               Lavender Florist
             </motion.h1>
@@ -100,7 +100,7 @@ export default function Home() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 1, delay: 0.5 }}
-              className="text-lg md:text-2xl text-primary-800 max-w-2xl mb-12 leading-relaxed font-medium"
+              className="text-base sm:text-lg md:text-2xl text-primary-800 max-w-2xl mb-8 sm:mb-12 leading-relaxed font-medium"
             >
               أرقى التنسيقات من الورود الطبيعية والهدايا الفاخرة التي تصنع لحظات لا تُنسى في كل مناسباتك.
             </motion.p>
@@ -116,13 +116,13 @@ export default function Home() {
                   setSearchParams({});
                   document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' });
                 }} 
-                className="px-10 py-5 bg-white text-primary-950 rounded-2xl font-bold text-lg hover:bg-primary-50 transition-all shadow-xl shadow-white/10 transform hover:-translate-y-1"
+                className="px-6 sm:px-10 py-4 sm:py-5 bg-white text-primary-950 rounded-xl sm:rounded-2xl font-bold text-base sm:text-lg hover:bg-primary-50 transition-all shadow-xl shadow-white/10 transform hover:-translate-y-1"
               >
                 تسوق الآن
               </button>
               <button 
                 onClick={() => handleCategorySelect('bouquets')} 
-                className="px-10 py-5 bg-primary-900/60 backdrop-blur-md text-white border border-white/30 rounded-2xl font-bold text-lg hover:bg-primary-800/80 transition-all shadow-lg transform hover:-translate-y-1"
+                className="px-6 sm:px-10 py-4 sm:py-5 bg-primary-900/60 backdrop-blur-md text-white border border-white/30 rounded-xl sm:rounded-2xl font-bold text-base sm:text-lg hover:bg-primary-800/80 transition-all shadow-lg transform hover:-translate-y-1"
               >
                 تصفح التنسيقات
               </button>
@@ -132,7 +132,7 @@ export default function Home() {
       </section>
 
       {/* Real Products Section */}
-      <section id="products" className="py-24 bg-white relative">
+      <section id="products" className="py-16 md:py-24 bg-white relative">
         <div className="max-w-7xl mx-auto px-4 lg:px-8">
           <div className="flex flex-col items-center mb-16 text-center">
             <motion.span 
@@ -212,7 +212,7 @@ export default function Home() {
           </div>
 
           {isLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-8">
               {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
                 <div key={i} className="animate-pulse">
                   <div className="aspect-[4/5] bg-primary-100 rounded-2xl mb-4 border border-primary-50"></div>
@@ -234,7 +234,7 @@ export default function Home() {
               </button>
             </div>
           ) : (
-            <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-12">
+            <motion.div layout className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-x-8 sm:gap-y-12">
               <AnimatePresence>
                 {displayedProducts.map((product, index) => (
                   <motion.div

@@ -135,85 +135,87 @@ export default function AdminsList() {
               <p className="text-lg">لم يتم العثور على أي مشرفين</p>
             </div>
           ) : (
-            <table className="w-full text-right border-collapse">
-              <thead>
-                <tr className="bg-primary-50/50 border-b border-primary-100">
-                  <th className="px-6 py-4 text-sm font-bold text-primary-900">المشرف</th>
-                  <th className="px-6 py-4 text-sm font-bold text-primary-900">معلومات الاتصال</th>
-                  <th className="px-6 py-4 text-sm font-bold text-primary-900">الحالة</th>
-                  <th className="px-6 py-4 text-sm font-bold text-primary-900 w-32">الإجراءات</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-primary-100">
-                <AnimatePresence>
-                  {filteredAdmins.map((admin) => (
-                    <motion.tr
-                      key={admin.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.95 }}
-                      className="hover:bg-primary-50/30 transition-colors group"
-                    >
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-primary-100 flex items-center justify-center text-primary-600 shrink-0">
-                            <Shield className="w-5 h-5" />
-                          </div>
-                          <div>
-                            <div className="font-bold text-primary-900">{admin.name}</div>
-                            <div className="text-xs text-primary-500">ID: #{admin.id}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="space-y-1">
-                          {admin.phone && (
-                            <div className="flex items-center gap-2 text-sm text-primary-600">
-                              <Phone className="w-4 h-4" />
-                              <span dir="ltr">{admin.phone}</span>
+            <div className="overflow-x-auto">
+              <table className="w-full text-right border-collapse">
+                <thead>
+                  <tr className="bg-primary-50/50 border-y border-primary-100 whitespace-nowrap">
+                    <th className="px-6 py-4 text-sm font-bold text-primary-900">المشرف</th>
+                    <th className="px-6 py-4 text-sm font-bold text-primary-900">معلومات الاتصال</th>
+                    <th className="px-6 py-4 text-sm font-bold text-primary-900">الحالة</th>
+                    <th className="px-6 py-4 text-sm font-bold text-primary-900 w-32">الإجراءات</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-primary-100">
+                  <AnimatePresence>
+                    {filteredAdmins.map((admin) => (
+                      <motion.tr
+                        key={admin.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        className="hover:bg-primary-50/30 transition-colors group"
+                      >
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-primary-100 flex items-center justify-center text-primary-600 shrink-0">
+                              <Shield className="w-5 h-5" />
                             </div>
-                          )}
-                          {admin.email && (
-                            <div className="flex items-center gap-2 text-sm text-primary-600">
-                              <Mail className="w-4 h-4" />
-                              <span dir="ltr">{admin.email}</span>
+                            <div>
+                              <div className="font-bold text-primary-900">{admin.name}</div>
+                              <div className="text-xs text-primary-500">ID: #{admin.id}</div>
                             </div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
-                          admin.is_active
-                            ? 'bg-emerald-100 text-emerald-700'
-                            : 'bg-rose-100 text-rose-700'
-                        }`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${admin.is_active ? 'bg-emerald-500' : 'bg-rose-500'}`} />
-                          {admin.is_active ? 'نشط' : 'غير نشط'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button
-                            onClick={() => handleEditAdmin(admin)}
-                            className="p-2 text-primary-400 hover:text-sky-600 hover:bg-sky-50 rounded-lg transition-colors"
-                            title="تعديل"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteAdmin(admin.id)}
-                            className="p-2 text-primary-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-                            title="حذف"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </motion.tr>
-                  ))}
-                </AnimatePresence>
-              </tbody>
-            </table>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="space-y-1">
+                            {admin.phone && (
+                              <div className="flex items-center gap-2 text-sm text-primary-600">
+                                <Phone className="w-4 h-4" />
+                                <span dir="ltr">{admin.phone}</span>
+                              </div>
+                            )}
+                            {admin.email && (
+                              <div className="flex items-center gap-2 text-sm text-primary-600">
+                                <Mail className="w-4 h-4" />
+                                <span dir="ltr">{admin.email}</span>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
+                            admin.is_active
+                              ? 'bg-emerald-100 text-emerald-700'
+                              : 'bg-rose-100 text-rose-700'
+                          }`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${admin.is_active ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                            {admin.is_active ? 'نشط' : 'غير نشط'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={() => handleEditAdmin(admin)}
+                              className="p-2 text-primary-400 hover:text-sky-600 hover:bg-sky-50 rounded-lg transition-colors"
+                              title="تعديل"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteAdmin(admin.id)}
+                              className="p-2 text-primary-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                              title="حذف"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </motion.tr>
+                    ))}
+                  </AnimatePresence>
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       </div>

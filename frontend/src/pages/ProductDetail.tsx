@@ -51,7 +51,7 @@ export default function ProductDetail() {
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-12 animate-pulse flex flex-col md:flex-row gap-12">
-        <div className="md:w-1/2 aspect-[4/5] bg-primary-100 rounded-3xl"></div>
+        <div className="md:w-1/2 aspect-square md:aspect-[4/5] max-w-sm md:max-w-none w-full mx-auto bg-primary-100 rounded-3xl"></div>
         <div className="md:w-1/2 py-8">
           <div className="h-10 bg-primary-100 rounded w-3/4 mb-4"></div>
           <div className="h-8 bg-primary-100 rounded w-1/4 mb-8"></div>
@@ -88,7 +88,7 @@ export default function ProductDetail() {
       <div className="flex flex-col md:flex-row gap-12 lg:gap-20">
         {/* Images */}
         <div className="md:w-1/2">
-          <div className="aspect-[4/5] bg-primary-50 rounded-3xl overflow-hidden relative border border-primary-100 mb-4">
+          <div className="aspect-square md:aspect-[4/5] max-w-sm md:max-w-none mx-auto bg-primary-50 rounded-3xl overflow-hidden relative border border-primary-100 mb-4">
             <AnimatePresence mode="wait">
               <motion.img 
                 key={activeImage || 'placeholder'}
@@ -215,14 +215,14 @@ export default function ProductDetail() {
                   
                   <div>
                     <h4 className="text-sm font-medium text-primary-700 mb-3">اختر شكل البطاقة</h4>
-                    <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                    <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide snap-x snap-mandatory">
                       <button 
                         onClick={() => {
                           const newGifts = [...gifts];
                           newGifts[index].card = null;
                           setGifts(newGifts);
                         }}
-                        className={`shrink-0 min-w-[80px] h-[100px] rounded-xl border-2 flex flex-col items-center justify-center gap-1 transition-colors ${!gift.card ? 'border-primary-500 bg-primary-50' : 'border-primary-100 bg-white hover:border-primary-300'}`}
+                        className={`shrink-0 min-w-[80px] h-[100px] rounded-xl border-2 flex flex-col items-center justify-center gap-1 transition-colors snap-start ${!gift.card ? 'border-primary-500 bg-primary-50' : 'border-primary-100 bg-white hover:border-primary-300'}`}
                       >
                         <span className="text-primary-400 text-2xl">📄</span>
                         <span className="text-xs font-medium text-primary-700">ورقة بيضاء</span>
@@ -238,7 +238,7 @@ export default function ProductDetail() {
                               newGifts[index].card = card;
                               setGifts(newGifts);
                             }}
-                            className={`shrink-0 min-w-[80px] h-[100px] rounded-xl border-2 relative overflow-hidden transition-colors ${gift.card?.id === card.id ? 'border-primary-500 shadow-md' : 'border-transparent hover:border-primary-300'}`}
+                            className={`shrink-0 min-w-[80px] h-[100px] rounded-xl border-2 relative overflow-hidden transition-colors snap-start ${gift.card?.id === card.id ? 'border-primary-500 shadow-md' : 'border-transparent hover:border-primary-300'}`}
                           >
                             {imgUrl ? (
                               <img src={imgUrl} alt={card.name} className="w-full h-full object-cover" />
@@ -261,7 +261,7 @@ export default function ProductDetail() {
           <hr className="border-primary-100 mb-8" />
 
           {/* Add to Cart Actions */}
-          <div className="flex gap-4 mb-8">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-8">
             <div className="flex items-center bg-primary-50 rounded-xl border border-primary-200 overflow-hidden">
               <button 
                 onClick={() => setQuantity(Math.max(1, quantity - 1))}
@@ -310,7 +310,7 @@ export default function ProductDetail() {
                   navigate('/cart');
                 }, 400);
               }}
-              className={`flex-1 rounded-xl font-semibold text-lg flex items-center justify-center gap-2 transition-colors shadow-lg ${product.is_in_stock && getAvailableStock(product) > 0 ? 'bg-primary-800 text-white hover:bg-primary-900 shadow-primary-900/10' : 'bg-gray-200 text-gray-500 shadow-none cursor-not-allowed'}`}
+              className={`flex-1 rounded-xl font-semibold text-base sm:text-lg py-4 sm:py-0 flex items-center justify-center gap-2 transition-colors shadow-lg ${product.is_in_stock && getAvailableStock(product) > 0 ? 'bg-primary-800 text-white hover:bg-primary-900 shadow-primary-900/10' : 'bg-gray-200 text-gray-500 shadow-none cursor-not-allowed'}`}
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
               {isAdding ? 'تمت الإضافة ✔️' : product.is_in_stock && getAvailableStock(product) > 0 ? 'إضافة للسلة' : 'تجاوزت الكمية المتوفرة'}

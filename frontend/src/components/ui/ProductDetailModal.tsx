@@ -60,7 +60,7 @@ export default function ProductDetailModal({ isOpen, onClose, slug }: ProductDet
     return (
       <Modal isOpen={isOpen} onClose={onClose} size="3xl">
         <div className="max-w-7xl mx-auto px-4 py-12 animate-pulse flex flex-col md:flex-row gap-12">
-          <div className="md:w-1/2 aspect-[4/5] bg-primary-100 rounded-3xl"></div>
+          <div className="md:w-1/2 aspect-square md:aspect-[4/5] max-w-sm md:max-w-none mx-auto w-full bg-primary-100 rounded-3xl"></div>
           <div className="md:w-1/2 py-8">
             <div className="h-10 bg-primary-100 rounded w-3/4 mb-4"></div>
             <div className="h-8 bg-primary-100 rounded w-1/4 mb-8"></div>
@@ -90,7 +90,7 @@ export default function ProductDetailModal({ isOpen, onClose, slug }: ProductDet
       <div className="flex flex-col md:flex-row gap-12 lg:gap-20">
         {/* Images */}
         <div className="md:w-1/2">
-          <div className="aspect-[4/5] bg-primary-50 rounded-3xl overflow-hidden relative border border-primary-100 mb-4">
+          <div className="aspect-square md:aspect-[4/5] max-w-sm md:max-w-none mx-auto bg-primary-50 rounded-3xl overflow-hidden relative border border-primary-100 mb-4">
             <AnimatePresence mode="wait">
               <motion.img 
                 key={activeImage || 'placeholder'}
@@ -144,11 +144,11 @@ export default function ProductDetailModal({ isOpen, onClose, slug }: ProductDet
         {/* Product Info */}
         <div className="md:w-1/2 flex flex-col">
           <div className="mb-2 text-sm text-accent-700 font-medium">{displayCategory}</div>
-          <h1 className="text-4xl font-serif font-bold text-primary-950 mb-4 leading-tight">{product.name}</h1>
+          <h1 className="text-2xl sm:text-4xl font-serif font-bold text-primary-950 mb-4 leading-tight">{product.name}</h1>
           <div className="flex items-center gap-4 mb-8">
-            <span className="text-3xl font-bold text-primary-800">{product.price} ر.س</span>
+            <span className="text-2xl sm:text-3xl font-bold text-primary-800">{product.price} ر.س</span>
             {hasDiscount && (
-              <span className="text-xl text-primary-400 line-through decoration-primary-300">
+              <span className="text-lg sm:text-xl text-primary-400 line-through decoration-primary-300">
                 {product.compare_at_price} ر.س
               </span>
             )}

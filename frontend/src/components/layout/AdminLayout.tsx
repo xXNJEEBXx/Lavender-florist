@@ -5,15 +5,23 @@ import AdminSidebar from './AdminSidebar';
 import AiChatWidget from '../admin/AiChatWidget';
 
 export default function AdminLayout() {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth >= 1024);
 
   return (
     <div className="min-h-screen bg-primary-50/30 flex dir-rtl overflow-x-hidden">
+      {/* Mobile Backdrop */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 lg:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar - fixed width */}
-      <AdminSidebar isOpen={isSidebarOpen} />
+      <AdminSidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
       
       {/* Main Content - Takes remaining space with padding for sidebar */}
-      <div className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ${isSidebarOpen ? 'lg:mr-64 mr-0' : 'mr-0'}`}>
+      <div className={`flex-1 flex flex-col min-w-0 min-h-screen transition-all duration-300 ${isSidebarOpen ? 'lg:mr-64 mr-0' : 'mr-0'}`}>
         {/* Top Header */}
         <header className="h-20 bg-white border-b border-primary-100 px-4 md:px-8 flex items-center justify-between sticky top-0 z-30">
           <div className="flex items-center gap-4">
@@ -38,7 +46,7 @@ export default function AdminLayout() {
         </header>
         
         {/* Page Content */}
-        <main className="flex-1 p-8">
+        <main className="flex-1 p-4 sm:p-8 w-full max-w-full">
           <Outlet />
         </main>
       </div>

@@ -19,9 +19,10 @@ import {
 
 interface AdminSidebarProps {
   isOpen?: boolean;
+  setIsOpen?: (isOpen: boolean) => void;
 }
 
-export default function AdminSidebar({ isOpen = true }: AdminSidebarProps) {
+export default function AdminSidebar({ isOpen = true, setIsOpen }: AdminSidebarProps) {
   const menuItems = [
     { name: 'الصفحة الرئيسية', path: '/', icon: <Store size={20} /> },
     { name: 'لوحة التحكم', path: '/admin', icon: <LayoutDashboard size={20} /> },
@@ -36,6 +37,12 @@ export default function AdminSidebar({ isOpen = true }: AdminSidebarProps) {
     { name: 'المساعد الذكي', path: '/admin/ai-settings', icon: <Bot size={20} /> },
     { name: 'الإعدادات', path: '/admin/settings', icon: <Settings size={20} /> },
   ];
+
+  const handleLinkClick = () => {
+    if (window.innerWidth < 1024 && setIsOpen) {
+      setIsOpen(false);
+    }
+  };
 
   return (
     <div className={`w-64 h-screen bg-white border-l border-primary-100 flex flex-col fixed right-0 top-0 z-40 transition-transform duration-300 ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
@@ -56,6 +63,7 @@ export default function AdminSidebar({ isOpen = true }: AdminSidebarProps) {
               key={item.path}
               to={item.path}
               end={item.path === '/admin'}
+              onClick={handleLinkClick}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
                   isActive 
@@ -68,11 +76,11 @@ export default function AdminSidebar({ isOpen = true }: AdminSidebarProps) {
               {item.name}
             </NavLink>
           ))}
-            <NavLink to="/admin/working-hours" className={({isActive}) => `flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${isActive ? 'bg-primary-50 text-primary-700 font-bold' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
+            <NavLink onClick={handleLinkClick} to="/admin/working-hours" className={({isActive}) => `flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${isActive ? 'bg-primary-50 text-primary-700 font-bold' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
               <Clock className="w-5 h-5" />
               <span>أوقات العمل</span>
             </NavLink>
-            <NavLink to="/admin/breaks" className={({isActive}) => `flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${isActive ? 'bg-primary-50 text-primary-700 font-bold' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
+            <NavLink onClick={handleLinkClick} to="/admin/breaks" className={({isActive}) => `flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${isActive ? 'bg-primary-50 text-primary-700 font-bold' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
               <CalendarOff className="w-5 h-5" />
               <span>إجازات المشرف</span>
             </NavLink>
