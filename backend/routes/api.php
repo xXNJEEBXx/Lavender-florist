@@ -6,6 +6,10 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ManualOrderController;
 
 // Public Routes
+Route::get('/fix-storage', function () {
+    \Illuminate\Support\Facades\Artisan::call('storage:link');
+    return \Illuminate\Support\Facades\Artisan::output();
+});
 Route::prefix('auth')->group(function () {
     Route::post('/send-otp', [AuthController::class, 'sendOtp']);
     Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
