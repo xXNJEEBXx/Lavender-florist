@@ -45,7 +45,7 @@ export default function MainLayout() {
           ) : isAuthenticated ? (
             <div className="relative group">
               <Link 
-                to={user?.role === 'admin' ? '/admin' : '/profile'}
+                to={user?.role === 'admin' ? '/admin' : '/my-orders'}
                 className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-800 font-bold cursor-pointer transition-colors border border-primary-200"
               >
                 {user?.name?.charAt(0) || 'U'}
@@ -53,9 +53,11 @@ export default function MainLayout() {
               
               {/* Simple Dropdown on Hover */}
               <div className="absolute left-0 mt-2 w-48 bg-white border border-primary-100 rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 overflow-hidden">
-                <Link to={user?.role === 'admin' ? '/admin' : '/profile'} className="block px-4 py-3 text-sm text-primary-800 hover:bg-primary-50">
-                  {user?.role === 'admin' ? 'لوحة التحكم' : 'حسابي'}
-                </Link>
+                {user?.role === 'admin' && (
+                  <Link to="/admin" className="block px-4 py-3 text-sm text-primary-800 hover:bg-primary-50">
+                    لوحة التحكم
+                  </Link>
+                )}
                 <Link to="/my-orders" className="block px-4 py-3 text-sm text-primary-800 hover:bg-primary-50">
                   طلباتي
                 </Link>

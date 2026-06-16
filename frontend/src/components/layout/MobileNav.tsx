@@ -14,7 +14,7 @@ export default function MobileNav() {
     { path: '/#products', icon: Grid3X3, label: 'المنتجات' },
     { path: '/cart', icon: ShoppingBag, label: 'السلة', showBadge: true },
     { path: '/contact', icon: MessageCircle, label: 'تواصل' },
-    { path: isAuthenticated ? '/my-orders' : '#login', icon: User, label: 'حسابي' },
+    { path: isAuthenticated ? '/my-orders' : '#login', icon: User, label: 'طلباتي' },
   ];
 
   const isActive = (path: string) => {
