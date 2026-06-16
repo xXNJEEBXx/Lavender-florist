@@ -88,8 +88,16 @@ export default function ManualOrder() {
   useEffect(() => {
     adminProductsApi.getAll().then(res => setProducts(res.data || res));
     adminSettingsApi.getWorkingHours().then(res => setWorkingHours(res.data || [])).catch(() => {});
-    storeApi.getAvailableSlots(45, 'local', 'standard').then(res => setSlotsData(res));
   }, []);
+
+  const cartPrepTime = items.reduce((sum, item) => {
+    const p = products.find(prod => prod.id === parseInt(item.product_id));
+    return sum + (item.quantity * (p?.preparation_time_minutes || 0));
+  }, 0);
+
+  useEffect(() => {
+    storeApi.getAvailableSlots(cartPrepTime || 45, deliveryType, deliverySpeed).then(res => setSlotsData(res));
+  }, [cartPrepTime, deliveryType, deliverySpeed]);
 
   // Sync Draft Updates (Debounced)
   useEffect(() => {
@@ -612,15 +620,14 @@ export default function ManualOrder() {
             
             {scheduledDate && slotsData?.available_days && (
               <div className="flex flex-wrap gap-2">
-                {slotsData.available_days.find((d: any) => d.date === scheduledDate)?.slots.map((slot: any) => (
+                {slotsData.available_days.find((d: any) => d.date === scheduledDate)?.slots.map((slot: string) => (
                   <button
-                    key={slot.time}
+                    key={slot}
                     type="button"
-                    disabled={!slot.is_available}
-                    onClick={() => setScheduledTime(slot.time)}
-                    className={`py-2 px-3 text-sm rounded-lg border font-bold transition-colors ${!slot.is_available ? 'bg-gray-50 border-gray-100 text-gray-300 cursor-not-allowed' : scheduledTime === slot.time ? 'bg-primary-500 border-primary-500 text-white' : 'border-primary-200 text-primary-700 hover:border-primary-400'}`}
+                    onClick={() => setScheduledTime(slot)}
+                    className={`py-2 px-3 text-sm rounded-lg border font-bold transition-colors ${scheduledTime === slot ? 'bg-primary-500 border-primary-500 text-white shadow-sm' : 'border-primary-200 text-primary-700 hover:border-primary-400 hover:bg-primary-50'}`}
                   >
-                    {slot.formatted_time}
+                    <span dir="ltr">{slot}</span>
                   </button>
                 ))}
               </div>
