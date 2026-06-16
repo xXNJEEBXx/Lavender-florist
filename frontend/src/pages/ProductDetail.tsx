@@ -17,7 +17,7 @@ export default function ProductDetail() {
   const [queueTimeMinutes, setQueueTimeMinutes] = useState<number>(0);
   
   const [cards, setCards] = useState<Product[]>([]);
-  const [gifts, setGifts] = useState<{ id: string, card: Product | null, message: string }>([
+  const [gifts, setGifts] = useState<{ id: string, card: Product | null, message: string }[]>([
     { id: '1', card: null, message: '' }
   ]);
 
@@ -28,9 +28,9 @@ export default function ProductDetail() {
       .then(data => {
         setProduct(data);
         if (data.primary_image) {
-          setActiveImage(`http://127.0.0.1:8000${data.primary_image.image_url}`);
+          setActiveImage(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}${data.primary_image.image_url}`);
         } else if (data.images && data.images.length > 0) {
-          setActiveImage(`http://127.0.0.1:8000${data.images[0].image_url}`);
+          setActiveImage(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}${data.images[0].image_url}`);
         }
       })
       .catch(err => {
@@ -68,7 +68,11 @@ export default function ProductDetail() {
   if (!product) return null;
 
   const hasDiscount = product.compare_at_price && Number(product.compare_at_price) > Number(product.price);
-  const displayCategory = product.category === 'bouquets' ? 'باقات ورد' : product.category === 'gifts' ? 'هدايا' : 'تنسيقات';
+  const categoryNames: Record<string, string> = {
+    bouquets: 'باقات وبوكيهات', boxes: 'بوكسات', vases: 'فازات', baskets: 'سلال',
+    leis: 'عقود وشيلان', bridal: 'مسكات عرايس', gifts: 'هدايا وتوزيعات', 'fresh-flowers': 'زهور طبيعية'
+  };
+  const displayCategory = categoryNames[product.category] || 'منتجات';
 
   return (
     <div className="max-w-7xl mx-auto px-4 lg:px-8 py-12">
@@ -120,7 +124,7 @@ export default function ProductDetail() {
           {product.images && product.images.length > 0 && (
             <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
               {product.images.map(img => {
-                const imgUrl = `http://127.0.0.1:8000${img.image_url}`;
+                const imgUrl = `${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}${img.image_url}`;
                 return (
                   <button 
                     key={img.id} 
@@ -209,48 +213,46 @@ export default function ProductDetail() {
                     className="w-full px-4 py-3 rounded-xl border border-primary-200 focus:ring-primary-500 outline-none resize-none h-20 mb-4 text-sm"
                   />
                   
-                  {cards.length > 0 && (
-                    <div>
-                      <h4 className="text-sm font-medium text-primary-700 mb-3">اختر شكل البطاقة</h4>
-                      <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-                        <button 
-                          onClick={() => {
-                            const newGifts = [...gifts];
-                            newGifts[index].card = null;
-                            setGifts(newGifts);
-                          }}
-                          className={`shrink-0 min-w-[80px] h-[100px] rounded-xl border-2 flex flex-col items-center justify-center gap-1 transition-colors ${!gift.card ? 'border-primary-500 bg-primary-50' : 'border-primary-100 bg-white hover:border-primary-300'}`}
-                        >
-                          <span className="text-primary-400 text-2xl">🚫</span>
-                          <span className="text-xs font-medium text-primary-700">بدون بطاقة</span>
-                        </button>
-                        
-                        {cards.map(card => {
-                          const imgUrl = card.primary_image ? `http://127.0.0.1:8000${card.primary_image.image_url}` : null;
-                          return (
-                            <button 
-                              key={card.id}
-                              onClick={() => {
-                                const newGifts = [...gifts];
-                                newGifts[index].card = card;
-                                setGifts(newGifts);
-                              }}
-                              className={`shrink-0 min-w-[80px] h-[100px] rounded-xl border-2 relative overflow-hidden transition-colors ${gift.card?.id === card.id ? 'border-primary-500 shadow-md' : 'border-transparent hover:border-primary-300'}`}
-                            >
-                              {imgUrl ? (
-                                <img src={imgUrl} alt={card.name} className="w-full h-full object-cover" />
-                              ) : (
-                                <div className="w-full h-full bg-primary-100 flex items-center justify-center text-primary-400 text-xs text-center p-1">{card.name}</div>
-                              )}
-                              <div className="absolute bottom-0 inset-x-0 bg-black/50 text-white text-[10px] text-center py-1 truncate px-1">
-                                {Number(card.price) > 0 ? `${card.price} ر.س` : 'مجاني'}
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
+                  <div>
+                    <h4 className="text-sm font-medium text-primary-700 mb-3">اختر شكل البطاقة</h4>
+                    <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                      <button 
+                        onClick={() => {
+                          const newGifts = [...gifts];
+                          newGifts[index].card = null;
+                          setGifts(newGifts);
+                        }}
+                        className={`shrink-0 min-w-[80px] h-[100px] rounded-xl border-2 flex flex-col items-center justify-center gap-1 transition-colors ${!gift.card ? 'border-primary-500 bg-primary-50' : 'border-primary-100 bg-white hover:border-primary-300'}`}
+                      >
+                        <span className="text-primary-400 text-2xl">📄</span>
+                        <span className="text-xs font-medium text-primary-700">ورقة بيضاء</span>
+                      </button>
+                      
+                      {cards.map(card => {
+                        const imgUrl = card.primary_image_url ? `${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}${card.primary_image_url}` : (card as any).primary_image ? `${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}${(card as any).primary_image.image_url}` : null;
+                        return (
+                          <button 
+                            key={card.id}
+                            onClick={() => {
+                              const newGifts = [...gifts];
+                              newGifts[index].card = card;
+                              setGifts(newGifts);
+                            }}
+                            className={`shrink-0 min-w-[80px] h-[100px] rounded-xl border-2 relative overflow-hidden transition-colors ${gift.card?.id === card.id ? 'border-primary-500 shadow-md' : 'border-transparent hover:border-primary-300'}`}
+                          >
+                            {imgUrl ? (
+                              <img src={imgUrl} alt={card.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full bg-primary-100 flex items-center justify-center text-primary-400 text-xs text-center p-1">{card.name}</div>
+                            )}
+                            <div className="absolute bottom-0 inset-x-0 bg-black/50 text-white text-[10px] text-center py-1 truncate px-1">
+                              {Number(card.price) > 0 ? `${card.price} ر.س` : 'مجاني'}
+                            </div>
+                          </button>
+                        );
+                      })}
                     </div>
-                  )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -283,18 +285,27 @@ export default function ProductDetail() {
               disabled={!product.is_in_stock || isAdding || getAvailableStock(product) === 0}
               onClick={() => {
                 setIsAdding(true);
-                let mainProductMessage = gifts
-                  .filter(g => !g.card && g.message.trim() !== '')
-                  .map((g, i) => gifts.length > 1 ? `الرسالة ${i+1}:\n${g.message}` : g.message)
-                  .join('\n\n---\n\n');
-
-                addItem(product, quantity, mainProductMessage);
+                
+                const addonsToAdd: any[] = [];
+                const messagesWithoutCards: string[] = [];
 
                 gifts.forEach((gift) => {
                   if (gift.card) {
-                    addItem(gift.card, 1, gift.message);
+                    addonsToAdd.push({
+                      product: gift.card,
+                      quantity: 1,
+                      options: gift.message.trim() ? { message: gift.message.trim() } : {}
+                    });
+                  } else if (gift.message.trim()) {
+                    messagesWithoutCards.push(gift.message.trim());
                   }
                 });
+
+                const combinedMessage = messagesWithoutCards.join('\n\n---\n\n');
+                const options = combinedMessage ? { message: combinedMessage } : {};
+
+                addItem(product, quantity, options, addonsToAdd);
+
                 setTimeout(() => {
                   navigate('/cart');
                 }, 400);

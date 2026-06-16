@@ -120,8 +120,8 @@ export default function ProductsList() {
                     <td className="py-4 px-6">
                       <div className="flex items-center gap-4">
                         <div className="w-12 h-12 rounded-xl bg-primary-100 overflow-hidden flex-shrink-0">
-                          {product.primary_image ? (
-                            <img src={`http://127.0.0.1:8000${product.primary_image.image_url}`} alt={product.name} className="w-full h-full object-cover" />
+                          {product.primary_image_url ? (
+                            <img src={`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}${product.primary_image_url}`} alt={product.name} className="w-full h-full object-cover" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-primary-400">
                               <ImageIcon className="w-6 h-6" />

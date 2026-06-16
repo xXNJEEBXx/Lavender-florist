@@ -49,7 +49,11 @@ class CheckoutController extends Controller
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.quantity' => 'required|integer|min:1',
-            'items.*.gift_message' => 'nullable|string'
+            'items.*.options' => 'nullable|array',
+            'items.*.addons' => 'nullable|array',
+            'items.*.addons.*.product_id' => 'required|exists:products,id',
+            'items.*.addons.*.quantity' => 'required|integer|min:1',
+            'items.*.addons.*.options' => 'nullable|array',
         ]);
 
         return DB::transaction(function () use ($validated, $request) {
@@ -75,7 +79,7 @@ class CheckoutController extends Controller
             }
 
             // 3. Process Cart Items
-            [$subtotal, $orderItemsData, $componentsToDeduct] = $this->orderService->processOrderItems($validated['items']);
+            [$subtotal, $orderItemsData, $componentsToDeduct, $totalPreparationTime] = $this->orderService->processOrderItems($validated['items']);
 
             // 4. Validate Stock
             $this->orderService->validateStock($componentsToDeduct);
@@ -130,6 +134,7 @@ class CheckoutController extends Controller
                 'payment_method' => $validated['payment_method'],
                 'payment_status' => 'pending',
                 'notes' => $validated['notes'] ?? null,
+                'estimated_preparation_time' => $totalPreparationTime,
                 'owner_name' => $validated['owner_name'] ?? null,
                 'owner_phone' => $validated['owner_phone'] ?? null
             ]);

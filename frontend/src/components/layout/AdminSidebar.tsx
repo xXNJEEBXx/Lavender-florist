@@ -13,7 +13,8 @@ import {
   CalendarOff,
   Plus,
   ShieldCheck,
-  Ticket
+  Ticket,
+  Bot
 } from 'lucide-react';
 
 interface AdminSidebarProps {
@@ -32,6 +33,7 @@ export default function AdminSidebar({ isOpen = true }: AdminSidebarProps) {
     { name: 'المناديب', path: '/admin/drivers', icon: <Truck size={20} /> },
     { name: 'العملاء', path: '/admin/customers', icon: <Users size={20} /> },
     { name: 'المشرفين', path: '/admin/admins', icon: <ShieldCheck size={20} /> },
+    { name: 'المساعد الذكي', path: '/admin/ai-settings', icon: <Bot size={20} /> },
     { name: 'الإعدادات', path: '/admin/settings', icon: <Settings size={20} /> },
   ];
 

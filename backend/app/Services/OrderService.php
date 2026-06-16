@@ -26,20 +26,23 @@ class OrderService
         $subtotal = 0;
         $orderItemsData = [];
         $componentsToDeduct = [];
+        $totalPreparationTime = 0;
 
         foreach ($items as $item) {
             $product = Product::with('components')->findOrFail($item['product_id']);
             $unitPrice = $product->price;
             $totalPrice = $unitPrice * $item['quantity'];
             $subtotal += $totalPrice;
+            $totalPreparationTime += ($product->preparation_time_minutes ?? 0) * $item['quantity'];
 
-            $orderItemsData[] = [
+            $mainItemData = [
                 'product_id' => $product->id,
                 'product_name' => $product->name,
                 'quantity' => $item['quantity'],
                 'unit_price' => $unitPrice,
                 'total_price' => $totalPrice,
-                'gift_message' => $item['gift_message'] ?? null
+                'options' => $item['options'] ?? null,
+                'addons' => []
             ];
 
             foreach ($product->components as $component) {
@@ -49,9 +52,39 @@ class OrderService
                 }
                 $componentsToDeduct[$component->id] += $neededQuantity;
             }
+
+            // Process addons
+            if (!empty($item['addons']) && is_array($item['addons'])) {
+                foreach ($item['addons'] as $addon) {
+                    $addonProduct = Product::with('components')->findOrFail($addon['product_id']);
+                    $addonUnitPrice = $addonProduct->price;
+                    $addonTotalPrice = $addonUnitPrice * $addon['quantity'];
+                    $subtotal += $addonTotalPrice;
+                    $totalPreparationTime += ($addonProduct->preparation_time_minutes ?? 0) * $addon['quantity'];
+
+                    $mainItemData['addons'][] = [
+                        'product_id' => $addonProduct->id,
+                        'product_name' => $addonProduct->name,
+                        'quantity' => $addon['quantity'],
+                        'unit_price' => $addonUnitPrice,
+                        'total_price' => $addonTotalPrice,
+                        'options' => $addon['options'] ?? null,
+                    ];
+
+                    foreach ($addonProduct->components as $component) {
+                        $neededQuantity = $component->pivot->quantity * $addon['quantity'];
+                        if (!isset($componentsToDeduct[$component->id])) {
+                            $componentsToDeduct[$component->id] = 0;
+                        }
+                        $componentsToDeduct[$component->id] += $neededQuantity;
+                    }
+                }
+            }
+
+            $orderItemsData[] = $mainItemData;
         }
 
-        return [$subtotal, $orderItemsData, $componentsToDeduct];
+        return [$subtotal, $orderItemsData, $componentsToDeduct, $totalPreparationTime];
     }
 
     /**
@@ -99,21 +132,18 @@ class OrderService
     public function saveOrderItems(Order $order, array $orderItemsData, string $senderName = 'مسودة'): void
     {
         foreach ($orderItemsData as $itemData) {
-            $giftMessage = $itemData['gift_message'] ?? null;
-            unset($itemData['gift_message']);
+            $addons = $itemData['addons'] ?? [];
+            unset($itemData['addons']);
             
             $itemData['order_id'] = $order->id;
             $orderItem = OrderItem::create($itemData);
 
-            if ($giftMessage) {
-                DB::table('gift_messages')->insert([
-                    'order_id' => $order->id,
-                    'order_item_id' => $orderItem->id,
-                    'sender_name' => $senderName,
-                    'message' => $giftMessage,
-                    'created_at' => now(),
-                    'updated_at' => now()
-                ]);
+            if (!empty($addons)) {
+                foreach ($addons as $addonData) {
+                    $addonData['order_id'] = $order->id;
+                    $addonData['parent_id'] = $orderItem->id;
+                    OrderItem::create($addonData);
+                }
             }
         }
     }

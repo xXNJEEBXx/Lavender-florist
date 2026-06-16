@@ -1,0 +1,24 @@
+providers = ["php"]
+
+[variables]
+APP_ENV = "production"
+APP_DEBUG = "false"
+LOG_CHANNEL = "stderr"
+
+[phases.setup]
+nixPkgs = ["...", "php82", "php82Packages.composer"]
+
+[phases.build]
+cmds = [
+    "composer install --no-dev --optimize-autoloader",
+    "php artisan optimize:clear",
+    "php artisan route:cache",
+    "php artisan view:cache",
+]
+
+[phases.migrate]
+dependsOn = ["build"]
+cmds = [
+    "php artisan migrate --force",
+    "php artisan storage:link"
+]

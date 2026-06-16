@@ -20,22 +20,43 @@ class SharedOrderController extends Controller
         }
 
         // Format for cart
-        $cartItems = $order->items->map(function ($item) {
+        // Group by parent_id
+        $mainItems = $order->items->whereNull('parent_id');
+        
+        $cartItems = $mainItems->map(function ($item) use ($order) {
             $product = $item->product;
             $primaryImage = $product->images->where('is_primary', true)->first();
             $productData = $product->toArray();
             $productData['primary_image_url'] = $primaryImage ? '/storage/' . $primaryImage->image_url : null;
 
+            $addons = $order->items->where('parent_id', $item->id)->map(function ($addon) {
+                $addonProduct = $addon->product;
+                $addonPrimaryImage = $addonProduct->images->where('is_primary', true)->first();
+                $addonProductData = $addonProduct->toArray();
+                $addonProductData['primary_image_url'] = $addonPrimaryImage ? '/storage/' . $addonPrimaryImage->image_url : null;
+                
+                return [
+                    'id' => $addon->id,
+                    'product_id' => $addon->product_id,
+                    'quantity' => $addon->quantity,
+                    'unit_price' => $addon->unit_price,
+                    'total_price' => $addon->total_price,
+                    'options' => $addon->options,
+                    'product' => $addonProductData,
+                ];
+            })->values()->toArray();
+
             return [
                 'id' => $item->id,
                 'product_id' => $item->product_id,
                 'quantity' => $item->quantity,
-                'gift_message' => $item->gift_message,
                 'unit_price' => $item->unit_price,
                 'total_price' => $item->total_price,
+                'options' => $item->options,
                 'product' => $productData,
+                'addons' => $addons
             ];
-        });
+        })->values();
 
         return response()->json([
             'order' => $order,
@@ -57,7 +78,11 @@ class SharedOrderController extends Controller
             'items' => 'required|array',
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.quantity' => 'required|integer|min:1',
-            'items.*.gift_message' => 'nullable|string'
+            'items.*.options' => 'nullable|array',
+            'items.*.addons' => 'nullable|array',
+            'items.*.addons.*.product_id' => 'required|exists:products,id',
+            'items.*.addons.*.quantity' => 'required|integer|min:1',
+            'items.*.addons.*.options' => 'nullable|array',
         ]);
 
         return DB::transaction(function () use ($validated, $order) {
@@ -70,15 +95,34 @@ class SharedOrderController extends Controller
                 $totalPrice = $product->price * $itemData['quantity'];
                 $subtotal += $totalPrice;
 
-                OrderItem::create([
+                $orderItem = OrderItem::create([
                     'order_id' => $order->id,
                     'product_id' => $product->id,
                     'product_name' => $product->name,
                     'quantity' => $itemData['quantity'],
                     'unit_price' => $product->price,
                     'total_price' => $totalPrice,
-                    'gift_message' => $itemData['gift_message'] ?? null,
+                    'options' => $itemData['options'] ?? null,
                 ]);
+
+                if (!empty($itemData['addons'])) {
+                    foreach ($itemData['addons'] as $addonData) {
+                        $addonProduct = Product::findOrFail($addonData['product_id']);
+                        $addonTotalPrice = $addonProduct->price * $addonData['quantity'];
+                        $subtotal += $addonTotalPrice;
+
+                        OrderItem::create([
+                            'order_id' => $order->id,
+                            'parent_id' => $orderItem->id,
+                            'product_id' => $addonProduct->id,
+                            'product_name' => $addonProduct->name,
+                            'quantity' => $addonData['quantity'],
+                            'unit_price' => $addonProduct->price,
+                            'total_price' => $addonTotalPrice,
+                            'options' => $addonData['options'] ?? null,
+                        ]);
+                    }
+                }
             }
 
             $order->subtotal = $subtotal;

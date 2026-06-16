@@ -6,7 +6,7 @@ import { authApi } from '../services/api';
 export default function AuthCallback() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { setUser } = useAuth();
+  const { setUser, openLoginModal } = useAuth();
 
   useEffect(() => {
     const handleAuth = async () => {
@@ -14,8 +14,8 @@ export default function AuthCallback() {
       const error = searchParams.get('error');
 
       if (error) {
-        alert('فشل تسجيل الدخول بواسطة جوجل.');
-        navigate('/login');
+        navigate('/');
+        setTimeout(() => openLoginModal(), 100);
         return;
       }
 
@@ -35,10 +35,12 @@ export default function AuthCallback() {
           }
         } catch (err) {
           console.error("Failed to fetch user after google login", err);
-          navigate('/login');
+          navigate('/');
+          setTimeout(() => openLoginModal(), 100);
         }
       } else {
-        navigate('/login');
+        navigate('/');
+        setTimeout(() => openLoginModal(), 100);
       }
     };
 

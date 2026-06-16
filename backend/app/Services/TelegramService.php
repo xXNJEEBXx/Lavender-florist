@@ -108,6 +108,18 @@ class TelegramService
         return Http::post("{$this->apiUrl}/answerCallbackQuery", $payload)->json();
     }
 
+    public function getFileUrl($fileId)
+    {
+        $response = Http::get("{$this->apiUrl}/getFile", ['file_id' => $fileId]);
+        if ($response->successful()) {
+            $path = $response->json()['result']['file_path'] ?? null;
+            if ($path) {
+                return "https://api.telegram.org/file/bot{$this->token}/{$path}";
+            }
+        }
+        return null;
+    }
+
     public function notifyNewOrder(Order $order)
     {
         $admins = User::where('role', 'admin')

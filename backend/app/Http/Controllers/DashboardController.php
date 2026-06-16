@@ -20,16 +20,46 @@ class DashboardController extends Controller
 
         $validStatuses = ['confirmed', 'preparing', 'ready', 'delivering', 'delivered'];
 
-        // --- 1. Total Sales ---
-        $currentSales = Order::whereIn('status', $validStatuses)
+        // --- 1. Total Sales & Net Profit ---
+        $currentOrdersObj = Order::with('items.product.components')
+            ->whereIn('status', $validStatuses)
             ->where('created_at', '>=', $sevenDaysAgo)
-            ->sum('total');
-
-        $previousSales = Order::whereIn('status', $validStatuses)
+            ->get();
+            
+        $previousOrdersObj = Order::with('items.product.components')
+            ->whereIn('status', $validStatuses)
             ->whereBetween('created_at', [$fourteenDaysAgo, $sevenDaysAgo])
-            ->sum('total');
+            ->get();
 
+        $currentSales = $currentOrdersObj->sum('total');
+        $previousSales = $previousOrdersObj->sum('total');
         $salesTrend = $this->calculateTrend($currentSales, $previousSales);
+
+        // Calculate Net Profit
+        $currentCost = 0;
+        foreach ($currentOrdersObj as $order) {
+            foreach ($order->items as $item) {
+                if ($item->product) {
+                    foreach ($item->product->components as $comp) {
+                        $currentCost += ($item->quantity * $comp->pivot->quantity * $comp->cost_per_unit);
+                    }
+                }
+            }
+        }
+        $currentNetProfit = $currentSales - $currentCost - $currentOrdersObj->sum('driver_fee');
+
+        $previousCost = 0;
+        foreach ($previousOrdersObj as $order) {
+            foreach ($order->items as $item) {
+                if ($item->product) {
+                    foreach ($item->product->components as $comp) {
+                        $previousCost += ($item->quantity * $comp->pivot->quantity * $comp->cost_per_unit);
+                    }
+                }
+            }
+        }
+        $previousNetProfit = $previousSales - $previousCost - $previousOrdersObj->sum('driver_fee');
+        $netProfitTrend = $this->calculateTrend($currentNetProfit, $previousNetProfit);
 
         // --- 2. New Orders ---
         $currentOrders = Order::where('created_at', '>=', $sevenDaysAgo)->count();
@@ -132,6 +162,10 @@ class DashboardController extends Controller
                 'sales' => [
                     'value' => number_format($currentSales, 2) . ' ر.س',
                     'trend' => ($salesTrend > 0 ? '+' : '') . $salesTrend . '%'
+                ],
+                'netProfit' => [
+                    'value' => number_format($currentNetProfit, 2) . ' ر.س',
+                    'trend' => ($netProfitTrend > 0 ? '+' : '') . $netProfitTrend . '%'
                 ],
                 'orders' => [
                     'value' => (string)$currentOrders,

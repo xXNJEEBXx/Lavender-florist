@@ -1,22 +1,67 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Link, useSearchParams } from 'react-router-dom';
 import { publicProductsApi } from '../services/api';
 import type { Product } from '../types';
+import { categories, occasions } from '../data/placeholders';
+import ProductCard from '../components/shared/ProductCard';
+import ProductDetailModal from '../components/ui/ProductDetailModal';
 
 export default function Home() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  const selectedCategory = searchParams.get('category') || 'all';
+  const selectedOccasion = searchParams.get('occasion') || 'all';
+  const selectedProductSlug = searchParams.get('product');
+
+  const closeProductModal = () => {
+    searchParams.delete('product');
+    setSearchParams(searchParams);
+  };
+
   useEffect(() => {
+    setIsLoading(true);
     publicProductsApi.getAll()
       .then(data => {
         const filtered = data.filter((p: Product) => p.category !== 'cards');
-        setProducts(filtered.slice(0, 8)); // Show max 8 products on home
+        setProducts(filtered);
       })
       .catch(console.error)
       .finally(() => setIsLoading(false));
   }, []);
+
+  const handleCategorySelect = (id: string) => {
+    if (id === 'all') {
+      searchParams.delete('category');
+    } else {
+      searchParams.set('category', id);
+    }
+    setSearchParams(searchParams);
+    
+    // Scroll to products section smoothly
+    const productsSection = document.getElementById('products');
+    if (productsSection) {
+      productsSection.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  const handleOccasionSelect = (id: string) => {
+    if (id === 'all') {
+      searchParams.delete('occasion');
+    } else {
+      searchParams.set('occasion', id);
+    }
+    setSearchParams(searchParams);
+  };
+
+  const displayedProducts = products.filter(p => {
+    const matchCategory = selectedCategory === 'all' || p.category === selectedCategory;
+    const matchOccasion = selectedOccasion === 'all' || (p.occasions && p.occasions.includes(selectedOccasion as any));
+    return matchCategory && matchOccasion;
+  });
+
   return (
     <div>
       {/* Hero Section */}
@@ -66,10 +111,19 @@ export default function Home() {
               transition={{ duration: 1, delay: 0.7 }}
               className="flex flex-col sm:flex-row gap-6 w-full sm:w-auto"
             >
-              <button className="px-10 py-5 bg-white text-primary-950 rounded-2xl font-bold text-lg hover:bg-primary-50 transition-all shadow-xl shadow-white/10 transform hover:-translate-y-1">
+              <button 
+                onClick={() => {
+                  setSearchParams({});
+                  document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' });
+                }} 
+                className="px-10 py-5 bg-white text-primary-950 rounded-2xl font-bold text-lg hover:bg-primary-50 transition-all shadow-xl shadow-white/10 transform hover:-translate-y-1"
+              >
                 تسوق الآن
               </button>
-              <button className="px-10 py-5 bg-primary-900/60 backdrop-blur-md text-white border border-white/30 rounded-2xl font-bold text-lg hover:bg-primary-800/80 transition-all shadow-lg transform hover:-translate-y-1">
+              <button 
+                onClick={() => handleCategorySelect('bouquets')} 
+                className="px-10 py-5 bg-primary-900/60 backdrop-blur-md text-white border border-white/30 rounded-2xl font-bold text-lg hover:bg-primary-800/80 transition-all shadow-lg transform hover:-translate-y-1"
+              >
                 تصفح التنسيقات
               </button>
             </motion.div>
@@ -96,7 +150,7 @@ export default function Home() {
               transition={{ delay: 0.1 }}
               className="text-4xl md:text-5xl font-serif text-primary-950 font-bold mb-6"
             >
-              أحدث الإبداعات
+              متجر لافندر
             </motion.h2>
             <motion.div 
               initial={{ scaleX: 0 }}
@@ -106,104 +160,105 @@ export default function Home() {
             />
           </div>
           
+          {/* Two-Axis Filter */}
+          <div className="bg-primary-50/50 rounded-3xl p-6 shadow-sm border border-primary-100 mb-12">
+            {/* Axis 1: Categories */}
+            <div className="mb-6">
+              <h3 className="font-bold text-primary-900 mb-4 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-primary-400"></span>
+                لأي نوع؟ (التصنيف)
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => handleCategorySelect('all')}
+                  className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${selectedCategory === 'all' ? 'bg-primary-900 text-white shadow-md' : 'bg-white text-primary-700 hover:bg-primary-100 border border-primary-100'}`}
+                >
+                  الكل
+                </button>
+                {categories.map(c => (
+                  <button
+                    key={c.id}
+                    onClick={() => handleCategorySelect(c.id)}
+                    className={`px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 border ${selectedCategory === c.id ? 'bg-primary-900 border-primary-900 text-white shadow-md' : 'bg-white border-primary-100 text-primary-700 hover:bg-primary-50'}`}
+                  >
+                    <span>{c.icon}</span>
+                    {c.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <hr className="border-primary-100 mb-6" />
+
+            {/* Axis 2: Occasions */}
+            <div>
+              <h3 className="font-bold text-primary-900 mb-4 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-accent-400"></span>
+                لأي مناسبة؟
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {occasions.map(o => (
+                  <button
+                    key={o.id}
+                    onClick={() => handleOccasionSelect(o.id)}
+                    className={`px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 border ${selectedOccasion === o.id ? 'bg-accent-50 border-accent-300 text-accent-700 shadow-sm' : 'bg-white border-primary-100 text-primary-600 hover:bg-primary-50'}`}
+                  >
+                    <span>{o.icon}</span>
+                    {o.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
           {isLoading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-              {[1, 2, 3, 4].map(i => (
+              {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
                 <div key={i} className="animate-pulse">
-                  <div className="aspect-[4/5] bg-primary-100 rounded-2xl mb-4"></div>
-                  <div className="h-4 bg-primary-100 rounded w-3/4 mb-2"></div>
-                  <div className="h-4 bg-primary-100 rounded w-1/4"></div>
+                  <div className="aspect-[4/5] bg-primary-100 rounded-2xl mb-4 border border-primary-50"></div>
+                  <div className="h-4 bg-primary-100 rounded w-3/4 mx-auto mb-2"></div>
+                  <div className="h-4 bg-primary-100 rounded w-1/4 mx-auto"></div>
                 </div>
               ))}
             </div>
-          ) : products.length === 0 ? (
+          ) : displayedProducts.length === 0 ? (
             <div className="text-center py-20 bg-primary-50 rounded-3xl border border-primary-100">
-              <p className="text-primary-500 text-lg">لا توجد منتجات حالياً، ترقبوا تشكيلتنا قريباً.</p>
+              <span className="text-6xl mb-4 block">🔍</span>
+              <h3 className="text-xl font-bold text-primary-900 mb-2">لا توجد نتائج</h3>
+              <p className="text-primary-500 mb-6">لم نتمكن من العثور على منتجات تطابق خياراتك، حاول تغيير الفلاتر.</p>
+              <button 
+                onClick={() => setSearchParams({})} 
+                className="px-6 py-2 bg-primary-100 text-primary-800 rounded-full font-bold hover:bg-primary-200 transition-colors"
+              >
+                عرض كل المنتجات
+              </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-12">
-              {products.map((product, index) => {
-                const hasDiscount = product.compare_at_price && Number(product.compare_at_price) > Number(product.price);
-                const imageUrl = product.primary_image ? `http://127.0.0.1:8000${product.primary_image.image_url}` : null;
-                
-                return (
-                  <motion.div 
+            <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-12">
+              <AnimatePresence>
+                {displayedProducts.map((product, index) => (
+                  <motion.div
                     key={product.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: index * 0.1 }}
-                    className="group"
+                    layout
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    transition={{ duration: 0.2, delay: index < 8 ? index * 0.05 : 0 }}
                   >
-                    <Link to={`/products/${product.slug}`} className="block relative overflow-hidden rounded-2xl aspect-[4/5] mb-5 bg-primary-50">
-                      {imageUrl ? (
-                        <img 
-                          src={imageUrl} 
-                          alt={product.name}
-                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-primary-300 bg-primary-50">
-                          <span className="font-serif italic">Lavender</span>
-                        </div>
-                      )}
-                      
-                      {/* Hover Overlay */}
-                      <div className="absolute inset-0 bg-primary-900/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                      
-                      {/* Badges */}
-                      <div className="absolute top-4 right-4 flex flex-col gap-2">
-                        {hasDiscount && (
-                          <span className="bg-white/90 backdrop-blur-sm text-primary-900 text-xs font-bold px-3 py-1.5 rounded-full shadow-sm">
-                            عرض خاص
-                          </span>
-                        )}
-                        {!product.is_in_stock && (
-                          <span className="bg-rose-500/90 backdrop-blur-sm text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-sm">
-                            نفدت الكمية
-                          </span>
-                        )}
-                      </div>
-                    </Link>
-                    
-                    <div className="text-center px-2">
-                      <div className="text-xs text-primary-400 mb-2 font-medium tracking-wide">
-                        {product.category === 'bouquets' ? 'باقة ورد' : product.category === 'gifts' ? 'هدايا' : 'تنسيق'}
-                      </div>
-                      <Link to={`/products/${product.slug}`}>
-                        <h3 className="text-xl font-serif font-bold text-primary-950 mb-3 group-hover:text-primary-600 transition-colors">
-                          {product.name}
-                        </h3>
-                      </Link>
-                      <div className="flex items-center justify-center gap-3">
-                        <span className="text-lg font-bold text-primary-900">
-                          {product.price} ر.س
-                        </span>
-                        {hasDiscount && (
-                          <span className="text-sm text-primary-400 line-through decoration-primary-300">
-                            {product.compare_at_price} ر.س
-                          </span>
-                        )}
-                      </div>
-                    </div>
+                    <ProductCard product={product} />
                   </motion.div>
-                );
-              })}
-            </div>
-          )}
-          
-          {products.length > 0 && (
-            <div className="mt-16 text-center">
-              <a 
-                href="#products"
-                className="inline-flex items-center justify-center px-8 py-4 border border-primary-200 text-primary-900 font-bold rounded-full hover:bg-primary-50 transition-colors"
-              >
-                المزيد من التنسيقات
-              </a>
-            </div>
+                ))}
+              </AnimatePresence>
+            </motion.div>
           )}
         </div>
       </section>
+
+      <ProductDetailModal 
+        isOpen={!!selectedProductSlug} 
+        onClose={closeProductModal} 
+        slug={selectedProductSlug} 
+      />
     </div>
   );
 }

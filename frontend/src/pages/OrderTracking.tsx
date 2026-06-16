@@ -14,10 +14,11 @@ function DeliveryTimeDisplay({ order }: { order: any }) {
   
   if (order.scheduled_at) {
     targetTime = new Date(order.scheduled_at);
-  } else if (order.delivery_minutes) {
+  } else if (order.delivery_minutes || order.estimated_preparation_time) {
     // Local delivery ASAP
     const baseTime = order.confirmed_at ? new Date(order.confirmed_at) : new Date(order.created_at);
-    targetTime = new Date(baseTime.getTime() + order.delivery_minutes * 60000);
+    const totalMinutes = (order.delivery_minutes || 0) + (order.estimated_preparation_time || 0);
+    targetTime = new Date(baseTime.getTime() + totalMinutes * 60000);
   } else if (order.estimated_delivery_at) {
      targetTime = new Date(order.estimated_delivery_at);
   }
@@ -381,19 +382,19 @@ export default function OrderTracking() {
                   <div key={item.id} className="flex gap-4">
                     <div className="w-16 h-16 bg-primary-50 rounded-xl overflow-hidden shrink-0">
                       {item.product?.primary_image ? (
-                        <img src={`http://127.0.0.1:8000${item.product.primary_image.image_url}`} alt={item.product_name} className="w-full h-full object-cover" />
+                        <img src={`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}${item.product.primary_image.image_url}`} alt={item.product_name} className="w-full h-full object-cover" />
                       ) : null}
                     </div>
                     <div className="flex-1">
                       <h4 className="font-bold text-primary-900">{item.product_name}</h4>
                       <p className="text-sm text-primary-500 mb-1">الكمية: {item.quantity}</p>
                       <p className="font-bold text-primary-700">{item.total_price} ر.س</p>
-                      {item.gift_message && (
+                      {((item.options && item.options.message) || (item.gift_message && item.gift_message.message)) && (
                         <div className="mt-2 bg-primary-50/50 p-3 rounded-lg border border-primary-100 text-sm">
                           <div className="flex items-center gap-1.5 text-primary-700 font-bold mb-1">
                             <FileText className="w-4 h-4" /> رسالة الإهداء:
                           </div>
-                          <p className="text-primary-800 whitespace-pre-wrap">{item.gift_message.message}</p>
+                          <p className="text-primary-800 whitespace-pre-wrap">{item.options?.message || item.gift_message?.message}</p>
                         </div>
                       )}
                     </div>
@@ -491,7 +492,7 @@ export default function OrderTracking() {
                   <h4 className="font-bold text-primary-900 mb-2">معلومات التحويل البنكي</h4>
                   <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-xl text-emerald-800 space-y-2">
                     {order.bank_transfer_receipt && (
-                      <a href={`http://127.0.0.1:8000${order.bank_transfer_receipt}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-emerald-700 hover:text-emerald-900 font-bold underline">
+                      <a href={`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}${order.bank_transfer_receipt}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-emerald-700 hover:text-emerald-900 font-bold underline">
                         <FileText className="w-4 h-4" /> عرض إيصال التحويل المرفق
                       </a>
                     )}

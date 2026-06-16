@@ -528,7 +528,12 @@ export default function Checkout() {
         items: items.map(item => ({
           product_id: item.product.id,
           quantity: item.quantity,
-          gift_message: item.gift_message
+          options: item.options,
+          addons: item.addons?.map(a => ({
+            product_id: a.product.id,
+            quantity: a.quantity,
+            options: a.options
+          })) || []
         }))
       };
       
@@ -915,27 +920,52 @@ export default function Checkout() {
               
               <div className="max-h-60 overflow-y-auto mb-6 pr-2 space-y-4">
                 {items.map((item) => (
-                  <div key={item.product.id} className="flex justify-between items-start">
-                    <div className="flex items-start gap-3">
-                      <div className="w-12 h-12 bg-primary-50 rounded-lg overflow-hidden flex-shrink-0">
-                        {item.product.primary_image ? (
-                          <img src={`http://127.0.0.1:8000${item.product.primary_image.image_url}`} alt={item.product.name} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-primary-300"><ShoppingBag className="w-4 h-4"/></div>
-                        )}
+                  <div key={item.cartItemId || item.product.id} className="flex flex-col gap-2 border-b border-primary-50 pb-3 last:border-0 last:pb-0">
+                    <div className="flex justify-between items-start">
+                      <div className="flex items-start gap-3">
+                        <div className="w-12 h-12 bg-primary-50 rounded-lg overflow-hidden flex-shrink-0">
+                          {item.product.primary_image_url ? (
+                            <img src={`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}${item.product.primary_image_url}`} alt={item.product.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-primary-300"><ShoppingBag className="w-4 h-4"/></div>
+                          )}
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-primary-900 text-sm line-clamp-1">{item.product.name}</h4>
+                          <p className="text-xs text-primary-500 mt-1">الكمية: {item.quantity}</p>
+                          {item.options?.message && (
+                            <div className="mt-2 bg-primary-50 border border-primary-100 rounded-lg p-2 text-xs">
+                              <span className="font-bold text-primary-800 block mb-0.5">رسالة الإهداء:</span>
+                              <p className="text-primary-600 line-clamp-2">"{item.options.message}"</p>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <div>
-                        <h4 className="font-bold text-primary-900 text-sm line-clamp-1">{item.product.name}</h4>
-                        <p className="text-xs text-primary-500 mt-1">الكمية: {item.quantity}</p>
-                        {item.gift_message && (
-                          <div className="mt-2 bg-primary-50 border border-primary-100 rounded-lg p-2 text-xs">
-                            <span className="font-bold text-primary-800 block mb-0.5">رسالة الإهداء:</span>
-                            <p className="text-primary-600 line-clamp-2">"{item.gift_message}"</p>
-                          </div>
-                        )}
-                      </div>
+                      <span className="font-medium text-sm text-primary-900 whitespace-nowrap">{item.product.price * item.quantity} ر.س</span>
                     </div>
-                    <span className="font-medium text-sm text-primary-900 whitespace-nowrap">{item.product.price * item.quantity} ر.س</span>
+                    {item.addons && item.addons.length > 0 && (
+                      <div className="mr-8 space-y-2 mt-1">
+                        {item.addons.map((addon, idx) => (
+                          <div key={idx} className="flex justify-between items-center bg-primary-50/50 p-2 rounded-lg border border-primary-50">
+                            <div className="flex items-center gap-2">
+                              {addon.product.primary_image ? (
+                                <img src={`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}${addon.product.primary_image.image_url}`} alt={addon.product.name} className="w-8 h-8 rounded-md object-cover" />
+                              ) : (
+                                <div className="w-8 h-8 rounded-md bg-white flex items-center justify-center text-primary-300 text-xs border border-primary-100">
+                                  بطاقة
+                                </div>
+                              )}
+                              <span className="text-xs font-bold text-primary-800">
+                                {addon.product.name} <span className="text-primary-500">(مرفق)</span>
+                              </span>
+                            </div>
+                            <span className="text-xs font-bold text-primary-700">
+                              {Number(addon.product.price) > 0 ? `+${addon.product.price * addon.quantity} ر.س` : 'مجاني'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

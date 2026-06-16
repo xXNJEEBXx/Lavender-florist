@@ -60,7 +60,12 @@ class ManualOrderController extends Controller
 
         return DB::transaction(function () use ($validated, $request) {
             $items = $validated['items'] ?? [];
-            [$subtotal, $itemsData, $componentsToDeduct] = $this->orderService->processOrderItems($items);
+            foreach ($items as &$item) {
+                if (!empty($item['gift_message'])) {
+                    $item['options']['message'] = $item['gift_message'];
+                }
+            }
+            [$subtotal, $itemsData, $componentsToDeduct, $totalPreparationTime] = $this->orderService->processOrderItems($items);
 
             $phone = PhoneUtils::normalize($validated['customer_phone']);
             $customerId = null;
@@ -92,6 +97,7 @@ class ManualOrderController extends Controller
                 'delivery_time_slot' => $validated['scheduled_time'] ?? null,
                 'subtotal' => $subtotal,
                 'total' => $subtotal,
+                'estimated_preparation_time' => $totalPreparationTime,
             ]);
 
             $this->orderService->saveOrderItems($order, $itemsData, 'مسودة');
@@ -140,7 +146,13 @@ class ManualOrderController extends Controller
             // Update items if provided
             if (isset($validated['items'])) {
                 $order->items()->delete();
-                [$subtotal, $itemsData, $componentsToDeduct] = $this->orderService->processOrderItems($validated['items']);
+                $items = $validated['items'];
+                foreach ($items as &$item) {
+                    if (!empty($item['gift_message'])) {
+                        $item['options']['message'] = $item['gift_message'];
+                    }
+                }
+                [$subtotal, $itemsData, $componentsToDeduct, $totalPreparationTime] = $this->orderService->processOrderItems($items);
                 $this->orderService->saveOrderItems($order, $itemsData, 'مسودة');
                 $order->subtotal = $subtotal;
             }
@@ -241,7 +253,14 @@ class ManualOrderController extends Controller
                 }
             }
 
-            [$subtotal, $orderItemsData, $componentsToDeduct] = $this->orderService->processOrderItems($validated['items']);
+            $items = $validated['items'];
+            foreach ($items as &$item) {
+                if (!empty($item['gift_message'])) {
+                    $item['options']['message'] = $item['gift_message'];
+                }
+            }
+
+            [$subtotal, $orderItemsData, $componentsToDeduct, $totalPreparationTime] = $this->orderService->processOrderItems($items);
             $this->orderService->validateStock($componentsToDeduct);
 
             [$scheduledAt, $readyBy] = $this->orderService->determineScheduling(
@@ -272,7 +291,8 @@ class ManualOrderController extends Controller
                 'total' => $total,
                 'payment_method' => $validated['payment_method'],
                 'payment_status' => $validated['payment_status'],
-                'notes' => $validated['notes'] ?? null
+                'notes' => $validated['notes'] ?? null,
+                'estimated_preparation_time' => $totalPreparationTime,
             ]);
 
             $this->orderService->saveOrderItems($order, $orderItemsData, $customer->name);

@@ -36,13 +36,20 @@ class AuthController extends Controller
                 ->post('https://api.resend.com/emails', [
                     'from' => 'Lavender Florist <onboarding@resend.dev>', // Use verified domain later
                     'to' => $email,
-                    'subject' => 'رمز التحقق الخاص بك - لافندر فلوريست',
-                    'html' => "<div dir='rtl' style='font-family: sans-serif; text-align: center; padding: 20px;'>
-                                <h2>مرحباً بك في لافندر فلوريست 🌸</h2>
-                                <p>رمز التحقق الخاص بك هو:</p>
-                                <h1 style='color: #6d28d9; letter-spacing: 5px; font-size: 36px;'>{$otp}</h1>
-                                <p>هذا الرمز صالح لمدة 10 دقائق.</p>
-                               </div>"
+                    'subject' => 'Your Verification Code - Lavender Florist',
+                    'html' => "
+                    <div dir='ltr' style='font-family: \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 40px 20px; text-align: center; background-color: #faf5ff; border-radius: 16px;'>
+                        <h2 style='color: #4c1d95; margin-bottom: 20px; font-weight: 700; font-size: 24px;'>Lavender Florist</h2>
+                        <div style='background-color: #ffffff; padding: 40px 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);'>
+                            <p style='color: #4b5563; font-size: 16px; margin-bottom: 30px;'>Hello,</p>
+                            <p style='color: #4b5563; font-size: 16px; margin-bottom: 30px;'>Please use the verification code below to sign in to your account. This code is valid for the next 10 minutes.</p>
+                            <div style='background-color: #f3e8ff; padding: 15px 30px; border-radius: 8px; display: inline-block; margin-bottom: 30px;'>
+                                <h1 style='color: #7c3aed; letter-spacing: 8px; font-size: 42px; margin: 0; font-weight: 800;'>{$otp}</h1>
+                            </div>
+                            <p style='color: #6b7280; font-size: 14px; margin-top: 20px; border-top: 1px solid #f3f4f6; padding-top: 20px;'>If you didn't request this code, you can safely ignore this email.</p>
+                        </div>
+                        <p style='color: #9ca3af; font-size: 12px; margin-top: 30px;'>&copy; " . date('Y') . " Lavender Florist. All rights reserved.</p>
+                    </div>"
                 ]);
         }
 

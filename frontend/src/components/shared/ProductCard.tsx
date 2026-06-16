@@ -12,11 +12,14 @@ interface ProductCardProps {
 
 // Generate a gradient based on product category
 const categoryGradients: Record<string, string> = {
-  bouquets: 'from-lavender-200 via-rose-100 to-lavender-100',
-  boxes: 'from-rose-200 via-cream-100 to-lavender-100',
-  arrangements: 'from-leaf-100 via-cream-100 to-lavender-100',
-  singles: 'from-rose-100 via-pink-100 to-cream-100',
-  gifts: 'from-amber-100 via-cream-100 to-rose-100',
+  bouquets: 'from-pink-500 to-rose-400',
+  boxes: 'from-purple-500 to-indigo-400',
+  vases: 'from-teal-400 to-emerald-500',
+  baskets: 'from-amber-400 to-orange-500',
+  leis: 'from-yellow-400 to-amber-500',
+  bridal: 'from-sky-300 to-blue-400',
+  gifts: 'from-indigo-400 to-purple-500',
+  'fresh-flowers': 'from-green-400 to-emerald-500',
 };
 
 export default function ProductCard({ product, index = 0 }: ProductCardProps) {
@@ -33,20 +36,32 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
     >
       <div className="bg-white rounded-2xl border border-border overflow-hidden hover:shadow-2xl hover:shadow-lavender-500/10 transition-all duration-500">
         {/* Image Area */}
-        <Link to={`/products/${product.slug}`} className="block relative overflow-hidden">
+        <Link to={`/?product=${product.slug}`} className="block relative overflow-hidden">
           <div className={`aspect-[4/5] bg-gradient-to-br ${gradient} flex items-center justify-center relative`}>
-            {/* Decorative flower pattern */}
-            <div className="absolute inset-0 opacity-20">
-              <div className="absolute top-4 right-4 text-6xl">🌸</div>
-              <div className="absolute bottom-8 left-6 text-4xl">🌿</div>
-              <div className="absolute top-1/2 left-1/3 text-3xl">✨</div>
-            </div>
-            <span className="text-7xl relative z-10 group-hover:scale-110 transition-transform duration-500">
-              {product.category === 'bouquets' ? '💐' : 
-               product.category === 'boxes' ? '🎁' :
-               product.category === 'arrangements' ? '🌺' :
-               product.category === 'singles' ? '🌹' : '🎀'}
-            </span>
+            {product.primary_image_url ? (
+              <img 
+                src={`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}${product.primary_image_url}`} 
+                alt={product.name} 
+                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+              />
+            ) : (
+              <>
+                <div className="absolute inset-0 opacity-20">
+                  <div className="absolute top-4 right-4 text-6xl">🌸</div>
+                  <div className="absolute bottom-8 left-6 text-4xl">🌿</div>
+                  <div className="absolute top-1/2 left-1/3 text-3xl">✨</div>
+                </div>
+                <span className="text-7xl relative z-10 group-hover:scale-110 transition-transform duration-500">
+                  {product.category === 'bouquets' ? '💐' : 
+                   product.category === 'boxes' ? '📦' :
+                   product.category === 'vases' ? '🏺' :
+                   product.category === 'baskets' ? '🧺' :
+                   product.category === 'leis' ? '📿' :
+                   product.category === 'bridal' ? '👰' :
+                   product.category === 'fresh-flowers' ? '🌷' : '🎁'}
+                </span>
+              </>
+            )}
 
             {/* Out of stock overlay */}
             {!product.is_in_stock && (
@@ -81,7 +96,7 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
                   <Heart className="w-4 h-4 text-rose-500" />
                 </motion.button>
                 <Link
-                  to={`/products/${product.slug}`}
+                  to={`/?product=${product.slug}`}
                   className="p-2.5 bg-white/90 backdrop-blur-sm rounded-xl hover:bg-white transition-colors shadow-lg"
                 >
                   <Eye className="w-4 h-4 text-lavender-600" />
@@ -93,7 +108,7 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
 
         {/* Content */}
         <div className="p-4">
-          <Link to={`/products/${product.slug}`}>
+          <Link to={`/?product=${product.slug}`}>
             <h3 className="font-bold text-text hover:text-lavender-600 transition-colors line-clamp-1 mb-1">
               {product.name}
             </h3>

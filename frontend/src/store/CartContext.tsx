@@ -4,18 +4,20 @@ import { sharedOrderApi } from '../services/api';
 import toast from 'react-hot-toast';
 
 export interface LocalCartItem {
+  cartItemId: string; // Unique ID for the cart item instance
   product: Product;
   quantity: number;
-  gift_message?: string;
+  options?: Record<string, any>;
+  addons?: LocalCartItem[];
 }
 
 interface CartContextType {
   items: LocalCartItem[];
   itemCount: number;
   subtotal: number;
-  addItem: (product: Product, quantity?: number, giftMessage?: string) => void;
-  removeItem: (productId: number) => void;
-  updateQuantity: (productId: number, quantity: number) => void;
+  addItem: (product: Product, quantity?: number, options?: Record<string, any>, addons?: Omit<LocalCartItem, 'cartItemId'>[]) => void;
+  removeItem: (cartItemId: string) => void;
+  updateQuantity: (cartItemId: string, quantity: number) => void;
   clearCart: () => void;
   isInCart: (productId: number) => boolean;
   getAvailableStock: (product: Product) => number;
@@ -68,19 +70,29 @@ export function CartProvider({ children }: { children: ReactNode }) {
         if (mounted) {
           // Transform backend cart items to LocalCartItem format
           const mappedItems: LocalCartItem[] = res.cart.items.map((i: any) => ({
+            cartItemId: Date.now().toString() + Math.random().toString(36).substring(7),
             product: {
               ...i.product,
               id: i.product_id, // ensure ID is correct
               price: i.unit_price,
             },
             quantity: i.quantity,
-            gift_message: i.gift_message,
+            options: i.options,
+            addons: i.addons?.map((a: any) => ({
+              product: {
+                ...a.product,
+                id: a.product_id,
+                price: a.unit_price,
+              },
+              quantity: a.quantity,
+              options: a.options
+            })) || []
           }));
           
           // Check if items changed to avoid unnecessary rerenders
           setItems(current => {
-            const currentStr = JSON.stringify(current.map(c => ({ id: c.product.id, q: c.quantity })));
-            const mappedStr = JSON.stringify(mappedItems.map(m => ({ id: m.product.id, q: m.quantity })));
+            const currentStr = JSON.stringify(current.map(c => ({ id: c.product.id, q: c.quantity, a: c.addons?.length })));
+            const mappedStr = JSON.stringify(mappedItems.map(m => ({ id: m.product.id, q: m.quantity, a: m.addons?.length })));
             return currentStr === mappedStr ? current : mappedItems;
           });
         }
@@ -116,9 +128,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
     if (!sharedToken) return;
     try {
       const payload = newItems.map(i => ({
+        cartItemId: i.cartItemId,
         product_id: i.product.id,
         quantity: i.quantity,
-        gift_message: i.gift_message
+        options: i.options,
+        addons: i.addons?.map(a => ({ product_id: a.product.id, quantity: a.quantity, options: a.options })) || []
       }));
       await sharedOrderApi.updateItems(sharedToken, payload);
     } catch (err) {
@@ -127,18 +141,35 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const addItem = (product: Product, quantity = 1, giftMessage?: string) => {
+  const addItem = (product: Product, quantity = 1, options?: Record<string, any>, addons?: Omit<LocalCartItem, 'cartItemId'>[]) => {
     setItems((prev) => {
-      const existing = prev.find((item) => item.product.id === product.id);
+      // Check if exact same product with exact same options/addons exists (deep comparison is hard, so we just add new item for now, or compare simple options)
+      // For simplicity, if it has addons or options, we always add as a new item to avoid merging complex state.
+      // If it's a simple product with no addons/options, we can merge quantities.
+      
+      const hasExtras = (options && Object.keys(options).length > 0) || (addons && addons.length > 0);
+      
       let newItems;
-      if (existing) {
-        newItems = prev.map((item) =>
-          item.product.id === product.id
-            ? { ...item, quantity: item.quantity + quantity }
-            : item
-        );
+      if (!hasExtras) {
+        const existing = prev.find((item) => item.product.id === product.id && (!item.addons || item.addons.length === 0) && (!item.options || Object.keys(item.options).length === 0));
+        if (existing) {
+          newItems = prev.map((item) =>
+            item.cartItemId === existing.cartItemId
+              ? { ...item, quantity: item.quantity + quantity }
+              : item
+          );
+        } else {
+          newItems = [...prev, { cartItemId: Date.now().toString() + Math.random().toString(36).substring(7), product, quantity }];
+        }
       } else {
-        newItems = [...prev, { product, quantity, gift_message: giftMessage }];
+        const fullAddons = addons ? addons.map(a => ({ ...a, cartItemId: Date.now().toString() + Math.random().toString(36).substring(7) })) : [];
+        newItems = [...prev, { 
+          cartItemId: Date.now().toString() + Math.random().toString(36).substring(7), 
+          product, 
+          quantity, 
+          options, 
+          addons: fullAddons 
+        }];
       }
       
       if (isSharedSession) syncSharedCart(newItems);
@@ -146,22 +177,22 @@ export function CartProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  const removeItem = (productId: number) => {
+  const removeItem = (cartItemId: string) => {
     setItems((prev) => {
-      const newItems = prev.filter((item) => item.product.id !== productId);
+      const newItems = prev.filter((item) => item.cartItemId !== cartItemId);
       if (isSharedSession) syncSharedCart(newItems);
       return newItems;
     });
   };
 
-  const updateQuantity = (productId: number, quantity: number) => {
+  const updateQuantity = (cartItemId: string, quantity: number) => {
     if (quantity <= 0) {
-      removeItem(productId);
+      removeItem(cartItemId);
       return;
     }
     setItems((prev) => {
       const newItems = prev.map((item) =>
-        item.product.id === productId ? { ...item, quantity } : item
+        item.cartItemId === cartItemId ? { ...item, quantity } : item
       );
       if (isSharedSession) syncSharedCart(newItems);
       return newItems;
@@ -188,7 +219,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
   const subtotal = items.reduce(
-    (sum, item) => sum + item.product.price * item.quantity,
+    (sum, item) => {
+      const itemBase = item.product.price * item.quantity;
+      const addonsTotal = (item.addons || []).reduce((adSum, ad) => adSum + (ad.product.price * ad.quantity), 0);
+      return sum + itemBase + addonsTotal;
+    },
     0
   );
 

@@ -11,6 +11,7 @@ interface ComponentItem {
   stock_quantity: number;
   image_url: string | null;
   is_active: boolean;
+  color: string | null;
 }
 
 export default function ComponentsList() {
@@ -68,7 +69,7 @@ export default function ComponentsList() {
       is_active: item.is_active
     });
     setImageFile(null);
-    setImagePreview(item.image_url ? `http://127.0.0.1:8000${item.image_url}` : null);
+    setImagePreview(item.image_url ? `${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}${item.image_url}` : null);
     setIsModalOpen(true);
   };
 
@@ -132,7 +133,7 @@ export default function ComponentsList() {
   };
 
   const translateType = (category: string) => {
-    const categories: Record<string, string> = { flower: 'ورد', wrapping: 'تغليف', greens: 'نباتات', accessories: 'إكسسوار' };
+    const categories: Record<string, string> = { flower: 'ورد', greens: 'خضريات', container: 'أوعية', wrapping: 'تغليف', accessory: 'إضافات', food: 'أطعمة', filler: 'حشو', dried: 'مجففات' };
     return categories[category] || category;
   };
 
@@ -177,14 +178,16 @@ export default function ComponentsList() {
                     <td className="py-4 px-6">
                       <div className="flex items-center gap-3">
                         {item.image_url ? (
-                          <img src={`http://127.0.0.1:8000${item.image_url}`} alt={item.name} className="w-10 h-10 rounded-lg object-cover border border-primary-100" />
+                          <img src={`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}${item.image_url}`} alt={item.name} className="w-10 h-10 rounded-lg object-cover border border-primary-100" />
                         ) : (
                           <div className="w-10 h-10 rounded-lg bg-primary-100 flex items-center justify-center text-primary-600">
                             <Package className="w-5 h-5" />
                           </div>
                         )}
                         <div>
-                          <p className="font-bold text-primary-900">{item.name}</p>
+                          <p className="font-bold text-primary-900">
+                            {item.name} {item.color && <span className="text-sm font-normal text-primary-600">({item.color})</span>}
+                          </p>
                           {item.name_en && <p className="text-xs text-primary-500">{item.name_en}</p>}
                         </div>
                       </div>
@@ -247,9 +250,13 @@ export default function ComponentsList() {
                   <label className="block text-sm font-medium mb-1">النوع</label>
                   <select value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} className="w-full border rounded-lg px-3 py-2">
                     <option value="flower">ورد</option>
+                    <option value="greens">خضريات</option>
+                    <option value="container">أوعية</option>
                     <option value="wrapping">تغليف</option>
-                    <option value="greens">نباتات</option>
-                    <option value="accessories">إكسسوار</option>
+                    <option value="accessory">إضافات</option>
+                    <option value="food">أطعمة</option>
+                    <option value="filler">حشو</option>
+                    <option value="dried">مجففات</option>
                   </select>
                 </div>
                 <div>

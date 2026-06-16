@@ -18,76 +18,41 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // Create Admin User
-        User::create([
-            'name' => 'Admin User',
-            'email' => 'admin@lavender.com',
-            'password' => Hash::make('password'),
-            'role' => 'admin',
-            'is_active' => true,
-        ]);
+        User::updateOrCreate(
+            ['email' => 'admin@lavender.com'],
+            [
+                'name' => 'Admin User',
+                'password' => Hash::make('password'),
+                'role' => 'admin',
+                'is_active' => true,
+            ]
+        );
+
+        // Create Njeeb Admin User
+        User::updateOrCreate(
+            ['email' => 'xxnjeebxx@gmail.com'],
+            [
+                'name' => 'NJEEB ALMUSAWI',
+                'password' => Hash::make('password'),
+                'role' => 'admin',
+                'is_active' => true,
+            ]
+        );
 
         // Create Default Customer
-        User::create([
-            'name' => 'Test Customer',
-            'email' => 'customer@lavender.com',
-            'password' => Hash::make('password'),
-            'role' => 'customer',
-            'is_active' => true,
-            'phone' => '+966500000000',
-        ]);
+        User::updateOrCreate(
+            ['email' => 'customer@lavender.com'],
+            [
+                'name' => 'Test Customer',
+                'password' => Hash::make('password'),
+                'role' => 'customer',
+                'is_active' => true,
+                'phone' => '+966500000000',
+            ]
+        );
 
-        // Create Some Components
-        $redRose = Component::create([
-            'name' => 'ورد جوري أحمر',
-            'name_en' => 'Red Rose',
-            'category' => 'flower',
-            'color' => '#ff0000',
-            'unit' => 'piece',
-            'cost_per_unit' => 2.50,
-            'stock_quantity' => 100,
-            'min_stock_alert' => 20,
-        ]);
-
-        $whiteLily = Component::create([
-            'name' => 'زنبق أبيض',
-            'name_en' => 'White Lily',
-            'category' => 'flower',
-            'color' => '#ffffff',
-            'unit' => 'piece',
-            'cost_per_unit' => 5.00,
-            'stock_quantity' => 50,
-            'min_stock_alert' => 10,
-        ]);
-
-        $wrappingPaper = Component::create([
-            'name' => 'تغليف أسود فاخر',
-            'name_en' => 'Luxury Black Wrapping',
-            'category' => 'wrapping',
-            'color' => '#000000',
-            'unit' => 'meter',
-            'cost_per_unit' => 3.00,
-            'stock_quantity' => 200,
-            'min_stock_alert' => 50,
-        ]);
-
-        // Create a Product
-        $product = Product::create([
-            'name' => 'باقة الحب الأبدي',
-            'name_en' => 'Eternal Love Bouquet',
-            'description' => 'باقة رائعة من الورد الجوري الأحمر تغلف باللون الأسود الفاخر لتعبر عن أصدق المشاعر',
-            'category' => 'bouquets',
-            'occasion' => 'love',
-            'price' => 150.00,
-            'is_active' => true,
-            'is_featured' => true,
-            'preparation_time_minutes' => 30,
-        ]);
-
-        // Attach Components to Product
-        $product->components()->attach([
-            $redRose->id => ['quantity' => 12],
-            $wrappingPaper->id => ['quantity' => 2],
-        ]);
+        // Seed All Components
+        $this->call(ComponentSeeder::class);
 
         // Create Default Store Settings
         StoreSetting::create(['key' => 'delivery_fee', 'value' => 15.00]);

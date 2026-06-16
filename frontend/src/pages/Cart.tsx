@@ -52,47 +52,74 @@ export default function Cart() {
             {items.map((item) => (
               <motion.div 
                 layout
-                key={item.product.id} 
-                className="flex gap-6 bg-white p-4 rounded-2xl border border-primary-100 shadow-sm"
+                key={item.cartItemId} 
+                className="flex flex-col bg-white p-4 rounded-2xl border border-primary-100 shadow-sm"
               >
-                {/* Image */}
-                {item.product.primary_image ? (
-                  <img src={`http://127.0.0.1:8000${item.product.primary_image.image_url}`} alt={item.product.name} className="w-24 h-24 bg-primary-50 rounded-xl object-cover flex-shrink-0" />
-                ) : (
-                  <div className="w-24 h-24 bg-primary-50 rounded-xl flex items-center justify-center flex-shrink-0 border border-primary-100">
-                    <svg className="text-primary-300" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m8 14 4-4 4 4"/></svg>
-                  </div>
-                )}
-                
-                <div className="flex-1 flex flex-col justify-between">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-semibold text-primary-900 text-lg">{item.product.name}</h3>
-                      {item.gift_message && (
-                        <p className="text-sm text-primary-500 mt-1 line-clamp-1">رسالة الإهداء: {item.gift_message}</p>
-                      )}
+                <div className="flex gap-6">
+                  {/* Image */}
+                  {item.product.primary_image ? (
+                    <img src={`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}${item.product.primary_image.image_url}`} alt={item.product.name} className="w-24 h-24 bg-primary-50 rounded-xl object-cover flex-shrink-0" />
+                  ) : (
+                    <div className="w-24 h-24 bg-primary-50 rounded-xl flex items-center justify-center flex-shrink-0 border border-primary-100">
+                      <svg className="text-primary-300" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m8 14 4-4 4 4"/></svg>
                     </div>
-                    <button onClick={() => removeItem(item.product.id)} className="text-primary-400 hover:text-red-500 transition-colors p-2">
-                      <Trash2 className="w-5 h-5" />
-                    </button>
-                  </div>
+                  )}
                   
-                  <div className="flex justify-between items-center mt-4">
-                    <div className="text-lg font-bold text-accent-700">{item.product.price} ر.س</div>
-                    
-                    <div className="flex items-center bg-primary-50 rounded-lg border border-primary-100 overflow-hidden">
-                      <button onClick={() => updateQuantity(item.product.id, item.quantity - 1)} className="w-8 h-8 flex items-center justify-center text-primary-600 hover:bg-primary-100 transition-colors">-</button>
-                      <span className="w-8 text-center text-sm font-medium">{item.quantity}</span>
-                      <button 
-                        onClick={() => updateQuantity(item.product.id, item.quantity + 1)} 
-                        disabled={getAvailableStock(item.product) === 0}
-                        className="w-8 h-8 flex items-center justify-center text-primary-600 hover:bg-primary-100 transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
-                      >
-                        +
+                  <div className="flex-1 flex flex-col justify-between">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="font-semibold text-primary-900 text-lg">{item.product.name}</h3>
+                        {item.options?.message && (
+                          <p className="text-sm text-primary-500 mt-1 whitespace-pre-wrap">رسالة الإهداء: {item.options.message}</p>
+                        )}
+                      </div>
+                      <button onClick={() => removeItem(item.cartItemId)} className="text-primary-400 hover:text-red-500 transition-colors p-2">
+                        <Trash2 className="w-5 h-5" />
                       </button>
+                    </div>
+                    
+                    <div className="flex justify-between items-center mt-4">
+                      <div className="text-lg font-bold text-accent-700">{item.product.price} ر.س</div>
+                      
+                      <div className="flex items-center bg-primary-50 rounded-lg border border-primary-100 overflow-hidden">
+                        <button onClick={() => updateQuantity(item.cartItemId, item.quantity - 1)} className="w-8 h-8 flex items-center justify-center text-primary-600 hover:bg-primary-100 transition-colors">-</button>
+                        <span className="w-8 text-center text-sm font-medium">{item.quantity}</span>
+                        <button 
+                          onClick={() => updateQuantity(item.cartItemId, item.quantity + 1)} 
+                          disabled={getAvailableStock(item.product) === 0}
+                          className="w-8 h-8 flex items-center justify-center text-primary-600 hover:bg-primary-100 transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
+                        >
+                          +
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
+
+                {/* Addons Display */}
+                {item.addons && item.addons.length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-primary-50 flex flex-col gap-3">
+                    <span className="text-xs font-bold text-primary-400 uppercase tracking-wider">الإضافات الملحقة</span>
+                    {item.addons.map((addon, idx) => (
+                      <div key={idx} className="flex justify-between items-center bg-primary-50/50 p-3 rounded-xl border border-primary-100/50">
+                        <div className="flex items-center gap-3">
+                          {addon.product.primary_image_url ? (
+                            <img src={`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}${addon.product.primary_image_url}`} alt={addon.product.name} className="w-12 h-12 rounded object-cover" />
+                          ) : (
+                            <div className="w-12 h-12 bg-primary-100 rounded flex items-center justify-center text-xs text-primary-400">ملحق</div>
+                          )}
+                          <div>
+                            <p className="font-semibold text-primary-800 text-sm">{addon.product.name}</p>
+                            {addon.options?.message && <p className="text-xs text-primary-500 mt-0.5 line-clamp-1">{addon.options.message}</p>}
+                          </div>
+                        </div>
+                        <div className="text-sm font-bold text-accent-600">
+                          {Number(addon.product.price) > 0 ? `+${addon.product.price} ر.س` : 'مجاني'}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </motion.div>
             ))}
           </div>

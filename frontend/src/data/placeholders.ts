@@ -205,20 +205,25 @@ export const placeholderProducts: Product[] = [
 ];
 
 export const categories = [
-  { id: 'bouquets', name: 'باقات', icon: '💐', description: 'باقات زهور بتصاميم مبتكرة', count: 24 },
-  { id: 'boxes', name: 'صناديق', icon: '🎁', description: 'صناديق زهور فاخرة', count: 16 },
-  { id: 'arrangements', name: 'تنسيقات', icon: '🌸', description: 'تنسيقات زهرية فنية', count: 18 },
-  { id: 'singles', name: 'أزهار مفردة', icon: '🌹', description: 'أزهار مفردة طازجة', count: 12 },
-  { id: 'gifts', name: 'هدايا', icon: '🎀', description: 'هدايا مع تنسيقات زهرية', count: 10 },
+  { id: 'bouquets', name: 'باقات وبوكيهات', icon: '💐', description: 'باقات زهور بتصاميم مبتكرة' },
+  { id: 'boxes', name: 'بوكسات', icon: '📦', description: 'بوكسات فاخرة وتنسيقات' },
+  { id: 'vases', name: 'فازات', icon: '🏺', description: 'فازات زجاجية راقية' },
+  { id: 'baskets', name: 'سلال', icon: '🧺', description: 'سلال ورد مميزة' },
+  { id: 'leis', name: 'عقود وشيلان', icon: '📿', description: 'عقود ورود وشيلان فخمة' },
+  { id: 'bridal', name: 'مسكات عرايس', icon: '👰', description: 'مسكات زفاف بتصاميم جذابة' },
+  { id: 'gifts', name: 'هدايا وتوزيعات', icon: '🎁', description: 'توزيعات وهدايا للمناسبات' },
+  { id: 'fresh-flowers', name: 'زهور طبيعية', icon: '🌷', description: 'زهور طبيعية بالكيس' },
+  { id: 'cards', name: 'بطاقات إهداء', icon: '💌', description: 'بطاقات إهداء بتصاميم متنوعة' },
 ];
 
 export const occasions = [
-  { id: 'love', name: 'حب', icon: '❤️', color: 'from-rose-400 to-pink-500' },
-  { id: 'wedding', name: 'زواج', icon: '💍', color: 'from-amber-300 to-yellow-500' },
   { id: 'graduation', name: 'تخرج', icon: '🎓', color: 'from-blue-400 to-indigo-500' },
-  { id: 'congratulations', name: 'تهنئة', icon: '🎉', color: 'from-green-400 to-emerald-500' },
-  { id: 'condolence', name: 'تعزية', icon: '🕊️', color: 'from-gray-400 to-slate-500' },
-  { id: 'birthday', name: 'عيد ميلاد', icon: '🎂', color: 'from-purple-400 to-fuchsia-500' },
+  { id: 'wedding', name: 'زفاف', icon: '💍', color: 'from-amber-300 to-yellow-500' },
+  { id: 'love', name: 'حب', icon: '❤️', color: 'from-rose-400 to-pink-500' },
+  { id: 'new-baby', name: 'مولود جديد', icon: '👶', color: 'from-sky-300 to-cyan-500' },
+  { id: 'eid', name: 'رمضان والعيد', icon: '🌙', color: 'from-yellow-400 to-orange-500' },
+  { id: 'general', name: 'تهنئة عامة', icon: '🎉', color: 'from-emerald-400 to-teal-500' },
+  { id: 'all', name: 'الكل', icon: '🌐', color: 'from-gray-400 to-slate-500' },
 ];
 
 export const testimonials = [

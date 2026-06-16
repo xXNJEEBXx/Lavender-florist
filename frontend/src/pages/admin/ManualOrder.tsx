@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Package, Search, MapPin, Calendar, Clock, DollarSign, Send, CheckCircle2, User, AlertTriangle, Link as LinkIcon, Plus, Trash2, Map as MapIcon, RefreshCw } from 'lucide-react';
+import { Package, Search, MapPin, Calendar, Clock, DollarSign, Send, CheckCircle2, User, AlertTriangle, Link as LinkIcon, Plus, Trash2, Map as MapIcon, RefreshCw, Loader2 } from 'lucide-react';
 import { adminProductsApi, adminOrdersApi, storeApi, adminSettingsApi } from '../../services/api';
 import { normalizeSaudiPhone } from '../../utils/phone';
 import toast from 'react-hot-toast';
 
-import { useJsApiLoader } from '@react-google-maps/api';
+import { useJsApiLoader, GoogleMap, Marker } from '@react-google-maps/api';
+import Modal from '../../components/ui/Modal';
 
 const STORE_LOCATION = { lat: 25.3857, lng: 49.5898 };
 
@@ -32,6 +33,42 @@ export default function ManualOrder() {
   const [deliverySpeed, setDeliverySpeed] = useState('standard');
   const [selectedAddressId, setSelectedAddressId] = useState('');
   const [newAddress, setNewAddress] = useState({ city: 'الأحساء', street_address: '', google_maps_link: '', latitude: null as number|null, longitude: null as number|null });
+  
+  const [isMapModalOpen, setIsMapModalOpen] = useState(false);
+  const [mapCenter, setMapCenter] = useState(STORE_LOCATION);
+  const [selectedLocation, setSelectedLocation] = useState<google.maps.LatLngLiteral | null>(null);
+  const [isExtractingLink, setIsExtractingLink] = useState(false);
+
+  const extractFromLink = async (link: string) => {
+    if (!link || !link.includes('http')) return;
+    setIsExtractingLink(true);
+    try {
+      const res = await storeApi.expandUrl(link);
+      if (res.latitude && res.longitude) {
+        const lat = parseFloat(res.latitude);
+        const lng = parseFloat(res.longitude);
+        setSelectedLocation({ lat, lng });
+        setMapCenter({ lat, lng });
+        setNewAddress(prev => ({ ...prev, latitude: lat, longitude: lng }));
+        
+        // Reverse Geocode to get street name and neighborhood
+        if (window.google) {
+          const geocoder = new google.maps.Geocoder();
+          geocoder.geocode({ location: { lat, lng } }, (results, status) => {
+            if (status === 'OK' && results && results[0]) {
+              setNewAddress(prev => ({...prev, street_address: results[0].formatted_address}));
+            }
+          });
+        } else {
+          setNewAddress(prev => ({...prev, street_address: `إحداثيات: ${lat.toFixed(4)}, ${lng.toFixed(4)}`}));
+        }
+      }
+    } catch (e) {
+      console.error("Failed to extract map URL", e);
+    } finally {
+      setIsExtractingLink(false);
+    }
+  };
   
   const [scheduledDate, setScheduledDate] = useState('');
   const [scheduledTime, setScheduledTime] = useState('');
@@ -144,17 +181,6 @@ export default function ManualOrder() {
       toast.error('خطأ في البحث');
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleMapLinkPaste = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const link = e.target.value;
-    setNewAddress({ ...newAddress, google_maps_link: link });
-    
-    const match = link.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
-    if (match) {
-      setNewAddress(prev => ({ ...prev, latitude: parseFloat(match[1]), longitude: parseFloat(match[2]) }));
-      toast.success('تم استخراج الإحداثيات من الرابط بنجاح');
     }
   };
 
@@ -478,25 +504,51 @@ export default function ManualOrder() {
                   )}
 
                   {(!savedAddresses.length || selectedAddressId === 'new') && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-200">
-                      <div className="md:col-span-2">
-                        <label className="block text-xs font-bold text-primary-600 mb-1">رابط خرائط جوجل (إن وجد)</label>
-                        <input
-                          type="url"
-                          placeholder="https://maps.google.com/..."
-                          value={newAddress.google_maps_link}
-                          onChange={handleMapLinkPaste}
-                          className="w-full p-2.5 border border-primary-200 rounded-lg text-left dir-ltr focus:ring-2 focus:ring-primary-500"
+                    <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-primary-900 mb-2">رابط خرائط جوجل (إن وجد)</label>
+                        <input 
+                          type="url" 
+                          value={newAddress.google_maps_link || ''} 
+                          onChange={e => setNewAddress({...newAddress, google_maps_link: e.target.value})} 
+                          onBlur={e => extractFromLink(e.target.value)}
+                          className="w-full p-2.5 rounded-lg border border-primary-200 focus:ring-2 focus:ring-primary-500 outline-none text-left dir-ltr" 
+                          placeholder="https://maps.google.com/..." 
                         />
+                        {isExtractingLink && (
+                          <p className="text-sm text-primary-500 mt-2 flex items-center gap-1 animate-pulse">
+                            <Loader2 className="w-4 h-4 animate-spin"/> جاري استخراج العنوان من الرابط...
+                          </p>
+                        )}
                       </div>
-                      <div className="md:col-span-2">
-                        <label className="block text-xs font-bold text-primary-600 mb-1">وصف العنوان</label>
+                      <div className="flex items-center gap-4">
+                        <div className="flex-1 h-px bg-primary-100"></div>
+                        <span className="text-xs text-primary-400 font-bold">أو</span>
+                        <div className="flex-1 h-px bg-primary-100"></div>
+                      </div>
+                      <div>
+                        <button 
+                          type="button" 
+                          onClick={() => setIsMapModalOpen(true)}
+                          className="w-full flex items-center justify-center gap-3 bg-emerald-50 text-emerald-700 border-2 border-emerald-200 hover:bg-emerald-100 p-3 rounded-lg font-bold transition-colors"
+                        >
+                          <MapIcon className="w-5 h-5" />
+                          تحديد الموقع عبر الخريطة
+                        </button>
+                        {(newAddress.street_address || '').includes('تم تحديد الموقع') && (
+                          <p className="text-sm text-emerald-600 mt-2 flex items-center gap-1">
+                            <CheckCircle2 className="w-4 h-4"/> تم تحديد الموقع بنجاح
+                          </p>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-primary-900 mb-2 mt-4">وصف العنوان</label>
                         <input
                           type="text"
                           placeholder="الشارع، الحي، المعالم..."
                           value={newAddress.street_address}
                           onChange={e => setNewAddress({...newAddress, street_address: e.target.value})}
-                          className="w-full p-2.5 border border-primary-200 rounded-lg focus:ring-2 focus:ring-primary-500"
+                          className="w-full p-2.5 rounded-lg border border-primary-200 focus:ring-2 focus:ring-primary-500 outline-none"
                         />
                       </div>
                     </div>
@@ -688,6 +740,94 @@ export default function ManualOrder() {
         </div>
 
       </div>
+
+      <Modal
+        isOpen={isMapModalOpen && isLoaded}
+        onClose={() => setIsMapModalOpen(false)}
+        size="2xl"
+        title={<span className="font-bold flex items-center gap-2"><MapIcon className="w-5 h-5 text-emerald-600"/> تحديد الموقع</span>}
+        headerAction={
+          <button 
+            onClick={() => {
+              if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                  (position) => {
+                    const pos = {
+                      lat: position.coords.latitude,
+                      lng: position.coords.longitude,
+                    };
+                    setMapCenter(pos);
+                    setSelectedLocation(pos);
+                  },
+                  () => {
+                    alert("لم نتمكن من تحديد موقعك. تأكد من إعطاء الصلاحية للمتصفح.");
+                  },
+                  { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                );
+              } else {
+                alert("المتصفح الخاص بك لا يدعم تحديد الموقع.");
+              }
+            }}
+            className="flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-100 hover:bg-emerald-200 px-3 py-1.5 rounded-lg transition-colors"
+          >
+            <MapPin className="w-4 h-4" /> موقعي الحالي
+          </button>
+        }
+      >
+        <div className="flex flex-col">
+              <div className="h-[400px] w-full relative">
+                <GoogleMap
+                  mapContainerStyle={{ width: '100%', height: '100%' }}
+                  center={mapCenter}
+                  zoom={15}
+                  options={{
+                    streetViewControl: false,
+                    mapTypeControl: false,
+                    fullscreenControl: false,
+                  }}
+                  onClick={(e) => {
+                    if (e.latLng) {
+                      setSelectedLocation({ lat: e.latLng.lat(), lng: e.latLng.lng() });
+                    }
+                  }}
+                >
+                  {selectedLocation && (
+                    <Marker position={selectedLocation} />
+                  )}
+                </GoogleMap>
+              </div>
+              
+              <div className="p-6 bg-white flex justify-end gap-3 border-t border-gray-100">
+                <button 
+                  onClick={() => setIsMapModalOpen(false)}
+                  className="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+                >
+                  إلغاء
+                </button>
+                <button 
+                  disabled={!selectedLocation}
+                  onClick={() => {
+                    if (selectedLocation) {
+                      // Reverse Geocode
+                      const geocoder = new google.maps.Geocoder();
+                      geocoder.geocode({ location: selectedLocation }, (results, status) => {
+                        if (status === 'OK' && results && results[0]) {
+                          setNewAddress({...newAddress, latitude: selectedLocation.lat, longitude: selectedLocation.lng, street_address: results[0].formatted_address});
+                        } else {
+                          setNewAddress({...newAddress, latitude: selectedLocation.lat, longitude: selectedLocation.lng, street_address: `إحداثيات: ${selectedLocation.lat.toFixed(4)}, ${selectedLocation.lng.toFixed(4)}`});
+                        }
+                        setIsMapModalOpen(false);
+                      });
+                    }
+                  }}
+                  className="px-8 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-colors shadow-lg disabled:opacity-50"
+                >
+                  تأكيد الموقع
+                </button>
+              </div>
+        </div>
+      </Modal>
+
     </div>
   );
 }

@@ -261,4 +261,12 @@ export const couponApi = {
   delete: (id: number) => api.delete(`/admin/coupons/${id}`).then(res => res.data),
 };
 
+export const aiChatApi = {
+  sendMessage: (data: FormData) => api.post('/ai/chat', data, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }).then(res => res.data),
+  getHistory: (sessionId: string) => api.get(`/ai/chat/history?session_id=${sessionId}`).then(res => res.data),
+  getToolsSchema: () => api.get('/internal/tools').then(res => res.data),
+};
+
 export default api;

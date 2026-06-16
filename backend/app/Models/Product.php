@@ -13,17 +13,18 @@ class Product extends Model
 
     protected $fillable = [
         'name', 'name_en', 'slug', 'description', 'category', 'price',
-        'compare_at_price', 'occasion', 'tags', 'is_featured', 'is_active',
+        'compare_at_price', 'occasions', 'tags', 'is_featured', 'is_active',
         'preparation_time_minutes', 'sort_order',
     ];
 
-    protected $appends = ['is_in_stock', 'calculated_stock'];
+    protected $appends = ['is_in_stock', 'calculated_stock', 'primary_image_url'];
 
     protected function casts(): array
     {
         return [
             'price'            => 'decimal:2',
             'compare_at_price' => 'decimal:2',
+            'occasions'        => 'array',
             'tags'             => 'array',
             'is_featured'      => 'boolean',
             'is_active'        => 'boolean',
@@ -35,7 +36,14 @@ class Product extends Model
     {
         static::creating(function ($product) {
             if (empty($product->slug)) {
-                $product->slug = Str::slug($product->name_en ?? $product->name);
+                $baseSlug = Str::slug($product->name_en ?? $product->name);
+                $slug = $baseSlug;
+                $counter = 1;
+                while (static::where('slug', $slug)->exists()) {
+                    $slug = $baseSlug . '-' . $counter;
+                    $counter++;
+                }
+                $product->slug = $slug;
             }
         });
     }
@@ -61,6 +69,11 @@ class Product extends Model
     {
         if ($this->components->isEmpty()) return true;
         return $this->calculated_stock > 0;
+    }
+
+    public function getPrimaryImageUrlAttribute(): ?string
+    {
+        return $this->primaryImage ? $this->primaryImage->image_url : null;
     }
 
     // Relationships

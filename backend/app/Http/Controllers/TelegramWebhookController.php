@@ -35,7 +35,7 @@ class TelegramWebhookController extends Controller
     protected function handleMessage($message)
     {
         $chatId = $message['chat']['id'];
-        $text = $message['text'] ?? '';
+        $text = $message['text'] ?? $message['caption'] ?? '';
         $username = $message['from']['username'] ?? null;
 
         if ($text === '/start') {
@@ -46,7 +46,72 @@ class TelegramWebhookController extends Controller
             $this->handleStatusCommand($chatId);
         } elseif ($text === '/help') {
             $this->handleHelpCommand($chatId);
+        } else {
+            // Route to AI Assistant if user is an Admin
+            $admin = User::where('telegram_chat_id', $chatId)->where('role', 'admin')->first();
+            if ($admin) {
+                $aiService = app(\App\Services\AiAssistantService::class);
+                
+                // If there's a photo, we would download it. For now, pass null or placeholder path
+                // In a real scenario we use Telegram's getFile and download it.
+                $imagePath = null;
+                
+                if (isset($message['photo'])) {
+                    $imagePath = $this->downloadTelegramPhoto($message['photo']);
+                }
+
+                $this->telegram->sendMessage($chatId, "⏳ جاري التفكير...");
+                
+                try {
+                    $response = $aiService->sendMessage('telegram_'.$chatId, 'telegram', $text, $imagePath, $admin->id);
+                    
+                    if ($response['status'] === 'success' && !empty($response['responses'])) {
+                        foreach ($response['responses'] as $res) {
+                            if ($res['type'] === 'text') {
+                                $this->telegram->sendMessage($chatId, $res['content']);
+                            } elseif ($res['type'] === 'ui_card') {
+                                // Fallback for telegram since it can't render react components
+                                $cardData = $res['data'];
+                                if ($cardData['card_type'] === 'product') {
+                                    $p = $cardData['product'];
+                                    $msg = "📦 **{$p['name']}**\nالسعر: {$p['price']} ر.س\nالمخزون: {$p['stock']}";
+                                    if ($p['image_url']) {
+                                        // $this->telegram->sendPhoto($chatId, $p['image_url'], $msg); // Depends on implementation
+                                        $this->telegram->sendMessage($chatId, $msg . "\n" . $p['image_url']);
+                                    } else {
+                                        $this->telegram->sendMessage($chatId, $msg);
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        $this->telegram->sendMessage($chatId, "⚠️ حدث خطأ في معالجة طلبك.");
+                    }
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error("Telegram AI Error", ['error' => $e->getMessage()]);
+                    $this->telegram->sendMessage($chatId, "⚠️ حدث خطأ في النظام.");
+                }
+            }
         }
+    }
+
+    protected function downloadTelegramPhoto($photoArray)
+    {
+        $largestPhoto = end($photoArray);
+        $fileId = $largestPhoto['file_id'];
+        $url = $this->telegram->getFileUrl($fileId);
+        
+        if ($url) {
+            try {
+                $contents = \Illuminate\Support\Facades\Http::get($url)->body();
+                $filename = 'ai_uploads/tg_' . time() . '_' . rand(1000, 9999) . '.jpg';
+                \Illuminate\Support\Facades\Storage::disk('public')->put($filename, $contents);
+                return 'storage/' . $filename;
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error("Failed to download TG photo", ['error' => $e->getMessage()]);
+            }
+        }
+        return null;
     }
 
     protected function handleStart($chatId, $username)

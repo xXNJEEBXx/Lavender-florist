@@ -16,11 +16,11 @@ interface TelegramSettings {
 export default function AdminSettings() {
   const [settings, setSettings] = useState<TelegramSettings | null>(null);
   
-  // Store Settings State
   const [storeSettings, setStoreSettings] = useState({
     enable_door_image_discount: true,
     store_bears_door_discount: true,
-    store_bears_delivery_coupon: true
+    store_bears_delivery_coupon: true,
+    ai_system_prompt: ''
   });
 
   const [isLoading, setIsLoading] = useState(true);

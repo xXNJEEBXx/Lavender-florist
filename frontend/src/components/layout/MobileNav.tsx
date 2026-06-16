@@ -3,21 +3,33 @@ import { Home, ShoppingBag, Grid3X3, User, MessageCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useCart } from '../../store/CartContext';
 
-const navItems = [
-  { path: '/', icon: Home, label: 'الرئيسية' },
-  { path: '/products', icon: Grid3X3, label: 'المنتجات' },
-  { path: '/cart', icon: ShoppingBag, label: 'السلة', showBadge: true },
-  { path: '/contact', icon: MessageCircle, label: 'تواصل' },
-  { path: '/login', icon: User, label: 'حسابي' },
-];
-
+import { useAuth } from '../../store/AuthContext';
 export default function MobileNav() {
   const location = useLocation();
   const { itemCount } = useCart();
+  const { isAuthenticated, openLoginModal } = useAuth();
+
+  const navItems = [
+    { path: '/', icon: Home, label: 'الرئيسية' },
+    { path: '/#products', icon: Grid3X3, label: 'المنتجات' },
+    { path: '/cart', icon: ShoppingBag, label: 'السلة', showBadge: true },
+    { path: '/contact', icon: MessageCircle, label: 'تواصل' },
+    { path: isAuthenticated ? '/my-orders' : '#login', icon: User, label: 'حسابي' },
+  ];
 
   const isActive = (path: string) => {
-    if (path === '/') return location.pathname === '/';
+    if (path === '/') return location.pathname === '/' && !location.hash;
+    if (path.startsWith('/#')) return location.hash === path.substring(1);
     return location.pathname.startsWith(path);
+  };
+
+  const handleNavClick = (e: React.MouseEvent, path: string) => {
+    if (path === '#login') {
+      e.preventDefault();
+      openLoginModal();
+    } else if (path.startsWith('/#')) {
+      // Allow default behavior for hash links, or you can smooth scroll
+    }
   };
 
   return (
@@ -26,11 +38,17 @@ export default function MobileNav() {
         {navItems.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.path);
+          const isHash = item.path.startsWith('/#');
+          
+          // Use 'a' tag for hash links and '#login', use 'Link' for regular routes
+          const LinkComponent: any = (isHash || item.path === '#login') ? 'a' : Link;
+          const hrefProp = (isHash || item.path === '#login') ? { href: isHash ? item.path : '#' } : { to: item.path };
 
           return (
-            <Link
+            <LinkComponent
               key={item.path}
-              to={item.path}
+              {...hrefProp}
+              onClick={(e: React.MouseEvent) => handleNavClick(e, item.path)}
               className="relative flex flex-col items-center gap-0.5 py-1 px-3"
             >
               <div className="relative">
@@ -63,7 +81,7 @@ export default function MobileNav() {
                   transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                 />
               )}
-            </Link>
+            </LinkComponent>
           );
         })}
       </div>

@@ -11,8 +11,8 @@ return new class extends Migration {
             $table->id();
             $table->string('name');
             $table->string('name_en')->nullable();
-            $table->enum('category', ['flower', 'greens', 'wrapping', 'accessories', 'gift_cards'])->default('flower');
-            $table->string('color', 7)->nullable(); // hex color
+            $table->enum('category', ['flower', 'greens', 'container', 'wrapping', 'accessory', 'food', 'filler', 'gift_cards'])->default('flower');
+            $table->string('color', 50)->nullable(); // Text or hex color
             $table->string('image_url')->nullable();
             $table->enum('unit', ['piece', 'branch', 'meter', 'item'])->default('piece');
             $table->decimal('cost_per_unit', 10, 2)->default(0);

@@ -668,13 +668,13 @@ export default function OrdersList() {
                               {order.items?.map((item: any) => (
                                 <div key={item.id} className="flex items-center gap-3 bg-white px-3 py-2 rounded-xl border border-primary-100 shadow-sm max-w-sm">
                                   {item.product?.primary_image && (
-                                    <img src={`http://127.0.0.1:8000${item.product.primary_image.image_url}`} alt={item.product_name} className="w-10 h-10 rounded-lg object-cover border border-primary-50" />
+                                    <img src={`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}${item.product.primary_image.image_url}`} alt={item.product_name} className="w-10 h-10 rounded-lg object-cover border border-primary-50" />
                                   )}
                                   <div className="flex-1 min-w-0">
                                     <p className="text-sm font-bold text-primary-900 truncate">{item.product_name}</p>
                                     <p className="text-xs text-primary-500">{item.quantity} × {item.unit_price} ر.س = <strong>{item.total_price} ر.س</strong></p>
-                                    {item.gift_message && item.gift_message.message && (
-                                      <p className="text-xs text-primary-700 bg-primary-50 p-1.5 mt-1 rounded border border-primary-100 font-medium truncate">رسالة: "{item.gift_message.message}"</p>
+                                    {((item.options && item.options.message) || (item.gift_message && item.gift_message.message)) && (
+                                      <p className="text-xs text-primary-700 bg-primary-50 p-1.5 mt-1 rounded border border-primary-100 font-medium truncate">رسالة: "{item.options?.message || item.gift_message?.message}"</p>
                                     )}
                                   </div>
                                 </div>
@@ -920,11 +920,11 @@ export default function OrdersList() {
                               <div className="absolute inset-0 flex flex-col items-center justify-center bg-white">
                                 <FileText className="w-16 h-16 text-red-500 mb-4" />
                                 <span className="font-bold text-gray-700 mb-4">ملف PDF</span>
-                                <a href={`http://127.0.0.1:8000${selectedOrder.bank_transfer_receipt}`} target="_blank" rel="noreferrer" className="bg-primary-800 text-white px-6 py-2 rounded-lg font-bold flex items-center gap-2 hover:bg-primary-900"><Download className="w-4 h-4" /> تحميل</a>
+                                <a href={`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}${selectedOrder.bank_transfer_receipt}`} target="_blank" rel="noreferrer" className="bg-primary-800 text-white px-6 py-2 rounded-lg font-bold flex items-center gap-2 hover:bg-primary-900"><Download className="w-4 h-4" /> تحميل</a>
                               </div>
                             ) : (
-                              <a href={`http://127.0.0.1:8000${selectedOrder.bank_transfer_receipt}`} target="_blank" rel="noreferrer">
-                                <img src={`http://127.0.0.1:8000${selectedOrder.bank_transfer_receipt}`} alt="إيصال التحويل" className="w-full h-full object-contain bg-black/5" />
+                              <a href={`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}${selectedOrder.bank_transfer_receipt}`} target="_blank" rel="noreferrer">
+                                <img src={`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}${selectedOrder.bank_transfer_receipt}`} alt="إيصال التحويل" className="w-full h-full object-contain bg-black/5" />
                                 <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                   <span className="text-white font-bold bg-black/50 px-4 py-2 rounded-lg">اضغط للتكبير</span>
                                 </div>
@@ -942,12 +942,12 @@ export default function OrdersList() {
                         {selectedOrder.items?.map((item: any) => (
                           <div key={item.id} className="flex gap-4 p-3 bg-primary-50/30 rounded-xl border border-primary-50">
                             <div className="w-14 h-14 bg-white rounded-lg overflow-hidden shrink-0 border border-primary-100">
-                              {item.product?.primary_image && (<img src={`http://127.0.0.1:8000${item.product.primary_image.image_url}`} alt={item.product_name} className="w-full h-full object-cover" />)}
+                              {item.product?.primary_image && (<img src={`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}${item.product.primary_image.image_url}`} alt={item.product_name} className="w-full h-full object-cover" />)}
                             </div>
                             <div className="flex-1 min-w-0">
                               <h4 className="font-bold text-primary-900 text-sm truncate">{item.product_name}</h4>
                               <p className="text-xs text-primary-500">الكمية: {item.quantity} × {item.unit_price} ر.س</p>
-                              {item.gift_message && item.gift_message.message && (<p className="text-xs text-primary-700 bg-white p-1.5 mt-1.5 rounded border border-primary-100 font-medium truncate">رسالة: "{item.gift_message.message}"</p>)}
+                              {((item.options && item.options.message) || (item.gift_message && item.gift_message.message)) && (<p className="text-xs text-primary-700 bg-white p-1.5 mt-1.5 rounded border border-primary-100 font-medium truncate">رسالة: "{item.options?.message || item.gift_message?.message}"</p>)}
                             </div>
                             <div className="font-bold text-primary-900 text-sm whitespace-nowrap">{item.total_price} ر.س</div>
                           </div>

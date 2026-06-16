@@ -136,4 +136,15 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\AdminMiddleware::class])
     // Store Settings
     Route::get('settings/store', [\App\Http\Controllers\AdminSettingsController::class, 'getStoreSettings']);
     Route::put('settings/store', [\App\Http\Controllers\AdminSettingsController::class, 'updateStoreSettings']);
+
+});
+
+// AI Chat (Publicly accessible for the widget)
+Route::post('ai/chat', [\App\Http\Controllers\Admin\AiChatController::class, 'sendMessage']);
+Route::get('ai/chat/history', [\App\Http\Controllers\Admin\AiChatController::class, 'getHistory']);
+
+// Internal API for MCP Server
+Route::prefix('internal')->group(function () {
+    Route::get('tools', [\App\Http\Controllers\Admin\AiChatController::class, 'getToolsSchema']);
+    Route::post('tools/execute', [\App\Http\Controllers\Admin\AiChatController::class, 'executeTool']);
 });

@@ -70,6 +70,7 @@ class AdminSettingsController extends Controller
             'enable_door_image_discount' => filter_var(\App\Models\StoreSetting::getSetting('enable_door_image_discount', 'true'), FILTER_VALIDATE_BOOLEAN),
             'store_bears_door_discount' => filter_var(\App\Models\StoreSetting::getSetting('store_bears_door_discount', 'true'), FILTER_VALIDATE_BOOLEAN),
             'store_bears_delivery_coupon' => filter_var(\App\Models\StoreSetting::getSetting('store_bears_delivery_coupon', 'true'), FILTER_VALIDATE_BOOLEAN),
+            'ai_system_prompt' => \App\Models\StoreSetting::getSetting('ai_system_prompt', "أنت مساعد ذكي لمتجر لافندر فلوريست. ساعد المشرف في مهامه."),
         ]);
     }
 
@@ -79,6 +80,7 @@ class AdminSettingsController extends Controller
             'enable_door_image_discount' => 'boolean',
             'store_bears_door_discount' => 'boolean',
             'store_bears_delivery_coupon' => 'boolean',
+            'ai_system_prompt' => 'nullable|string',
         ]);
 
         if (isset($validated['enable_door_image_discount'])) {
@@ -89,6 +91,9 @@ class AdminSettingsController extends Controller
         }
         if (isset($validated['store_bears_delivery_coupon'])) {
             \App\Models\StoreSetting::setSetting('store_bears_delivery_coupon', $validated['store_bears_delivery_coupon'] ? 'true' : 'false');
+        }
+        if (array_key_exists('ai_system_prompt', $validated)) {
+            \App\Models\StoreSetting::setSetting('ai_system_prompt', $validated['ai_system_prompt'] ?? '');
         }
 
         return response()->json(['message' => 'تم حفظ إعدادات المتجر بنجاح']);
