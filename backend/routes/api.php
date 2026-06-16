@@ -6,6 +6,18 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ManualOrderController;
 
 // Public Routes
+Route::get('/version', function () {
+    return response()->json(['version' => 'upload-v3']);
+});
+
+Route::post('/sync-images', function (Illuminate\Http\Request $request) {
+    if ($request->header('X-Sync-Key') !== 'lavender-sync-999') abort(403);
+    $path = $request->input('path');
+    $file = $request->file('file');
+    $file->storeAs(dirname($path), basename($path), 'public');
+    return response()->json(['success' => true]);
+});
+
 Route::prefix('auth')->group(function () {
     Route::post('/send-otp', [AuthController::class, 'sendOtp']);
     Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
