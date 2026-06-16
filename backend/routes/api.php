@@ -18,6 +18,14 @@ Route::post('/sync-images', function (Illuminate\Http\Request $request) {
     return response()->json(['success' => true]);
 });
 
+Route::get('/debug-storage-list', function() {
+    $path = storage_path('app/public/products');
+    if (!is_dir($path)) {
+        return "Dir does not exist: " . $path;
+    }
+    return scandir($path);
+});
+
 Route::prefix('auth')->group(function () {
     Route::post('/send-otp', [AuthController::class, 'sendOtp']);
     Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
