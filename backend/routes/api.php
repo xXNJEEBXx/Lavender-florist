@@ -6,9 +6,23 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ManualOrderController;
 
 // Public Routes
-Route::get('/fix-storage', function () {
-    \Illuminate\Support\Facades\Artisan::call('storage:link');
-    return \Illuminate\Support\Facades\Artisan::output();
+Route::get('/debug-storage', function() {
+    $linkExists = file_exists(public_path('storage'));
+    $linkTarget = is_link(public_path('storage')) ? readlink(public_path('storage')) : 'Not a link';
+    $fileExists = file_exists(storage_path('app/public/products/photo_122@11-06-2026_22-19-41.jpg'));
+    
+    $files = [];
+    if (file_exists(storage_path('app/public/products'))) {
+        $files = array_slice(scandir(storage_path('app/public/products')), 0, 10);
+    }
+    
+    return [
+        'linkExists' => $linkExists,
+        'linkTarget' => $linkTarget,
+        'fileExists' => $fileExists,
+        'files' => $files,
+        'path' => storage_path('app/public/products/photo_122@11-06-2026_22-19-41.jpg')
+    ];
 });
 Route::prefix('auth')->group(function () {
     Route::post('/send-otp', [AuthController::class, 'sendOtp']);
