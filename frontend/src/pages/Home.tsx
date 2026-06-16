@@ -74,7 +74,7 @@ export default function Home() {
             playsInline 
             className="absolute inset-0 w-full h-full object-cover blur-[8px] opacity-80 scale-105"
           >
-            <source src="/Video image display.mp4" type="video/mp4" />
+            <source src="/video-image-display.mp4" type="video/mp4" />
           </video>
           <div className="absolute inset-0 bg-white/40 mix-blend-screen"></div>
           <div className="absolute inset-0 bg-gradient-to-t from-primary-50 via-transparent to-transparent"></div>
