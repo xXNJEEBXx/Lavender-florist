@@ -10,9 +10,6 @@ export default function Cart() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const deliveryFee = 15.00;
-  const total = subtotal + deliveryFee;
-
   const handleCheckoutClick = () => {
     // If it's a shared session, no need to require login strictly unless you want to.
     // The Complete Draft Order endpoint doesn't require auth token.
@@ -134,17 +131,13 @@ export default function Cart() {
                   <span>المجموع الفرعي</span>
                   <span className="font-medium">{subtotal} ر.س</span>
                 </div>
-                <div className="flex justify-between">
-                  <span>رسوم التوصيل</span>
-                  <span className="font-medium">{deliveryFee} ر.س</span>
-                </div>
               </div>
               
               <hr className="border-primary-100 mb-6" />
               
               <div className="flex justify-between items-center mb-8">
                 <span className="font-bold text-primary-900 text-lg">المجموع الإجمالي</span>
-                <span className="font-bold text-accent-700 text-2xl">{total} ر.س</span>
+                <span className="font-bold text-accent-700 text-2xl">{subtotal} ر.س</span>
               </div>
               
               <p className="text-xs text-primary-500 mb-6">السعر يشمل ضريبة القيمة المضافة 15%</p>

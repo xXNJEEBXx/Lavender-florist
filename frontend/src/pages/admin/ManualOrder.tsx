@@ -781,16 +781,19 @@ export default function ManualOrder() {
           </button>
         }
       >
-        <div className="flex flex-col">
-              <div className="h-[400px] w-full relative">
+        <div className="flex flex-col gap-4">
+              <div className="w-full relative h-[60vh] sm:h-[400px] min-h-[300px] rounded-xl overflow-hidden border border-gray-200 shadow-inner">
                 <GoogleMap
                   mapContainerStyle={{ width: '100%', height: '100%' }}
                   center={mapCenter}
                   zoom={15}
                   options={{
+                    disableDefaultUI: true,
+                    keyboardShortcuts: false,
                     streetViewControl: false,
                     mapTypeControl: false,
                     fullscreenControl: false,
+                    zoomControl: true,
                   }}
                   onClick={(e) => {
                     if (e.latLng) {
@@ -804,10 +807,10 @@ export default function ManualOrder() {
                 </GoogleMap>
               </div>
               
-              <div className="p-6 bg-white flex justify-end gap-3 border-t border-gray-100">
+              <div className="flex justify-end gap-3 pt-2">
                 <button 
                   onClick={() => setIsMapModalOpen(false)}
-                  className="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+                  className="flex-1 sm:flex-none px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition-colors"
                 >
                   إلغاء
                 </button>
@@ -827,7 +830,7 @@ export default function ManualOrder() {
                       });
                     }
                   }}
-                  className="px-8 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-colors shadow-lg disabled:opacity-50"
+                  className="flex-1 sm:flex-none px-8 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-colors shadow-lg disabled:opacity-50"
                 >
                   تأكيد الموقع
                 </button>
