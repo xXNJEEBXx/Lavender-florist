@@ -346,7 +346,7 @@ export default function OrdersList() {
           if (order.driver_id === null) {
              return (
               <button
-                onClick={(e) => { e.stopPropagation(); handleSendToDeliveryFromRow(order, false); }}
+                onClick={(e) => { e.stopPropagation(); handleSendToDeliveryFromRow(order); }}
                 disabled={updatingRowId === order.id}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-primary-600 text-white hover:bg-primary-700 transition-colors disabled:opacity-50 whitespace-nowrap"
               >
@@ -864,7 +864,7 @@ export default function OrdersList() {
                             <CheckCircle2 className="w-5 h-5" /> الطلب جاهز للاستلام
                           </button>
                         ) : (
-                          <button onClick={() => handleSendToDelivery(false)} disabled={isUpdatingStatus || selectedOrder.driver_id !== null} className="bg-primary-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-primary-700 transition-colors shadow-lg shadow-primary-500/20 disabled:opacity-50 flex items-center gap-2 whitespace-nowrap">
+                          <button onClick={() => handleSendToDelivery()} disabled={isUpdatingStatus || selectedOrder.driver_id !== null} className="bg-primary-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-primary-700 transition-colors shadow-lg shadow-primary-500/20 disabled:opacity-50 flex items-center gap-2 whitespace-nowrap">
                             <Truck className="w-5 h-5" /> تم التجهيز (إرسال للمندوب)
                           </button>
                         )}
