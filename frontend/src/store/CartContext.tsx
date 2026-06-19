@@ -99,7 +99,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       } catch (err: any) {
         if (err?.response?.status === 404) {
           // Token expired or order completed
-          toast.error('انتهت الجلسة المشتركة أو اكتمل الطلب');
+          toast.success('تم إنهاء الجلسة المشتركة بنجاح');
           exitSharedSession();
         }
       } finally {
