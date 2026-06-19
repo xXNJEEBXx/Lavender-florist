@@ -551,9 +551,9 @@ export default function Checkout() {
         exitSharedSession();
       } else {
         response = await publicProductsApi.checkout(payload);
+        clearCart();
       }
       
-      clearCart();
       navigate(`/orders/${response.order.order_number}`);
       
     } catch (err: any) {
