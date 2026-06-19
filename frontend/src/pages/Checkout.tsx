@@ -14,7 +14,7 @@ const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 
 export default function Checkout() {
   const { items, subtotal, clearCart, isSharedSession, sharedToken, exitSharedSession, isLoading: isCartLoading } = useCart();
-  const { isAuthenticated, isLoading: isAuthLoading, setUser, user } = useAuth();
+  const { isAuthenticated, isLoading: isAuthLoading, setUser, user, openLoginModal } = useAuth();
   const navigate = useNavigate();
 
   const { isLoaded } = useJsApiLoader({
@@ -132,8 +132,12 @@ export default function Checkout() {
       loadAddresses();
     } else {
       setIsAddressesLoading(false);
+      if (!isSharedSession) {
+        openLoginModal();
+        navigate('/cart', { replace: true });
+      }
     }
-  }, [isAuthenticated, isAuthLoading]);
+  }, [isAuthenticated, isAuthLoading, isSharedSession, navigate, openLoginModal]);
 
   useEffect(() => {
     loadQueueStatus();

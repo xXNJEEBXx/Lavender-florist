@@ -6,13 +6,15 @@ import { Trash2, Loader2 } from 'lucide-react';
 
 export default function Cart() {
   const { items, updateQuantity, removeItem, subtotal, getAvailableStock, isSharedSession, exitSharedSession, isLoading } = useCart();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, openLoginModal } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   const handleCheckoutClick = () => {
-    // If it's a shared session, no need to require login strictly unless you want to.
-    // The Complete Draft Order endpoint doesn't require auth token.
+    if (!isAuthenticated && !isSharedSession) {
+      openLoginModal();
+      return;
+    }
     navigate('/checkout');
   };
 
